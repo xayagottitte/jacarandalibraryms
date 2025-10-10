@@ -1,0 +1,242 @@
+<?php
+class Borrow extends Model {
+    protected $table = 'borrows';
+
+    public function __construct() {
+        parent::__construct();
+    }
+
+    public function borrowBook($bookId, $studentId, $librarianId, $dueDays = 14) {
+        $this->db->beginTransaction();
+
+        try {
+            // Check if book is available
+            $bookQuery = "SELECT available_copies, title FROM books WHERE id = :book_id FOR UPDATE";
+            $bookStmt = $this->db->prepare($bookQuery);
+            $bookStmt->bindParam(':book_id', $bookId);
+            $bookStmt->execute();
+            $book = $bookStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$book || $book['available_copies'] <= 0) {
+                throw new Exception("Book '{$book['title']}' is not available for borrowing.");
+            }
+
+            // Check if student has reached borrow limit
+            $borrowCountQuery = "SELECT COUNT(*) as count FROM borrows 
+                                WHERE student_id = :student_id AND status IN ('borrowed', 'overdue')";
+            $borrowCountStmt = $this->db->prepare($borrowCountQuery);
+            $borrowCountStmt->bindParam(':student_id', $studentId);
+            $borrowCountStmt->execute();
+            $borrowCount = $borrowCountStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($borrowCount['count'] >= 5) {
+                throw new Exception("Student has reached the maximum borrowing limit (5 books).");
+            }
+
+            // Check if student already has this book
+            $existingBorrowQuery = "SELECT id FROM borrows 
+                                   WHERE student_id = :student_id AND book_id = :book_id AND status IN ('borrowed', 'overdue')";
+            $existingBorrowStmt = $this->db->prepare($existingBorrowQuery);
+            $existingBorrowStmt->bindParam(':student_id', $studentId);
+            $existingBorrowStmt->bindParam(':book_id', $bookId);
+            $existingBorrowStmt->execute();
+            
+            if ($existingBorrowStmt->fetch(PDO::FETCH_ASSOC)) {
+                throw new Exception("Student already has this book borrowed.");
+            }
+
+            // Create borrow record
+            $borrowData = [
+                'book_id' => $bookId,
+                'student_id' => $studentId,
+                'borrowed_date' => date('Y-m-d'),
+                'due_date' => date('Y-m-d', strtotime("+$dueDays days")),
+                'status' => 'borrowed',
+                'created_by' => $librarianId
+            ];
+
+            $borrowQuery = "INSERT INTO borrows (book_id, student_id, borrowed_date, due_date, status, created_by) 
+                           VALUES (:book_id, :student_id, :borrowed_date, :due_date, :status, :created_by)";
+            $borrowStmt = $this->db->prepare($borrowQuery);
+            $borrowStmt->execute($borrowData);
+
+            // Update book copies
+            $updateBookQuery = "UPDATE books SET available_copies = available_copies - 1 WHERE id = :book_id";
+            $updateBookStmt = $this->db->prepare($updateBookQuery);
+            $updateBookStmt->bindParam(':book_id', $bookId);
+            $updateBookStmt->execute();
+
+            $this->db->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function returnBook($borrowId, $librarianId) {
+        $this->db->beginTransaction();
+
+        try {
+            // Get borrow record
+            $borrowQuery = "SELECT br.*, bk.title, s.full_name as student_name 
+                           FROM borrows br
+                           JOIN books bk ON br.book_id = bk.id
+                           JOIN students s ON br.student_id = s.id
+                           WHERE br.id = :borrow_id";
+            $borrowStmt = $this->db->prepare($borrowQuery);
+            $borrowStmt->bindParam(':borrow_id', $borrowId);
+            $borrowStmt->execute();
+            $borrow = $borrowStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$borrow) {
+                throw new Exception("Borrow record not found.");
+            }
+
+            if ($borrow['status'] === 'returned') {
+                throw new Exception("Book '{$borrow['title']}' has already been returned by {$borrow['student_name']}.");
+            }
+
+            // Calculate fine if overdue
+            $returnDate = date('Y-m-d');
+            $dueDate = $borrow['due_date'];
+            $fineAmount = 0;
+
+            if (strtotime($returnDate) > strtotime($dueDate)) {
+                $daysOverdue = floor((strtotime($returnDate) - strtotime($dueDate)) / (60 * 60 * 24));
+                $fineAmount = $daysOverdue * 5; // $5 per day overdue
+            }
+
+            // Update borrow record
+            $updateBorrowQuery = "UPDATE borrows SET 
+                                 returned_date = :returned_date,
+                                 status = 'returned',
+                                 fine_amount = :fine_amount,
+                                 updated_at = NOW()
+                                 WHERE id = :borrow_id";
+            $updateBorrowStmt = $this->db->prepare($updateBorrowQuery);
+            $updateBorrowStmt->bindParam(':returned_date', $returnDate);
+            $updateBorrowStmt->bindParam(':fine_amount', $fineAmount);
+            $updateBorrowStmt->bindParam(':borrow_id', $borrowId);
+            $updateBorrowStmt->execute();
+
+            // Update book copies
+            $updateBookQuery = "UPDATE books SET available_copies = available_copies + 1 WHERE id = :book_id";
+            $updateBookStmt = $this->db->prepare($updateBookQuery);
+            $updateBookStmt->bindParam(':book_id', $borrow['book_id']);
+            $updateBookStmt->execute();
+
+            $this->db->commit();
+            return [
+                'success' => true, 
+                'fine_amount' => $fineAmount,
+                'book_title' => $borrow['title'],
+                'student_name' => $borrow['student_name']
+            ];
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function getBorrowsByLibrary($libraryId, $filters = []) {
+        $query = "SELECT br.*, 
+                         bk.title, bk.author, bk.isbn,
+                         s.full_name as student_name, s.student_id, s.class,
+                         u.username as librarian_name,
+                         DATEDIFF(CURDATE(), br.due_date) as days_overdue_calc
+                  FROM borrows br
+                  JOIN books bk ON br.book_id = bk.id
+                  JOIN students s ON br.student_id = s.id
+                  JOIN users u ON br.created_by = u.id
+                  WHERE bk.library_id = :library_id";
+        
+        $params = ['library_id' => $libraryId];
+
+        if (!empty($filters['status'])) {
+            $query .= " AND br.status = :status";
+            $params['status'] = $filters['status'];
+        }
+
+        if (!empty($filters['student_id'])) {
+            $query .= " AND s.student_id LIKE :student_id";
+            $params['student_id'] = '%' . $filters['student_id'] . '%';
+        }
+
+        if (!empty($filters['book_title'])) {
+            $query .= " AND bk.title LIKE :book_title";
+            $params['book_title'] = '%' . $filters['book_title'] . '%';
+        }
+
+        $query .= " ORDER BY br.borrowed_date DESC, br.status";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getActiveBorrowsByStudent($studentId) {
+        $query = "SELECT br.*, bk.title, bk.author, bk.isbn,
+                         DATEDIFF(br.due_date, CURDATE()) as days_remaining,
+                         CASE 
+                           WHEN CURDATE() > br.due_date THEN DATEDIFF(CURDATE(), br.due_date)
+                           ELSE 0 
+                         END as days_overdue
+                  FROM borrows br
+                  JOIN books bk ON br.book_id = bk.id
+                  WHERE br.student_id = :student_id 
+                  AND br.status IN ('borrowed', 'overdue')
+                  ORDER BY br.due_date ASC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':student_id', $studentId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getOverdueBorrows($libraryId) {
+        $query = "SELECT br.*, 
+                         bk.title, bk.author,
+                         s.full_name as student_name, s.student_id, s.class,
+                         DATEDIFF(CURDATE(), br.due_date) as days_overdue
+                  FROM borrows br
+                  JOIN books bk ON br.book_id = bk.id
+                  JOIN students s ON br.student_id = s.id
+                  WHERE bk.library_id = :library_id 
+                  AND br.status = 'borrowed' 
+                  AND br.due_date < CURDATE()
+                  ORDER BY br.due_date ASC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateOverdueStatus() {
+        $query = "UPDATE borrows SET status = 'overdue' 
+                  WHERE status = 'borrowed' AND due_date < CURDATE()";
+        $stmt = $this->db->prepare($query);
+        return $stmt->execute();
+    }
+
+    public function getBorrowStatistics($libraryId) {
+        $query = "SELECT 
+                  COUNT(*) as total_borrows,
+                  SUM(CASE WHEN status = 'borrowed' THEN 1 ELSE 0 END) as current_borrows,
+                  SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as overdue_books,
+                  SUM(fine_amount) as total_fines,
+                  SUM(paid_amount) as paid_fines
+                  FROM borrows br
+                  JOIN books bk ON br.book_id = bk.id
+                  WHERE bk.library_id = :library_id";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+}
+?>
