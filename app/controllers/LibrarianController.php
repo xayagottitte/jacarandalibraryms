@@ -70,6 +70,7 @@ class LibrarianController extends Controller {
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
                 'category' => $_POST['category'] ?? null,
+                'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1,
                 'available_copies' => $_POST['total_copies'] ?? 1,
                 'library_id' => $libraryId,
@@ -78,13 +79,7 @@ class LibrarianController extends Controller {
 
             // Check if ISBN already exists
             if (!empty($data['isbn'])) {
-                $query = "SELECT id FROM books WHERE isbn = :isbn AND library_id = :library_id";
-                $stmt = $this->bookModel->db->prepare($query);
-                $stmt->bindParam(':isbn', $data['isbn']);
-                $stmt->bindParam(':library_id', $libraryId);
-                $stmt->execute();
-                
-                if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                if ($this->bookModel->checkISBNExists($data['isbn'], $libraryId)) {
                     $_SESSION['error'] = "A book with this ISBN already exists in your library.";
                     $this->redirect('/librarian/create-book');
                     return;
@@ -100,8 +95,11 @@ class LibrarianController extends Controller {
             }
         }
 
+        $library = $this->libraryModel->find($libraryId);
         $data = [
-            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId)
+            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
+            'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
+            'library' => $library
         ];
         $this->view('librarian/create-book', $data);
     }
@@ -118,39 +116,15 @@ class LibrarianController extends Controller {
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
                 'category' => $_POST['category'] ?? null,
+                'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1
             ];
 
             // Calculate available copies based on current borrows
-            $borrowQuery = "SELECT COUNT(*) as borrowed_count FROM borrows 
-                           WHERE book_id = :book_id AND status IN ('borrowed', 'overdue')";
-            $borrowStmt = $this->bookModel->db->prepare($borrowQuery);
-            $borrowStmt->bindParam(':book_id', $id);
-            $borrowStmt->execute();
-            $borrowCount = $borrowStmt->fetch(PDO::FETCH_ASSOC);
-
+            $borrowCount = $this->bookModel->getBorrowedCount($id);
             $data['available_copies'] = max(0, $data['total_copies'] - $borrowCount['borrowed_count']);
 
-            $query = "UPDATE books SET 
-                     title = :title, author = :author, isbn = :isbn, 
-                     publisher = :publisher, publication_year = :publication_year,
-                     category = :category, total_copies = :total_copies, 
-                     available_copies = :available_copies 
-                     WHERE id = :id AND library_id = :library_id";
-
-            $stmt = $this->bookModel->db->prepare($query);
-            $stmt->bindParam(':title', $data['title']);
-            $stmt->bindParam(':author', $data['author']);
-            $stmt->bindParam(':isbn', $data['isbn']);
-            $stmt->bindParam(':publisher', $data['publisher']);
-            $stmt->bindParam(':publication_year', $data['publication_year']);
-            $stmt->bindParam(':category', $data['category']);
-            $stmt->bindParam(':total_copies', $data['total_copies']);
-            $stmt->bindParam(':available_copies', $data['available_copies']);
-            $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':library_id', $libraryId);
-
-            if ($stmt->execute()) {
+            if ($this->bookModel->updateBook($data, $id, $libraryId)) {
                 $_SESSION['success'] = "Book updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update book.";
@@ -168,9 +142,12 @@ class LibrarianController extends Controller {
             return;
         }
 
+        $library = $this->libraryModel->find($libraryId);
         $data = [
             'book' => $book,
-            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId)
+            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
+            'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
+            'library' => $library
         ];
         $this->view('librarian/edit-book', $data);
     }
@@ -181,22 +158,12 @@ class LibrarianController extends Controller {
             $libraryId = $_SESSION['library_id'];
             
             // Check if book has active borrows
-            $checkQuery = "SELECT COUNT(*) as count FROM borrows 
-                          WHERE book_id = :book_id AND status IN ('borrowed', 'overdue')";
-            $stmt = $this->bookModel->db->prepare($checkQuery);
-            $stmt->bindParam(':book_id', $id);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $this->bookModel->checkActiveBorrows($id);
 
             if ($result['count'] > 0) {
                 $_SESSION['error'] = "Cannot delete book. It has active borrows.";
             } else {
-                $deleteQuery = "DELETE FROM books WHERE id = :id AND library_id = :library_id";
-                $deleteStmt = $this->bookModel->db->prepare($deleteQuery);
-                $deleteStmt->bindParam(':id', $id);
-                $deleteStmt->bindParam(':library_id', $libraryId);
-                
-                if ($deleteStmt->execute()) {
+                if ($this->bookModel->deleteBook($id, $libraryId)) {
                     $_SESSION['success'] = "Book deleted successfully!";
                 } else {
                     $_SESSION['error'] = "Failed to delete book.";
@@ -315,22 +282,7 @@ class LibrarianController extends Controller {
                 'status' => $_POST['status'] ?? 'active'
             ];
 
-            $query = "UPDATE students SET 
-                     full_name = :full_name, email = :email, phone = :phone,
-                     class = :class, section = :section, status = :status
-                     WHERE id = :id AND library_id = :library_id";
-
-            $stmt = $studentModel->db->prepare($query);
-            $stmt->bindParam(':full_name', $data['full_name']);
-            $stmt->bindParam(':email', $data['email']);
-            $stmt->bindParam(':phone', $data['phone']);
-            $stmt->bindParam(':class', $data['class']);
-            $stmt->bindParam(':section', $data['section']);
-            $stmt->bindParam(':status', $data['status']);
-            $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':library_id', $libraryId);
-
-            if ($stmt->execute()) {
+            if ($studentModel->updateStudent($id, $data, $libraryId)) {
                 $_SESSION['success'] = "Student updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update student.";
@@ -398,10 +350,12 @@ class LibrarianController extends Controller {
         // GET request - show borrow form
         $bookModel = new Book();
         $studentModel = new Student();
+        $libraryModel = new Library();
         
         $data = [
             'books' => $bookModel->getBooksByLibrary($libraryId, ['status' => 'available']),
-            'students' => $studentModel->getStudentsByLibrary($libraryId)
+            'students' => $studentModel->getStudentsByLibrary($libraryId),
+            'loan_period' => $libraryModel->getLoanPeriod($libraryId)
         ];
         $this->view('librarian/borrow-book', $data);
     }
@@ -446,12 +400,7 @@ class LibrarianController extends Controller {
             }
 
             // Find book by ISBN
-            $bookQuery = "SELECT id, available_copies, title FROM books WHERE isbn = :isbn AND library_id = :library_id";
-            $bookStmt = $bookModel->db->prepare($bookQuery);
-            $bookStmt->bindParam(':isbn', $isbn);
-            $bookStmt->bindParam(':library_id', $libraryId);
-            $bookStmt->execute();
-            $book = $bookStmt->fetch(PDO::FETCH_ASSOC);
+            $book = $bookModel->getBookByISBN($isbn, $libraryId);
 
             if (!$book) {
                 $_SESSION['error'] = "Book not found with ISBN: " . $isbn;
@@ -488,10 +437,10 @@ class LibrarianController extends Controller {
         $studentModel = new Student();
         
         $data = [
-            'book_stats' => $reportModel->getLibraryStatistics($libraryId),
+            'book_stats' => $bookModel->getDashboardStats($libraryId),
             'categories' => $bookModel->getCategoriesByLibrary($libraryId),
             'classes' => $studentModel->getClassesByLibrary($libraryId),
-            'saved_reports' => (new Report())->getUserReports($_SESSION['user_id'])
+            'saved_reports' => $reportModel->getUserReports($_SESSION['user_id'])
         ];
         
         $this->view('librarian/reports', $data);

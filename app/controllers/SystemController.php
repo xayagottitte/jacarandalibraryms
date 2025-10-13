@@ -5,7 +5,6 @@ class SystemController extends Controller {
     private $userPreferences;
 
     public function __construct() {
-        session_start();
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super_admin') {
             $this->redirect('/login');
         }
@@ -88,9 +87,18 @@ class SystemController extends Controller {
 
     public function userPreferences() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            foreach ($_POST['preferences'] as $key => $value) {
+            // Save each preference from the form
+            $preferences = [
+                'theme', 'language', 'timezone', 'date_format', 
+                'items_per_page', 'default_view', 'email_notifications',
+                'browser_notifications', 'daily_summary', 'system_alerts'
+            ];
+            
+            foreach ($preferences as $key) {
+                $value = $_POST[$key] ?? '0';
                 $this->userPreferences->setPreference($_SESSION['user_id'], $key, $value);
             }
+            
             $_SESSION['success'] = "Preferences updated successfully!";
             $this->redirect('/system/preferences');
             return;

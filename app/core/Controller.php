@@ -12,6 +12,10 @@ class Controller {
     }
 
     protected function redirect($url) {
+        // Add base path if not already included
+        if (!str_starts_with($url, 'http') && !str_starts_with($url, BASE_PATH)) {
+            $url = BASE_PATH . $url;
+        }
         header("Location: " . $url);
         exit();
     }

@@ -1,26 +1,25 @@
 <?php 
 $title = "Advanced Reports - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/admin-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Advanced Reports & Analytics</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Advanced Reports & Analytics</h3>
     </div>
 
     <!-- Advanced Report Generator -->
-    <div class="card mb-4">
+    <div class="card mb-3 shadow-sm">
         <div class="card-header">
-            <h5 class="mb-0">Generate Advanced Report</h5>
+            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Generate Advanced Report</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-3">
             <form id="advancedReportForm">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="report_type" class="form-label">Report Type</label>
-                            <select class="form-select" id="report_type" name="report_type" required>
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="mb-2">
+                            <label for="report_type" class="form-label form-label-sm">Report Type</label>
+                            <select class="form-select form-select-sm" id="report_type" name="report_type" required>
                                 <option value="">Select Report Type</option>
                                 <option value="comprehensive">Comprehensive Library Report</option>
                                 <option value="analytics">Library Analytics</option>
@@ -28,10 +27,10 @@ include '../app/views/shared/admin-sidebar.php';
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="library_id" class="form-label">Library</label>
-                            <select class="form-select" id="library_id" name="library_id">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="mb-2">
+                            <label for="library_id" class="form-label form-label-sm">Library</label>
+                            <select class="form-select form-select-sm" id="library_id" name="library_id">
                                 <option value="">All Libraries</option>
                                 <?php foreach ($libraries as $library): ?>
                                     <option value="<?= $library['id'] ?>"><?= htmlspecialchars($library['name']) ?></option>
@@ -39,22 +38,28 @@ include '../app/views/shared/admin-sidebar.php';
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="report_title" class="form-label">Report Title</label>
-                            <input type="text" class="form-control" id="report_title" name="report_title" required>
+                    <div class="col-lg-4 col-md-8">
+                        <div class="mb-2">
+                            <label for="report_title" class="form-label form-label-sm">Report Title</label>
+                            <input type="text" class="form-control form-control-sm" id="report_title" name="report_title" required>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label form-label-sm">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-chart-bar me-1"></i> Generate Report
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Dynamic Filters -->
-                <div id="advancedFilters" class="row mb-3" style="display: none;">
+                <div id="advancedFilters" class="row g-3 mb-3" style="display: none;">
                     <!-- Filters will be loaded here based on report type -->
                 </div>
-
-                <button type="submit" class="btn btn-primary" id="generateAdvancedReport">
-                    <i class="fas fa-chart-bar"></i> Generate Advanced Report
-                </button>
             </form>
         </div>
     </div>
@@ -88,46 +93,46 @@ include '../app/views/shared/admin-sidebar.php';
     </div>
 
     <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
+    <div class="row mb-3 g-3">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card text-white bg-info border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title">Total Reports</h6>
-                            <h4><?= count($saved_reports) ?></h4>
+                            <h6 class="card-title mb-1 fs-6">Total Reports</h6>
+                            <h4 class="mb-0"><?= count($saved_reports) ?></h4>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-chart-bar fa-2x"></i>
+                        <div>
+                            <i class="fas fa-chart-bar fa-lg opacity-75"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card text-white bg-success border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title">This Month</h6>
-                            <h4><?= count(array_filter($saved_reports, function($r) {
+                            <h6 class="card-title mb-1 fs-6">This Month</h6>
+                            <h4 class="mb-0"><?= count(array_filter($saved_reports, function($r) {
                                 return date('Y-m') === date('Y-m', strtotime($r['created_at']));
                             })) ?></h4>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-calendar fa-2x"></i>
+                        <div>
+                            <i class="fas fa-calendar fa-lg opacity-75"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card text-white bg-warning border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title">Most Active</h6>
-                            <h4>
+                            <h6 class="card-title mb-1 fs-6">Most Active</h6>
+                            <h4 class="mb-0">
                                 <?php
                                 $types = array_count_values(array_column($saved_reports, 'type'));
                                 arsort($types);
@@ -135,25 +140,25 @@ include '../app/views/shared/admin-sidebar.php';
                                 ?>
                             </h4>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-star fa-2x"></i>
+                        <div>
+                            <i class="fas fa-star fa-lg opacity-75"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-primary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card text-white bg-primary border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title">Your Reports</h6>
-                            <h4><?= count(array_filter($saved_reports, function($r) {
+                            <h6 class="card-title mb-1 fs-6">Your Reports</h6>
+                            <h4 class="mb-0"><?= count(array_filter($saved_reports, function($r) {
                                 return $r['generated_by'] == $_SESSION['user_id'];
                             })) ?></h4>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-user fa-2x"></i>
+                        <div>
+                            <i class="fas fa-user fa-lg opacity-75"></i>
                         </div>
                     </div>
                 </div>
@@ -162,16 +167,16 @@ include '../app/views/shared/admin-sidebar.php';
     </div>
 
     <!-- Saved Reports -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Saved Reports</h5>
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <h5 class="mb-0"><i class="fas fa-save me-2"></i>Saved Reports</h5>
             <button class="btn btn-sm btn-outline-danger" id="cleanupReports">
                 <i class="fas fa-trash"></i> Cleanup Old Reports
             </button>
         </div>
-        <div class="card-body">
+        <div class="card-body p-3">
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped table-sm table-hover mb-0">
                     <thead>
                         <tr>
                             <th>Title</th>
@@ -218,7 +223,6 @@ include '../app/views/shared/admin-sidebar.php';
             </div>
         </div>
     </div>
-</main>
 
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -585,4 +589,80 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<style>
+.form-label-sm {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.form-control-sm, .form-select-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+}
+
+.table th {
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    vertical-align: middle;
+}
+
+.btn-sm {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.fs-6 {
+    font-size: 0.875rem;
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+
+/* Compact layout improvements */
+.card-body {
+    padding: 1rem;
+}
+
+.card-header {
+    padding: 0.75rem 1rem;
+    background: rgba(102, 51, 153, 0.05);
+    border-bottom: 1px solid #e3e6f0;
+}
+
+/* Remove excessive spacing */
+.mb-3 {
+    margin-bottom: 0.75rem !important;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Improve responsive layout */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+}
+</style>
+
+<?php include '../app/views/shared/layout-footer.php'; ?>
 <?php include '../app/views/shared/footer.php'; ?>

@@ -1,17 +1,17 @@
 <?php 
 $title = "Borrow Management - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Borrow Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="/librarian/borrow-book" class="btn btn-primary me-2">
+            <a href="<?= BASE_PATH ?>/librarian/borrow-book" class="btn btn-primary me-2">
                 <i class="fas fa-book"></i> Borrow Book
             </a>
-            <a href="/librarian/quick-borrow" class="btn btn-success">
+            <a href="<?= BASE_PATH ?>/librarian/quick-borrow" class="btn btn-success">
                 <i class="fas fa-bolt"></i> Quick Borrow
             </a>
         </div>
@@ -99,7 +99,7 @@ include '../app/views/shared/librarian-sidebar.php';
     <!-- Search and Filter Form -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="POST" action="/librarian/borrows">
+            <form method="POST" action="<?= BASE_PATH ?>/librarian/borrows">
                 <div class="row">
                     <div class="col-md-3">
                         <label for="status" class="form-label">Status</label>
@@ -192,7 +192,7 @@ include '../app/views/shared/librarian-sidebar.php';
                                 </td>
                                 <td>
                                     <?php if ($borrow['status'] !== 'returned'): ?>
-                                        <form method="POST" action="/librarian/return-book" class="d-inline">
+                                        <form method="POST" action="<?= BASE_PATH ?>/librarian/return-book" class="d-inline">
                                             <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
                                             <button type="submit" class="btn btn-success btn-sm" title="Return Book">
                                                 <i class="fas fa-undo"></i> Return
@@ -216,6 +216,6 @@ include '../app/views/shared/librarian-sidebar.php';
             </div>
         </div>
     </div>
-</main>
+</div>
 
 <?php include '../app/views/shared/footer.php'; ?>

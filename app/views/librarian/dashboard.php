@@ -1,10 +1,10 @@
 <?php 
 $title = "Librarian Dashboard - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Librarian Dashboard</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
@@ -103,7 +103,7 @@ include '../app/views/shared/librarian-sidebar.php';
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Borrowings</h5>
-                    <a href="/librarian/borrows" class="btn btn-sm btn-primary">View All</a>
+                    <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-sm btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <?php if (!empty($recent_borrows)): ?>
@@ -194,25 +194,25 @@ include '../app/views/shared/librarian-sidebar.php';
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-md-3 mb-3">
-                            <a href="/librarian/quick-borrow" class="btn btn-success btn-lg w-100">
+                            <a href="<?= BASE_PATH ?>/librarian/quick-borrow" class="btn btn-success btn-lg w-100">
                                 <i class="fas fa-bolt fa-2x mb-2"></i><br>
                                 Quick Borrow
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="/librarian/create-book" class="btn btn-primary btn-lg w-100">
+                            <a href="<?= BASE_PATH ?>/librarian/create-book" class="btn btn-primary btn-lg w-100">
                                 <i class="fas fa-plus fa-2x mb-2"></i><br>
                                 Add Book
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="/librarian/create-student" class="btn btn-info btn-lg w-100">
+                            <a href="<?= BASE_PATH ?>/librarian/create-student" class="btn btn-info btn-lg w-100">
                                 <i class="fas fa-user-plus fa-2x mb-2"></i><br>
                                 Add Student
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="/librarian/reports" class="btn btn-warning btn-lg w-100">
+                            <a href="<?= BASE_PATH ?>/librarian/reports" class="btn btn-warning btn-lg w-100">
                                 <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
                                 View Reports
                             </a>
@@ -222,6 +222,6 @@ include '../app/views/shared/librarian-sidebar.php';
             </div>
         </div>
     </div>
-</main>
+</div>
 
 <?php include '../app/views/shared/footer.php'; ?>

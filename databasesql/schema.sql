@@ -21,6 +21,7 @@ CREATE TABLE libraries (
     name VARCHAR(100) NOT NULL,
     type ENUM('primary', 'secondary') NOT NULL,
     address TEXT,
+    loan_period_days INT DEFAULT 5 COMMENT 'Default loan period in days for this library',
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -70,6 +71,7 @@ CREATE TABLE books (
     publisher VARCHAR(255),
     publication_year INT,
     category VARCHAR(100),
+    class_level VARCHAR(10),
     total_copies INT DEFAULT 1,
     available_copies INT DEFAULT 1,
     library_id INT NOT NULL,
@@ -151,7 +153,7 @@ CREATE TABLE system_settings (
 
 -- Insert default system settings
 INSERT INTO system_settings (setting_key, setting_value, description) VALUES
-('loan_period_days', '14', 'Default loan period in days'),
+('loan_period_days', '5', 'Default loan period in days'),
 ('max_books_per_student', '5', 'Maximum books a student can borrow at once'),
 ('fine_per_day', '5', 'Fine amount per day for overdue books'),
 ('library_name', 'Multi-Library System', 'System-wide library name'),
@@ -244,5 +246,21 @@ CREATE TABLE password_resets (
     id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) NOT NULL,
     token VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- User preferences table
+CREATE TABLE user_preferences (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    preference_key VARCHAR(100) NOT NULL,
+    preference_value TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_preference (user_id, preference_key)
+);
+
+-- Add class_level column to existing books table
+ALTER TABLE books ADD COLUMN class_level VARCHAR(10) AFTER category;

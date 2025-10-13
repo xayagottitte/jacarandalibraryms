@@ -240,5 +240,17 @@ class Report extends Model {
         $stmt->bindParam(':days', $days, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    public function getUserReports($userId) {
+        $query = "SELECT * FROM reports WHERE generated_by = :user_id ORDER BY created_at DESC";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function saveReport($data) {
+        return $this->create($data);
+    }
 }
 ?>

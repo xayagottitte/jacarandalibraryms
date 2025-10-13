@@ -1,7 +1,7 @@
 <?php 
 $title = "System Maintenance - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/admin-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

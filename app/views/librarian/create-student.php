@@ -1,10 +1,10 @@
 <?php 
 $title = "Add Student - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Add New Student</h1>
         <a href="/librarian/students" class="btn btn-secondary">Back to Students</a>
@@ -84,6 +84,6 @@ include '../app/views/shared/librarian-sidebar.php';
             </form>
         </div>
     </div>
-</main>
+</div>
 
 <?php include '../app/views/shared/footer.php'; ?>

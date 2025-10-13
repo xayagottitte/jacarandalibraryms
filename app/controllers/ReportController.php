@@ -46,8 +46,8 @@ class ReportController extends Controller {
                     
                 case 'performance':
                     $data['monthly_summary'] = (new SystemStatistics())->getMonthlySummary($libraryId);
-                    $data['book_trend'] = (new SystemStatistics())->getStatisticsTrend($libraryId, 'total_books', 90);
-                    $data['borrow_trend'] = (new SystemStatistics())->getStatisticsTrend($libraryId, 'active_borrows', 90);
+                    $data['book_trend'] = (new SystemStatistics())->getStatisticsTrend('total_books', $libraryId, 90);
+                    $data['borrow_trend'] = (new SystemStatistics())->getStatisticsTrend('active_borrows', $libraryId, 90);
                     break;
                     
                 default:

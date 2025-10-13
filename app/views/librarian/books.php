@@ -1,16 +1,16 @@
 <?php 
 $title = "Book Management - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Book Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="/librarian/create-book" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Book
-            </a>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Book Inventory</h2>
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control form-control-sm" placeholder="Search by title, author, ISBN, or category" style="width: 300px;">
+            <button class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-search"></i>
+            </button>
         </div>
     </div>
 
@@ -29,97 +29,45 @@ include '../app/views/shared/librarian-sidebar.php';
         </div>
     <?php endif; ?>
 
-    <!-- Search and Filter Form -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="POST" action="/librarian/books">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">Search</label>
-                        <input type="text" class="form-control" id="search" name="search" 
-                               value="<?= htmlspecialchars($filters['search'] ?? '') ?>" 
-                               placeholder="Title, Author, or ISBN">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category">
-                            <option value="">All Categories</option>
-                            <?php foreach ($categories as $category): ?>
-                                <option value="<?= htmlspecialchars($category['category']) ?>" 
-                                    <?= ($filters['category'] ?? '') === $category['category'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($category['category']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Availability</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="">All</option>
-                            <option value="available" <?= ($filters['status'] ?? '') === 'available' ? 'selected' : '' ?>>Available</option>
-                            <option value="unavailable" <?= ($filters['status'] ?? '') === 'unavailable' ? 'selected' : '' ?>>Unavailable</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Books Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
+    <!-- Modern Books Table -->
+    <div class="modern-table-container">
+        <div class="table-responsive">
+            <table class="modern-table">
                     <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Author</th>
+                        <tr class="table-header">
+                            <th>TITLE</th>
+                            <th>AUTHOR</th>
                             <th>ISBN</th>
-                            <th>Category</th>
-                            <th>Copies</th>
-                            <th>Available</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th>CATEGORY</th>
+                            <th>AVAILABLE</th>
+                            <th>TOTAL</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($books as $book): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($book['title']) ?></td>
+                            <tr class="table-row">
+                                <td class="book-title"><?= htmlspecialchars($book['title']) ?></td>
                                 <td><?= htmlspecialchars($book['author']) ?></td>
-                                <td><?= htmlspecialchars($book['isbn'] ?? 'N/A') ?></td>
-                                <td>
-                                    <?php if ($book['category']): ?>
-                                        <span class="badge bg-info"><?= htmlspecialchars($book['category']) ?></span>
-                                    <?php else: ?>
-                                        <span class="text-muted">N/A</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= $book['total_copies'] ?></td>
-                                <td><?= $book['available_copies'] ?></td>
+                                <td class="isbn-code"><?= htmlspecialchars($book['isbn'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($book['category'] ?? '') ?></td>
+                                <td class="text-center"><span class="availability-number"><?= $book['available_copies'] ?></span></td>
+                                <td class="text-center"><?= $book['total_copies'] ?></td>
                                 <td>
                                     <?php if ($book['available_copies'] > 0): ?>
-                                        <span class="badge bg-success">Available</span>
+                                        <span class="status-badge available">Available</span>
                                     <?php else: ?>
-                                        <span class="badge bg-danger">Unavailable</span>
+                                        <span class="status-badge unavailable">Unavailable</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="/librarian/edit-book/<?= $book['id'] ?>" class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                    <div class="action-buttons">
+                                        <button class="action-btn view-btn" title="View">VIEW</button>
+                                        <button class="action-btn edit-btn" title="Edit" data-book-id="<?= $book['id'] ?>">EDIT</button>
                                         <?php if ($book['available_copies'] == $book['total_copies']): ?>
-                                            <form method="POST" action="/librarian/delete-book" class="d-inline" 
-                                                  onsubmit="return confirmDelete('Are you sure you want to delete this book?')">
-                                                <input type="hidden" name="id" value="<?= $book['id'] ?>">
-                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            <button class="action-btn delete-btn" title="Delete" 
+                                                    onclick="confirmDelete('Are you sure you want to delete this book?', <?= $book['id'] ?>)">DELETE</button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -129,14 +77,261 @@ include '../app/views/shared/librarian-sidebar.php';
                 </table>
 
                 <?php if (empty($books)): ?>
-                    <div class="text-center py-4">
+                    <div class="empty-state">
                         <i class="fas fa-book fa-3x text-muted mb-3"></i>
                         <p class="text-muted">No books found. <a href="/librarian/create-book">Add your first book</a></p>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
-    </div>
-</main>
 
+<style>
+/* Modern Table Styling */
+.modern-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    margin: 0 auto;
+    width: 90%;
+    min-width: 1000px;
+}
+
+.table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modern-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+/* Table Header */
+.table-header {
+    background: linear-gradient(135deg, #663399 0%, #8a4baf 100%);
+    color: white;
+}
+
+.table-header th {
+    padding: 18px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border: none;
+    white-space: nowrap;
+}
+
+/* Table Rows */
+.table-row {
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.table-row:hover {
+    background-color: #fafbfc;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.table-row td {
+    padding: 16px;
+    vertical-align: middle;
+    border: none;
+    color: #333;
+}
+
+/* Book Title Styling */
+.book-title {
+    font-weight: 500;
+    color: #2d3748;
+}
+
+/* ISBN Code Styling */
+.isbn-code {
+    font-family: 'Courier New', monospace;
+    background: #f7fafc;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* Availability Number */
+.availability-number {
+    font-weight: 600;
+    color: #663399;
+    font-size: 16px;
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.available {
+    background-color: #10b981;
+    color: white;
+}
+
+.status-badge.unavailable {
+    background-color: #ef4444;
+    color: white;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+}
+
+.view-btn {
+    background-color: #0ea5e9;
+    color: white;
+}
+
+.view-btn:hover {
+    background-color: #0284c7;
+    transform: translateY(-1px);
+}
+
+.edit-btn {
+    background-color: #8b5cf6;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #7c3aed;
+    transform: translateY(-1px);
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .modern-table-container {
+        width: 95%;
+        min-width: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .modern-table-container {
+        width: 100%;
+        margin: 0;
+        border-radius: 8px;
+    }
+    
+    .table-header th,
+    .table-row td {
+        padding: 12px 8px;
+        font-size: 12px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .action-btn {
+        padding: 6px 12px;
+        font-size: 10px;
+    }
+}
+
+/* Ensure 90% browser width utilization */
+body .main-content {
+    max-width: none;
+    width: 100%;
+}
+
+.container-fluid {
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        padding-left: 5%;
+        padding-right: 5%;
+    }
+}
+</style>
+
+<script>
+function confirmDelete(message, bookId) {
+    if (confirm(message)) {
+        // Create a form to submit the delete request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/librarian/delete-book';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'id';
+        input.value = bookId;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Add click handlers for view and edit buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // View buttons
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Add view functionality
+            alert('View functionality to be implemented');
+        });
+    });
+    
+    // Edit buttons  
+    document.querySelectorAll('.edit-btn').forEach((btn) => {
+        btn.addEventListener('click', function() {
+            const bookId = this.getAttribute('data-book-id');
+            window.location.href = '<?= BASE_PATH ?>/librarian/edit-book?id=' + bookId;
+        });
+    });
+});
+</script>
+
+<?php include '../app/views/shared/layout-footer.php'; ?>
 <?php include '../app/views/shared/footer.php'; ?>

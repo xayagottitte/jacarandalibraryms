@@ -1,10 +1,10 @@
 <?php 
 $title = "Add Book - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Add New Book</h1>
         <a href="/librarian/books" class="btn btn-secondary">Back to Books</a>
@@ -52,14 +52,14 @@ include '../app/views/shared/librarian-sidebar.php';
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label for="publication_year" class="form-label">Publication Year</label>
                             <input type="number" class="form-control" id="publication_year" name="publication_year" 
                                    min="1900" max="<?= date('Y') ?>" value="<?= date('Y') ?>">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
                             <select class="form-select" id="category" name="category">
@@ -72,7 +72,23 @@ include '../app/views/shared/librarian-sidebar.php';
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="class_level" class="form-label">Class Level <small class="text-muted">(Optional)</small></label>
+                            <select class="form-select" id="class_level" name="class_level">
+                                <option value="">All Classes</option>
+                                <?php if (isset($class_levels)): ?>
+                                    <?php foreach ($class_levels as $level): ?>
+                                        <option value="<?= $level ?>">
+                                            <?= $library['type'] === 'primary' ? 'Class' : 'Form' ?> <?= $level ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <div class="form-text">Select specific class or leave blank for all</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label for="total_copies" class="form-label">Total Copies <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="total_copies" name="total_copies" value="1" min="1" required>
@@ -87,6 +103,6 @@ include '../app/views/shared/librarian-sidebar.php';
             </form>
         </div>
     </div>
-</main>
+</div>
 
 <?php include '../app/views/shared/footer.php'; ?>

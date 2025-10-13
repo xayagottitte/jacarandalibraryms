@@ -1,10 +1,14 @@
 <?php
 class ForgotPasswordController extends Controller {
     private $userModel;
+    private $mailer;
 
     public function __construct() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $this->userModel = new User();
+        $this->mailer = new Mailer();
     }
 
     public function show() {
@@ -23,23 +27,18 @@ class ForgotPasswordController extends Controller {
                 $token = bin2hex(random_bytes(32));
                 $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
                 
-                // Store token in database
-                $query = "INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires) 
-                         ON DUPLICATE KEY UPDATE token = :token, expires_at = :expires, created_at = NOW()";
-                $stmt = $this->userModel->db->prepare($query);
-                $stmt->bindParam(':email', $email);
-                $stmt->bindParam(':token', $token);
-                $stmt->bindParam(':expires', $expires);
-                
-                if ($stmt->execute()) {
-                    // Send reset email (in a real application)
-                    $resetLink = "http://" . $_SERVER['HTTP_HOST'] . "/reset-password?token=" . $token;
-                    
-                    // For now, we'll just show the link (in production, send email)
-                    $_SESSION['reset_token'] = $token; // Temporary for demonstration
-                    $_SESSION['success'] = "Password reset link has been generated. <br><br> 
-                                           <strong>Demo Link:</strong> <a href='$resetLink'>$resetLink</a><br>
-                                           <small>In production, this would be sent via email.</small>";
+                // Store token in database using the proper method
+                if ($this->userModel->storePasswordResetToken($email, $token, $expires)) {
+                    // Send reset email
+                    if ($this->mailer->sendPasswordResetEmail($email, $user['full_name'], $token)) {
+                        $_SESSION['success'] = "Password reset instructions have been sent to your email address.";
+                    } else {
+                        // Fallback: show link if email fails
+                        $resetLink = "http://" . $_SERVER['HTTP_HOST'] . BASE_PATH . "/reset-password?token=" . $token;
+                        $_SESSION['success'] = "Email delivery failed, but here's your reset link: <br><br> 
+                                               <strong>Reset Link:</strong> <a href='$resetLink'>$resetLink</a><br>
+                                               <small>Please save this link to reset your password.</small>";
+                    }
                 } else {
                     $_SESSION['error'] = "Failed to generate reset token. Please try again.";
                 }

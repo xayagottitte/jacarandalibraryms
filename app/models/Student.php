@@ -121,5 +121,24 @@ class Student extends Model {
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function updateStudent($id, $data, $libraryId) {
+        $query = "UPDATE students SET 
+                 full_name = :full_name, email = :email, phone = :phone,
+                 class = :class, section = :section, status = :status
+                 WHERE id = :id AND library_id = :library_id";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':full_name', $data['full_name']);
+        $stmt->bindParam(':email', $data['email']);
+        $stmt->bindParam(':phone', $data['phone']);
+        $stmt->bindParam(':class', $data['class']);
+        $stmt->bindParam(':section', $data['section']);
+        $stmt->bindParam(':status', $data['status']);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':library_id', $libraryId);
+        
+        return $stmt->execute();
+    }
 }
 ?>

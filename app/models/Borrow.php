@@ -6,16 +6,27 @@ class Borrow extends Model {
         parent::__construct();
     }
 
-    public function borrowBook($bookId, $studentId, $librarianId, $dueDays = 14) {
+    public function borrowBook($bookId, $studentId, $librarianId, $dueDays = null) {
         $this->db->beginTransaction();
 
         try {
-            // Check if book is available
-            $bookQuery = "SELECT available_copies, title FROM books WHERE id = :book_id FOR UPDATE";
+            // Get book info and library_id
+            $bookQuery = "SELECT available_copies, title, library_id FROM books WHERE id = :book_id FOR UPDATE";
             $bookStmt = $this->db->prepare($bookQuery);
             $bookStmt->bindParam(':book_id', $bookId);
             $bookStmt->execute();
             $book = $bookStmt->fetch(PDO::FETCH_ASSOC);
+
+            // If dueDays not provided, get it from library settings
+            if ($dueDays === null && isset($book['library_id'])) {
+                $libraryModel = new Library();
+                $dueDays = $libraryModel->getLoanPeriod($book['library_id']);
+            }
+            
+            // Fallback to 5 days if still not set
+            if ($dueDays === null) {
+                $dueDays = 5;
+            }
 
             if (!$book || $book['available_copies'] <= 0) {
                 throw new Exception("Book '{$book['title']}' is not available for borrowing.");

@@ -1,13 +1,13 @@
 <?php 
 $title = "Quick Borrow - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Quick Borrow</h1>
-        <a href="/librarian/borrow-book" class="btn btn-outline-primary">Standard Borrow</a>
+        <a href="<?= BASE_PATH ?>/librarian/borrow-book" class="btn btn-outline-primary">Standard Borrow</a>
     </div>
 
     <!-- Flash Messages -->
@@ -20,7 +20,7 @@ include '../app/views/shared/librarian-sidebar.php';
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="/librarian/quick-borrow">
+            <form method="POST" action="<?= BASE_PATH ?>/librarian/quick-borrow">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
@@ -47,7 +47,7 @@ include '../app/views/shared/librarian-sidebar.php';
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
+                    <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
                     <button type="submit" class="btn btn-success">Quick Borrow</button>
                 </div>
             </form>
@@ -92,7 +92,7 @@ include '../app/views/shared/librarian-sidebar.php';
             <?php endif; ?>
         </div>
     </div>
-</main>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

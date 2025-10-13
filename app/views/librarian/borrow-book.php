@@ -1,13 +1,13 @@
 <?php 
 $title = "Borrow Book - Multi-Library System";
 include '../app/views/shared/header.php'; 
-include '../app/views/shared/librarian-sidebar.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Borrow Book</h1>
-        <a href="/librarian/borrows" class="btn btn-secondary">Back to Borrow Management</a>
+        <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-secondary">Back to Borrow Management</a>
     </div>
 
     <!-- Flash Messages -->
@@ -20,7 +20,7 @@ include '../app/views/shared/librarian-sidebar.php';
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="/librarian/borrow-book">
+            <form method="POST" action="<?= BASE_PATH ?>/librarian/borrow-book">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
@@ -58,15 +58,15 @@ include '../app/views/shared/librarian-sidebar.php';
                     <i class="fas fa-info-circle"></i>
                     <strong>Information:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>Loan period: 14 days</li>
+                        <li>Loan period: <?= $loan_period ?? 5 ?> days</li>
                         <li>Maximum books per student: 5</li>
                         <li>Fine for overdue books: $5 per day</li>
-                        <li>Books are due on <?= date('M j, Y', strtotime('+14 days')) ?></li>
+                        <li>Books are due on <?= date('M j, Y', strtotime('+' . ($loan_period ?? 5) . ' days')) ?></li>
                     </ul>
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
+                    <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
                     <button type="submit" class="btn btn-primary">Borrow Book</button>
                 </div>
             </form>
@@ -81,7 +81,7 @@ include '../app/views/shared/librarian-sidebar.php';
                     <i class="fas fa-bolt fa-2x text-success mb-3"></i>
                     <h5>Quick Borrow</h5>
                     <p class="text-muted">Use student ID and ISBN for faster borrowing</p>
-                    <a href="/librarian/quick-borrow" class="btn btn-success">Go to Quick Borrow</a>
+                    <a href="<?= BASE_PATH ?>/librarian/quick-borrow" class="btn btn-success">Go to Quick Borrow</a>
                 </div>
             </div>
         </div>
@@ -91,12 +91,12 @@ include '../app/views/shared/librarian-sidebar.php';
                     <i class="fas fa-plus fa-2x text-primary mb-3"></i>
                     <h5>Add New Student</h5>
                     <p class="text-muted">Can't find a student? Add them to the system</p>
-                    <a href="/librarian/create-student" class="btn btn-primary">Add Student</a>
+                    <a href="<?= BASE_PATH ?>/librarian/create-student" class="btn btn-primary">Add Student</a>
                 </div>
             </div>
         </div>
     </div>
-</main>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

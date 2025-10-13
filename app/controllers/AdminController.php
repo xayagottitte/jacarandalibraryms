@@ -2,6 +2,8 @@
 class AdminController extends Controller {
     private $userModel;
     private $libraryModel;
+    private $bookModel;
+    private $mailer;
 
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) {
@@ -12,6 +14,8 @@ class AdminController extends Controller {
         }
         $this->userModel = new User();
         $this->libraryModel = new Library();
+        $this->bookModel = new Book();
+        $this->mailer = new Mailer();
     }
 
     public function dashboard() {
@@ -26,9 +30,18 @@ class AdminController extends Controller {
 
     // User Management Methods
     public function users() {
+        // Get filters from GET parameters
+        $filters = [
+            'search' => $_GET['search'] ?? '',
+            'role' => $_GET['role'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'library' => $_GET['library'] ?? ''
+        ];
+
         $data = [
-            'users' => $this->userModel->getAllUsers(),
-            'libraries' => $this->libraryModel->all()
+            'users' => $this->userModel->getAllUsers($filters),
+            'libraries' => $this->libraryModel->all(),
+            'filters' => $filters
         ];
         $this->view('admin/users', $data);
     }
@@ -38,7 +51,14 @@ class AdminController extends Controller {
             $userId = $_POST['user_id'] ?? null;
             
             if ($userId && $this->userModel->approveUser($userId, $_SESSION['user_id'])) {
-                $_SESSION['success'] = "User approved successfully!";
+                // Get user details for welcome email
+                $user = $this->userModel->find($userId);
+                if ($user && $user['email']) {
+                    // Send welcome email
+                    $this->mailer->sendWelcomeEmail($user['email'], $user['full_name'], $user['role']);
+                }
+                
+                $_SESSION['success'] = "User approved successfully! Welcome email sent.";
             } else {
                 $_SESSION['error'] = "Failed to approve user.";
             }
@@ -61,6 +81,20 @@ class AdminController extends Controller {
 
     public function createUser() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validate password confirmation
+            if ($_POST['password'] !== $_POST['confirm_password']) {
+                $_SESSION['error'] = "Passwords do not match.";
+                $this->view('admin/create-user');
+                return;
+            }
+
+            // Validate password length
+            if (strlen($_POST['password']) < 6) {
+                $_SESSION['error'] = "Password must be at least 6 characters long.";
+                $this->view('admin/create-user');
+                return;
+            }
+
             $data = [
                 'username' => $_POST['username'],
                 'full_name' => $_POST['full_name'],
@@ -90,11 +124,73 @@ class AdminController extends Controller {
         $this->view('admin/create-user');
     }
 
+    public function deactivateUser() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = $_POST['user_id'] ?? null;
+            
+            if ($userId && $this->userModel->deactivateUser($userId)) {
+                $_SESSION['success'] = "User deactivated successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to deactivate user.";
+            }
+        }
+        $this->redirect('/admin/users');
+    }
+
+    public function activateUser() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = $_POST['user_id'] ?? null;
+            
+            if ($userId && $this->userModel->activateUser($userId)) {
+                $_SESSION['success'] = "User activated successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to activate user.";
+            }
+        }
+        $this->redirect('/admin/users');
+    }
+
+    public function deleteUser() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = $_POST['user_id'] ?? null;
+            
+            if ($userId && $this->userModel->deleteUser($userId)) {
+                $_SESSION['success'] = "User deleted successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to delete user.";
+            }
+        }
+        $this->redirect('/admin/users');
+    }
+
+    public function assignLibrary() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = $_POST['user_id'] ?? null;
+            $libraryId = $_POST['library_id'] ?? null;
+            
+            if ($userId && $libraryId && $this->userModel->assignLibrary($userId, $libraryId)) {
+                $_SESSION['success'] = "Library assigned successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to assign library.";
+            }
+        }
+        $this->redirect('/admin/users');
+    }
+
     // Library Management Methods
     public function libraries() {
+        // Get filters from GET parameters
+        $filters = [
+            'search' => $_GET['search'] ?? '',
+            'type' => $_GET['type'] ?? '',
+            'librarian_status' => $_GET['librarian_status'] ?? '',
+            'sort_by' => $_GET['sort_by'] ?? 'name'
+        ];
+
         $data = [
-            'libraries' => $this->libraryModel->getAllWithStats(),
-            'available_librarians' => $this->libraryModel->getAvailableLibrarians()
+            'libraries' => $this->libraryModel->getAllWithStats($filters),
+            'available_librarians' => $this->libraryModel->getAvailableLibrarians(),
+            'filters' => $filters
         ];
         $this->view('admin/libraries', $data);
     }
@@ -105,6 +201,7 @@ class AdminController extends Controller {
                 'name' => $_POST['name'],
                 'type' => $_POST['type'],
                 'address' => $_POST['address'],
+                'loan_period_days' => $_POST['loan_period_days'] ?? 5,
                 'created_by' => $_SESSION['user_id']
             ];
 
@@ -126,17 +223,11 @@ class AdminController extends Controller {
             $data = [
                 'name' => $_POST['name'],
                 'type' => $_POST['type'],
-                'address' => $_POST['address']
+                'address' => $_POST['address'],
+                'loan_period_days' => $_POST['loan_period_days'] ?? 5
             ];
 
-            $query = "UPDATE libraries SET name = :name, type = :type, address = :address WHERE id = :id";
-            $stmt = $this->libraryModel->db->prepare($query);
-            $stmt->bindParam(':name', $data['name']);
-            $stmt->bindParam(':type', $data['type']);
-            $stmt->bindParam(':address', $data['address']);
-            $stmt->bindParam(':id', $id);
-
-            if ($stmt->execute()) {
+            if ($this->libraryModel->updateLibrary($data, $id)) {
                 $_SESSION['success'] = "Library updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update library.";
@@ -371,6 +462,153 @@ class AdminController extends Controller {
             'activities' => $activityModel->getSystemActivities()
         ];
         $this->view('admin/activity-logs', $data);
+    }
+
+    // Book Management Methods
+    public function books() {
+        // Get filters from GET parameters
+        $filters = [
+            'search' => $_GET['search'] ?? '',
+            'category' => $_GET['category'] ?? '',
+            'library_filter' => $_GET['library_filter'] ?? '',
+            'status' => $_GET['status'] ?? ''
+        ];
+
+        // Get selected library ID for statistics
+        $selectedLibraryId = !empty($filters['library_filter']) ? $filters['library_filter'] : null;
+
+        // Load all books with filters applied
+        $allBooks = $this->bookModel->getAllBooksWithLibrary($filters);
+        $bookStats = $this->bookModel->getBooksStatistics($selectedLibraryId);
+        $categoryStats = $this->bookModel->getCategoryStatistics($selectedLibraryId);
+
+        $data = [
+            'all_books' => $allBooks,
+            'book_stats' => $bookStats,
+            'category_stats' => $categoryStats,
+            'libraries' => $this->libraryModel->getAllWithStats(),
+            'filters' => $filters,
+            'selected_library_id' => $selectedLibraryId
+        ];
+        
+        $this->view('admin/books', $data);
+    }
+
+    public function createBook() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $libraryId = $_POST['library_id'];
+            
+            $data = [
+                'title' => $_POST['title'],
+                'author' => $_POST['author'],
+                'isbn' => $_POST['isbn'] ?? null,
+                'publisher' => $_POST['publisher'] ?? null,
+                'publication_year' => $_POST['publication_year'] ?? null,
+                'category' => $_POST['category'] ?? null,
+                'class_level' => $_POST['class_level'] ?? null,
+                'total_copies' => $_POST['total_copies'] ?? 1,
+                'available_copies' => $_POST['total_copies'] ?? 1,
+                'library_id' => $libraryId,
+                'created_by' => $_SESSION['user_id']
+            ];
+
+            // Check if ISBN already exists in the selected library
+            if (!empty($data['isbn'])) {
+                if ($this->bookModel->checkISBNExists($data['isbn'], $libraryId)) {
+                    $_SESSION['error'] = "A book with this ISBN already exists in the selected library.";
+                    $this->redirect('/admin/create-book');
+                    return;
+                }
+            }
+
+            if ($this->bookModel->create($data)) {
+                $_SESSION['success'] = "Book added successfully to " . $this->libraryModel->find($libraryId)['name'] . "!";
+                $this->redirect('/admin/books');
+                return;
+            } else {
+                $_SESSION['error'] = "Failed to add book.";
+            }
+        }
+
+        $data = [
+            'libraries' => $this->libraryModel->all()
+        ];
+        $this->view('admin/create-book', $data);
+    }
+
+    public function editBook($id = null) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'] ?? null;
+            $libraryId = $_POST['library_id'];
+            
+            $data = [
+                'title' => $_POST['title'],
+                'author' => $_POST['author'],
+                'isbn' => $_POST['isbn'] ?? null,
+                'publisher' => $_POST['publisher'] ?? null,
+                'publication_year' => $_POST['publication_year'] ?? null,
+                'category' => $_POST['category'] ?? null,
+                'class_level' => $_POST['class_level'] ?? null,
+                'total_copies' => $_POST['total_copies'] ?? 1
+            ];
+
+            // Calculate available copies based on current borrows
+            $borrowCount = $this->bookModel->getBorrowedCount($id);
+            $data['available_copies'] = max(0, $data['total_copies'] - $borrowCount['borrowed_count']);
+
+            if ($this->bookModel->updateBook($data, $id, $libraryId)) {
+                $_SESSION['success'] = "Book updated successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to update book.";
+            }
+            
+            $this->redirect('/admin/books');
+            return;
+        }
+
+        // GET request - show edit form
+        $book = $this->bookModel->getBookWithLibrary($id);
+        if (!$book) {
+            $_SESSION['error'] = "Book not found.";
+            $this->redirect('/admin/books');
+            return;
+        }
+
+        $data = [
+            'book' => $book,
+            'libraries' => $this->libraryModel->all(),
+            'categories' => $this->bookModel->getCategoriesByLibrary($book['library_id'])
+        ];
+        
+        $this->view('admin/edit-book', $data);
+    }
+
+    public function deleteBook() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'] ?? null;
+            
+            // Get book info first
+            $book = $this->bookModel->find($id);
+            if (!$book) {
+                $_SESSION['error'] = "Book not found.";
+                $this->redirect('/admin/books');
+                return;
+            }
+            
+            // Check if book has active borrows
+            $result = $this->bookModel->checkActiveBorrows($id);
+
+            if ($result['count'] > 0) {
+                $_SESSION['error'] = "Cannot delete book. It has active borrows.";
+            } else {
+                if ($this->bookModel->deleteBook($id, $book['library_id'])) {
+                    $_SESSION['success'] = "Book deleted successfully!";
+                } else {
+                    $_SESSION['error'] = "Failed to delete book.";
+                }
+            }
+        }
+        $this->redirect('/admin/books');
     }
 }
 ?>

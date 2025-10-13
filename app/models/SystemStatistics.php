@@ -71,7 +71,7 @@ class SystemStatistics extends Model {
         return true;
     }
 
-    public function getStatisticsTrend($libraryId = null, $statType, $days = 30) {
+    public function getStatisticsTrend($statType, $libraryId = null, $days = 30) {
         $query = "SELECT stat_date, stat_value 
                   FROM system_statistics 
                   WHERE stat_type = :stat_type 

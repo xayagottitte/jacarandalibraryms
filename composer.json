@@ -1,0 +1,8 @@
+{
+    "name": "jacaranda/library-ms",
+    "description": "Jacaranda Library Management System",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.11"
+    }
+}

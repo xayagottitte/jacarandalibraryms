@@ -1,8 +1,24 @@
 <?php
+// Include Composer autoloader
+require_once __DIR__ . '/../vendor/autoload.php';
+
 // Application Configuration
 define('APP_NAME', 'Jacaranda Libraries');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://your-domain.com');
+define('APP_URL', 'http://localhost');
+
+// Auto-detect environment and set BASE_PATH accordingly
+if (isset($_SERVER['SERVER_SOFTWARE']) && strpos($_SERVER['SERVER_SOFTWARE'], 'Apache') !== false) {
+    // XAMPP or Apache server with .htaccess redirect
+    define('BASE_PATH', '/jacarandalibraryms');
+} elseif (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == '8000') {
+    // PHP development server
+    define('BASE_PATH', '');
+} else {
+    // Default fallback for XAMPP
+    define('BASE_PATH', '/jacarandalibraryms');
+}
+
 define('ENVIRONMENT', 'development'); // Change to 'production' for debugging
 
 // Security Configuration
@@ -39,14 +55,19 @@ if (ENVIRONMENT === 'development') {
 // Timezone
 date_default_timezone_set('UTC');
 
+// Session Security Configuration (must be set before session_start())
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_strict_mode', 1);
+// Note: session.cookie_secure should be enabled in production with HTTPS
+if (ENVIRONMENT === 'production') {
+    ini_set('session.cookie_secure', 1);
+}
+
 // Security Headers
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('X-XSS-Protection: 1; mode=block');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-
-// Start session with security settings
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1); // Enable in production with HTTPS
-ini_set('session.use_strict_mode', 1);
+if (ENVIRONMENT === 'production') {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 ?>

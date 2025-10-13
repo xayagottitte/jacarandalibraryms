@@ -7,22 +7,29 @@ class Book extends Model {
     }
 
     public function getBooksByLibrary($libraryId, $filters = []) {
-        $query = "SELECT b.*, c.name as category_name 
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
                   FROM books b 
-                  LEFT JOIN categories c ON b.category = c.name 
-                  WHERE b.library_id = :library_id";
+                  LEFT JOIN libraries l ON b.library_id = l.id 
+                  WHERE b.library_id = ?";
         
-        $params = ['library_id' => $libraryId];
+        $params = [$libraryId];
 
         // Add filters
         if (!empty($filters['search'])) {
-            $query .= " AND (b.title LIKE :search OR b.author LIKE :search OR b.isbn LIKE :search)";
-            $params['search'] = '%' . $filters['search'] . '%';
+            $query .= " AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ?)";
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
         }
 
         if (!empty($filters['category'])) {
-            $query .= " AND b.category = :category";
-            $params['category'] = $filters['category'];
+            $query .= " AND b.category = ?";
+            $params[] = $filters['category'];
+        }
+
+        if (!empty($filters['class_level'])) {
+            $query .= " AND b.class_level = ?";
+            $params[] = $filters['class_level'];
         }
 
         if (!empty($filters['status'])) {
@@ -53,12 +60,10 @@ class Book extends Model {
 
     public function updateCopies($bookId, $change) {
         $query = "UPDATE books SET 
-                  available_copies = available_copies + :change 
-                  WHERE id = :book_id AND available_copies + :change >= 0";
+                  available_copies = available_copies + ? 
+                  WHERE id = ? AND available_copies + ? >= 0";
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':change', $change);
-        $stmt->bindParam(':book_id', $bookId);
-        return $stmt->execute();
+        return $stmt->execute([$change, $bookId, $change]);
     }
 
     public function getCategoriesByLibrary($libraryId) {
@@ -78,17 +83,219 @@ class Book extends Model {
                   SUM(available_copies) as available_copies,
                   (SELECT COUNT(*) FROM borrows b 
                    JOIN books bk ON b.book_id = bk.id 
-                   WHERE bk.library_id = :library_id AND b.status = 'borrowed') as borrowed_books,
+                   WHERE bk.library_id = ? AND b.status = 'borrowed') as borrowed_books,
                   (SELECT COUNT(*) FROM borrows b 
                    JOIN books bk ON b.book_id = bk.id 
-                   WHERE bk.library_id = :library_id AND b.status = 'overdue') as overdue_books
+                   WHERE bk.library_id = ? AND b.status = 'overdue') as overdue_books
                   FROM books 
-                  WHERE library_id = :library_id";
+                  WHERE library_id = ?";
         
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':library_id', $libraryId);
-        $stmt->execute();
+        $stmt->execute([$libraryId, $libraryId, $libraryId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getBookByISBN($isbn, $libraryId) {
+        $query = "SELECT id, available_copies, title FROM books WHERE isbn = ? AND library_id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$isbn, $libraryId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function checkISBNExists($isbn, $libraryId) {
+        $query = "SELECT id FROM books WHERE isbn = ? AND library_id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$isbn, $libraryId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getBorrowedCount($bookId) {
+        $borrowQuery = "SELECT COUNT(*) as borrowed_count FROM borrows 
+                       WHERE book_id = ? AND status IN ('borrowed', 'overdue')";
+        $stmt = $this->db->prepare($borrowQuery);
+        $stmt->execute([$bookId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateBook($data, $id, $libraryId) {
+        $query = "UPDATE books SET 
+                 title = ?, author = ?, isbn = ?, 
+                 publisher = ?, publication_year = ?,
+                 category = ?, class_level = ?, total_copies = ?, 
+                 available_copies = ? 
+                 WHERE id = ? AND library_id = ?";
+
+        $stmt = $this->db->prepare($query);
+        return $stmt->execute([
+            $data['title'], $data['author'], $data['isbn'],
+            $data['publisher'], $data['publication_year'],
+            $data['category'], $data['class_level'], $data['total_copies'],
+            $data['available_copies'], $id, $libraryId
+        ]);
+    }
+
+    public function checkActiveBorrows($bookId) {
+        $checkQuery = "SELECT COUNT(*) as count FROM borrows 
+                      WHERE book_id = ? AND status IN ('borrowed', 'overdue')";
+        $stmt = $this->db->prepare($checkQuery);
+        $stmt->execute([$bookId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function deleteBook($id, $libraryId) {
+        $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
+        $stmt = $this->db->prepare($deleteQuery);
+        return $stmt->execute([$id, $libraryId]);
+    }
+
+    public function getClassLevelsForLibrary($libraryId) {
+        // Get library type to determine available class levels
+        $query = "SELECT type FROM libraries WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$libraryId]);
+        $library = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$library) return [];
+        
+        if ($library['type'] === 'primary') {
+            return ['1', '2', '3', '4', '5', '6', '7', '8'];
+        } else { // secondary
+            return ['1', '2', '3', '4'];
+        }
+    }
+
+    public function getBooksByClass($libraryId, $classLevel) {
+        $query = "SELECT * FROM books WHERE library_id = ? AND class_level = ? ORDER BY title";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$libraryId, $classLevel]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getBooksByLibraryWithClass($libraryId, $filters = []) {
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
+                  FROM books b 
+                  LEFT JOIN libraries l ON b.library_id = l.id 
+                  WHERE b.library_id = ?";
+        
+        $params = [$libraryId];
+
+        // Add filters
+        if (!empty($filters['search'])) {
+            $query .= " AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ?)";
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['category'])) {
+            $query .= " AND b.category = ?";
+            $params[] = $filters['category'];
+        }
+
+        if (!empty($filters['class_level'])) {
+            $query .= " AND b.class_level = ?";
+            $params[] = $filters['class_level'];
+        }
+
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'available') {
+                $query .= " AND b.available_copies > 0";
+            } elseif ($filters['status'] === 'unavailable') {
+                $query .= " AND b.available_copies = 0";
+            }
+        }
+
+        $query .= " ORDER BY b.title";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllBooksWithLibrary($filters = []) {
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
+                  FROM books b 
+                  LEFT JOIN libraries l ON b.library_id = l.id 
+                  WHERE 1=1";
+        
+        $params = [];
+
+        // Add filters
+        if (!empty($filters['search'])) {
+            $query .= " AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ?)";
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['category'])) {
+            $query .= " AND b.category = ?";
+            $params[] = $filters['category'];
+        }
+
+        if (!empty($filters['library_filter'])) {
+            $query .= " AND b.library_id = ?";
+            $params[] = $filters['library_filter'];
+        }
+
+        if (!empty($filters['status'])) {
+            if ($filters['status'] === 'available') {
+                $query .= " AND b.available_copies > 0";
+            } elseif ($filters['status'] === 'unavailable') {
+                $query .= " AND b.available_copies = 0";
+            }
+        }
+
+        $query .= " ORDER BY l.name, b.title";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getBooksStatistics($libraryId = null) {
+        $query = "SELECT 
+                    COUNT(*) as total_books,
+                    SUM(total_copies) as total_copies,
+                    SUM(available_copies) as available_copies,
+                    SUM(total_copies - available_copies) as borrowed_copies,
+                    COUNT(DISTINCT library_id) as libraries_with_books
+                  FROM books";
+        
+        $params = [];
+        if ($libraryId) {
+            $query .= " WHERE library_id = ?";
+            $params[] = $libraryId;
+        }
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getCategoryStatistics($libraryId = null) {
+        $query = "SELECT 
+                    b.category,
+                    COUNT(*) as book_count,
+                    SUM(b.total_copies) as total_copies,
+                    SUM(b.available_copies) as available_copies,
+                    l.name as library_name
+                  FROM books b 
+                  LEFT JOIN libraries l ON b.library_id = l.id 
+                  WHERE b.category IS NOT NULL AND b.category != ''";
+        
+        $params = [];
+        if ($libraryId) {
+            $query .= " AND b.library_id = ?";
+            $params[] = $libraryId;
+        }
+        
+        $query .= " GROUP BY b.category, b.library_id, l.name
+                  ORDER BY b.category, l.name";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 ?>

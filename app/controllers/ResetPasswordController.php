@@ -3,16 +3,29 @@ class ResetPasswordController extends Controller {
     private $userModel;
 
     public function __construct() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $this->userModel = new User();
     }
 
     public function show() {
         $token = $_GET['token'] ?? '';
         
+        // Debug: Log token validation attempt
+        error_log("Reset password attempt with token: " . substr($token, 0, 10) . "...");
+        
         // Validate token
         if (!$this->isValidToken($token)) {
-            $_SESSION['error'] = "Invalid or expired reset token.";
+            // Debug: Get more info about why validation failed
+            $tokenData = $this->userModel->findByPasswordResetToken($token);
+            if (!$tokenData) {
+                error_log("Token validation failed: Token not found or expired");
+                $_SESSION['error'] = "Invalid or expired reset token. Please request a new password reset.";
+            } else {
+                error_log("Token found but validation failed");
+                $_SESSION['error'] = "Reset token has expired. Please request a new password reset.";
+            }
             $this->redirect('/forgot-password');
             return;
         }
@@ -61,16 +74,20 @@ class ResetPasswordController extends Controller {
                 return;
             }
             
+            // Get user data from token
+            $tokenData = $this->userModel->findByPasswordResetToken($token);
+            if (!$tokenData) {
+                $_SESSION['error'] = "Invalid or expired reset token.";
+                $this->redirect('/forgot-password');
+                return;
+            }
+            
             // Update password
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $query = "UPDATE users SET password = :password WHERE email = :email";
-            $stmt = $this->userModel->db->prepare($query);
-            $stmt->bindParam(':password', $hashedPassword);
-            $stmt->bindParam(':email', $email);
             
-            if ($stmt->execute()) {
+            if ($this->userModel->updatePassword($tokenData['user_id'], $hashedPassword)) {
                 // Delete used token
-                $this->deleteToken($token);
+                $this->userModel->deletePasswordResetToken($token);
                 
                 $_SESSION['success'] = "Password has been reset successfully. You can now login with your new password.";
                 $this->redirect('/login');
@@ -82,27 +99,13 @@ class ResetPasswordController extends Controller {
     }
     
     private function isValidToken($token) {
-        $query = "SELECT * FROM password_resets WHERE token = :token AND expires_at > NOW()";
-        $stmt = $this->userModel->db->prepare($query);
-        $stmt->bindParam(':token', $token);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+        $tokenData = $this->userModel->findByPasswordResetToken($token);
+        return $tokenData !== false;
     }
     
     private function getEmailFromToken($token) {
-        $query = "SELECT email FROM password_resets WHERE token = :token";
-        $stmt = $this->userModel->db->prepare($query);
-        $stmt->bindParam(':token', $token);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['email'] : null;
-    }
-    
-    private function deleteToken($token) {
-        $query = "DELETE FROM password_resets WHERE token = :token";
-        $stmt = $this->userModel->db->prepare($query);
-        $stmt->bindParam(':token', $token);
-        $stmt->execute();
+        $tokenData = $this->userModel->findByPasswordResetToken($token);
+        return $tokenData ? $tokenData['email'] : null;
     }
 }
 ?>
