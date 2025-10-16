@@ -193,7 +193,7 @@ class LibrarianController extends Controller {
             $libraryId = $_SESSION['library_id'];
             
             if (!$id) {
-                $_SESSION['error'] = "DEBUG: Book ID is required for deletion. POST data: " . print_r($_POST, true);
+                $_SESSION['error'] = "Book ID is required for deletion.";
                 $this->redirect('/librarian/books');
                 return;
             }
@@ -202,7 +202,7 @@ class LibrarianController extends Controller {
             $book = $this->bookModel->getBookWithLibrary($id);
             
             if (!$book || $book['library_id'] != $libraryId) {
-                $_SESSION['error'] = "DEBUG: Book not found or access denied. Book ID: $id, Library ID: $libraryId";
+                $_SESSION['error'] = "Book not found or access denied.";
                 $this->redirect('/librarian/books');
                 return;
             }
@@ -216,13 +216,13 @@ class LibrarianController extends Controller {
                 $deleteResult = $this->bookModel->deleteBook($id, $libraryId);
                 
                 if ($deleteResult) {
-                    $_SESSION['success'] = "DEBUG: Book '{$book['title']}' (ID: $id) deleted successfully!";
+                    $_SESSION['success'] = "Book '{$book['title']}' deleted successfully!";
                 } else {
-                    $_SESSION['error'] = "DEBUG: Failed to delete book '{$book['title']}' (ID: $id). Database error occurred.";
+                    $_SESSION['error'] = "Failed to delete book '{$book['title']}'. Database error occurred.";
                 }
             }
         } else {
-            $_SESSION['error'] = "DEBUG: Invalid request method for book deletion. Method: " . $_SERVER['REQUEST_METHOD'];
+            $_SESSION['error'] = "Invalid request method for book deletion.";
         }
         
         $this->redirect('/librarian/books');

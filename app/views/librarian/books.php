@@ -18,13 +18,6 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 
-    <!-- Debug: Check book data structure -->
-    <?php if (ENVIRONMENT === 'development' && !empty($books)): ?>
-        <div class="alert alert-info">
-            <small>Debug - First book data keys: <?= htmlspecialchars(print_r(array_keys($books[0]), true)) ?></small>
-        </div>
-    <?php endif; ?>
-
     <!-- Flash Messages -->
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -407,7 +400,6 @@ function escapeRegex(string) {
 }
 
 function confirmDelete(message, bookId) {
-    console.log('Delete function called for book ID:', bookId);
     if (confirm(message)) {
         // Create a form to submit the delete request
         const form = document.createElement('form');
@@ -421,7 +413,6 @@ function confirmDelete(message, bookId) {
         
         form.appendChild(input);
         document.body.appendChild(form);
-        console.log('Submitting delete form for book ID:', bookId);
         form.submit();
     }
 }
