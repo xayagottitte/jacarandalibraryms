@@ -7,7 +7,7 @@ include '../app/views/shared/layout-header.php';
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Student Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="/librarian/create-student" class="btn btn-primary">
+            <a href="/jacarandalibraryms/librarian/create-student" class="btn btn-primary">
                 <i class="fas fa-user-plus"></i> Add Student
             </a>
         </div>
@@ -31,13 +31,20 @@ include '../app/views/shared/layout-header.php';
     <!-- Search and Filter Form -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="POST" action="/librarian/students">
+            <form method="POST" action="/jacarandalibraryms/librarian/students">
                 <div class="row">
                     <div class="col-md-4">
-                        <label for="search" class="form-label">Search Students</label>
-                        <input type="text" class="form-control" id="search" name="search" 
-                               value="<?= htmlspecialchars($filters['search'] ?? '') ?>" 
-                               placeholder="Name, Student ID, or Email">
+                        <label for="search" class="form-label">Live Search Students</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="studentLiveSearch" 
+                                   placeholder="Search by name, student ID, email, or class" 
+                                   autocomplete="off">
+                            <button class="btn btn-outline-secondary" type="button" id="clearStudentSearch">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" class="form-control" id="search" name="search" 
+                               value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
                     </div>
                     <div class="col-md-3">
                         <label for="class" class="form-label">Class</label>
@@ -118,13 +125,13 @@ include '../app/views/shared/layout-header.php';
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="/librarian/view-student/<?= $student['id'] ?>" class="btn btn-outline-primary" title="View Details">
+                                        <a href="/jacarandalibraryms/librarian/view-student?id=<?= $student['id'] ?>" class="btn btn-outline-primary" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="/librarian/edit-student/<?= $student['id'] ?>" class="btn btn-outline-secondary" title="Edit">
+                                        <a href="/jacarandalibraryms/librarian/edit-student?id=<?= $student['id'] ?>" class="btn btn-outline-secondary" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-outline-success" title="Borrow Book">
+                                        <a href="/jacarandalibraryms/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-outline-success" title="Borrow Book">
                                             <i class="fas fa-book"></i>
                                         </a>
                                     </div>
@@ -137,7 +144,7 @@ include '../app/views/shared/layout-header.php';
                 <?php if (empty($students)): ?>
                     <div class="text-center py-4">
                         <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No students found. <a href="/librarian/create-student">Add your first student</a></p>
+                        <p class="text-muted">No students found. <a href="/jacarandalibraryms/librarian/create-student">Add your first student</a></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -156,5 +163,168 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 </div>
+
+<style>
+/* Live Search Styling */
+#studentLiveSearch {
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+}
+
+#studentLiveSearch:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+#clearStudentSearch {
+    transition: all 0.2s ease;
+    display: none;
+}
+
+#clearStudentSearch:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.student-row {
+    transition: opacity 0.3s ease;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+#searchStatus {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const liveSearchInput = document.getElementById('studentLiveSearch');
+    const clearButton = document.getElementById('clearStudentSearch');
+    const tableRows = document.querySelectorAll('tbody tr');
+    const totalStudents = tableRows.length;
+    
+    // Add search status display
+    const searchContainer = liveSearchInput.closest('.col-md-4');
+    const statusElement = document.createElement('div');
+    statusElement.id = 'searchStatus';
+    statusElement.className = 'text-muted mt-1';
+    statusElement.style.display = 'none';
+    searchContainer.appendChild(statusElement);
+    
+    // Helper functions
+    function highlightText(element, searchTerm) {
+        if (!element || !searchTerm) return;
+        
+        const originalText = element.textContent;
+        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+        const highlightedText = originalText.replace(regex, '<span class="search-highlight">$1</span>');
+        
+        if (highlightedText !== originalText) {
+            element.innerHTML = highlightedText;
+        }
+    }
+    
+    function removeHighlight(element) {
+        if (!element) return;
+        const originalText = element.textContent;
+        element.innerHTML = originalText;
+    }
+    
+    function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    // Live search functionality
+    liveSearchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        let visibleRows = 0;
+        
+        tableRows.forEach(row => {
+            if (row.cells.length === 0) return; // Skip empty rows
+            
+            // Get cell content
+            const studentId = row.cells[0].textContent.toLowerCase();
+            const fullName = row.cells[1].textContent.toLowerCase();
+            const classSection = row.cells[2].textContent.toLowerCase();
+            const contact = row.cells[3].textContent.toLowerCase();
+            
+            // Check if search term matches any field
+            const isMatch = studentId.includes(searchTerm) ||
+                           fullName.includes(searchTerm) ||
+                           classSection.includes(searchTerm) ||
+                           contact.includes(searchTerm);
+            
+            if (isMatch || searchTerm === '') {
+                row.style.display = '';
+                visibleRows++;
+                
+                // Add highlighting if there's a search term
+                if (searchTerm !== '') {
+                    highlightText(row.cells[0], searchTerm);
+                    highlightText(row.cells[1], searchTerm);
+                    highlightText(row.cells[2], searchTerm);
+                    highlightText(row.cells[3], searchTerm);
+                } else {
+                    // Remove highlighting when search is cleared
+                    removeHighlight(row.cells[0]);
+                    removeHighlight(row.cells[1]);
+                    removeHighlight(row.cells[2]);
+                    removeHighlight(row.cells[3]);
+                }
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update search status
+        if (searchTerm !== '') {
+            if (visibleRows === 0) {
+                statusElement.textContent = 'No students found';
+                statusElement.style.color = '#dc3545';
+            } else {
+                statusElement.textContent = `${visibleRows} of ${totalStudents} student${visibleRows !== 1 ? 's' : ''} shown`;
+                statusElement.style.color = '#28a745';
+            }
+            statusElement.style.display = 'block';
+            clearButton.style.display = 'block';
+        } else {
+            statusElement.style.display = 'none';
+            clearButton.style.display = 'none';
+        }
+    });
+    
+    // Clear search functionality
+    clearButton.addEventListener('click', function() {
+        liveSearchInput.value = '';
+        liveSearchInput.dispatchEvent(new Event('input'));
+        liveSearchInput.focus();
+    });
+    
+    // Keyboard shortcuts
+    liveSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            this.dispatchEvent(new Event('input'));
+            this.blur();
+        }
+    });
+    
+    // Focus search input when user starts typing (anywhere on page)
+    document.addEventListener('keydown', function(e) {
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && 
+            e.key.match(/[a-zA-Z0-9]/)) {
+            liveSearchInput.focus();
+        }
+    });
+});
+</script>
 
 <?php include '../app/views/shared/footer.php'; ?>

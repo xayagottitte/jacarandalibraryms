@@ -296,6 +296,17 @@ class LibrarianController extends Controller {
         $studentModel = new Student();
         $borrowModel = new Borrow();
         
+        // Get student ID from GET parameter if not provided as method parameter
+        if (!$id && isset($_GET['id'])) {
+            $id = $_GET['id'];
+        }
+        
+        if (!$id) {
+            $_SESSION['error'] = "Student ID is required.";
+            $this->redirect('/librarian/students');
+            return;
+        }
+        
         $student = $studentModel->getStudentWithBorrows($id);
         
         if (!$student || $student['library_id'] != $_SESSION['library_id']) {
@@ -315,6 +326,11 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
         $studentModel = new Student();
 
+        // Get student ID from GET parameter if not provided as method parameter
+        if (!$id && isset($_GET['id'])) {
+            $id = $_GET['id'];
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             $class = $_POST['class'];
@@ -324,7 +340,7 @@ class LibrarianController extends Controller {
                 $library = (new Library())->find($libraryId);
                 $validRange = $library['type'] === 'primary' ? '1-8' : '1-4';
                 $_SESSION['error'] = "Invalid class for {$library['type']} library. Valid classes: {$validRange}";
-                $this->redirect("/librarian/edit-student/$id");
+                $this->redirect("/librarian/edit-student?id=$id");
                 return;
             }
 
@@ -348,6 +364,12 @@ class LibrarianController extends Controller {
         }
 
         // GET request - show edit form
+        if (!$id) {
+            $_SESSION['error'] = "Student ID is required.";
+            $this->redirect('/librarian/students');
+            return;
+        }
+        
         $student = $studentModel->find($id);
         if (!$student || $student['library_id'] != $libraryId) {
             $_SESSION['error'] = "Student not found or access denied.";
@@ -355,7 +377,11 @@ class LibrarianController extends Controller {
             return;
         }
 
-        $data = ['student' => $student];
+        $library = $this->libraryModel->find($libraryId);
+        $data = [
+            'student' => $student,
+            'library' => $library
+        ];
         $this->view('librarian/edit-student', $data);
     }
 

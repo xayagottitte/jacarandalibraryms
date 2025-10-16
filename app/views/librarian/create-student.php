@@ -7,7 +7,7 @@ include '../app/views/shared/layout-header.php';
 <div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Add New Student</h1>
-        <a href="/librarian/students" class="btn btn-secondary">Back to Students</a>
+        <a href="/jacarandalibraryms/librarian/students" class="btn btn-secondary">Back to Students</a>
     </div>
 
     <!-- Flash Messages -->
@@ -20,7 +20,7 @@ include '../app/views/shared/layout-header.php';
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="/librarian/create-student">
+            <form method="POST" action="/jacarandalibraryms/librarian/create-student">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">

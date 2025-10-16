@@ -8,10 +8,10 @@ include '../app/views/shared/layout-header.php';
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Student Details</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="/librarian/edit-student/<?= $student['id'] ?>" class="btn btn-outline-primary me-2">
+            <a href="<?= BASE_PATH ?>/librarian/edit-student?id=<?= $student['id'] ?>" class="btn btn-outline-primary me-2">
                 <i class="fas fa-edit"></i> Edit
             </a>
-            <a href="/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-success">
+            <a href="<?= BASE_PATH ?>/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-success">
                 <i class="fas fa-book"></i> Borrow Book
             </a>
         </div>
@@ -123,7 +123,7 @@ include '../app/views/shared/layout-header.php';
                                                 </span>
                                             </td>
                                             <td>
-                                                <form method="POST" action="/librarian/return-book" class="d-inline">
+                                                <form method="POST" action="<?= BASE_PATH ?>/librarian/return-book" class="d-inline">
                                                     <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
                                                     <button type="submit" class="btn btn-success btn-sm">
                                                         <i class="fas fa-undo"></i> Return
@@ -181,13 +181,13 @@ include '../app/views/shared/layout-header.php';
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-success">
+                        <a href="<?= BASE_PATH ?>/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-success">
                             <i class="fas fa-book"></i> Borrow New Book
                         </a>
-                        <a href="/librarian/edit-student/<?= $student['id'] ?>" class="btn btn-outline-primary">
+                        <a href="<?= BASE_PATH ?>/librarian/edit-student?id=<?= $student['id'] ?>" class="btn btn-outline-primary">
                             <i class="fas fa-edit"></i> Edit Student
                         </a>
-                        <a href="/librarian/students" class="btn btn-outline-secondary">
+                        <a href="<?= BASE_PATH ?>/librarian/students" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Students
                         </a>
                     </div>

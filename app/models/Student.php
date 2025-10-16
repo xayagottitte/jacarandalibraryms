@@ -37,19 +37,17 @@ class Student extends Model {
     }
 
     public function generateStudentId($libraryId) {
-        $prefix = 'STU';
-        $year = date('Y');
-        
-        $query = "SELECT COUNT(*) as count FROM students 
-                  WHERE library_id = :library_id AND YEAR(created_at) = :year";
+        // Get the count of all students in this library to generate a unique sequence
+        $query = "SELECT COUNT(*) as count FROM students WHERE library_id = :library_id";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId);
-        $stmt->bindParam(':year', $year);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         $sequence = $result['count'] + 1;
-        return $prefix . $year . str_pad($libraryId, 3, '0', STR_PAD_LEFT) . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+        
+        // Generate 6-digit ID starting with 66 followed by 4-digit sequence
+        return '66' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 
     public function getStudentWithBorrows($studentId) {

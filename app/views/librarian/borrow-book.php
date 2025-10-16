@@ -7,7 +7,7 @@ include '../app/views/shared/layout-header.php';
 <div class="container-fluid">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Borrow Book</h1>
-        <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-secondary">Back to Borrow Management</a>
+        <a href="/jacarandalibraryms/librarian/borrows" class="btn btn-secondary">Back to Borrow Management</a>
     </div>
 
     <!-- Flash Messages -->
@@ -20,7 +20,7 @@ include '../app/views/shared/layout-header.php';
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="<?= BASE_PATH ?>/librarian/borrow-book">
+            <form method="POST" action="/jacarandalibraryms/librarian/borrow-book">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
@@ -66,7 +66,7 @@ include '../app/views/shared/layout-header.php';
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <a href="<?= BASE_PATH ?>/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
+                    <a href="/jacarandalibraryms/librarian/borrows" class="btn btn-secondary me-md-2">Cancel</a>
                     <button type="submit" class="btn btn-primary">Borrow Book</button>
                 </div>
             </form>
@@ -81,7 +81,7 @@ include '../app/views/shared/layout-header.php';
                     <i class="fas fa-bolt fa-2x text-success mb-3"></i>
                     <h5>Quick Borrow</h5>
                     <p class="text-muted">Use student ID and ISBN for faster borrowing</p>
-                    <a href="<?= BASE_PATH ?>/librarian/quick-borrow" class="btn btn-success">Go to Quick Borrow</a>
+                    <a href="/jacarandalibraryms/librarian/quick-borrow" class="btn btn-success">Go to Quick Borrow</a>
                 </div>
             </div>
         </div>
@@ -91,7 +91,7 @@ include '../app/views/shared/layout-header.php';
                     <i class="fas fa-plus fa-2x text-primary mb-3"></i>
                     <h5>Add New Student</h5>
                     <p class="text-muted">Can't find a student? Add them to the system</p>
-                    <a href="<?= BASE_PATH ?>/librarian/create-student" class="btn btn-primary">Add Student</a>
+                    <a href="/jacarandalibraryms/librarian/create-student" class="btn btn-primary">Add Student</a>
                 </div>
             </div>
         </div>
