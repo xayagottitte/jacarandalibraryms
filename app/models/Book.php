@@ -143,9 +143,14 @@ class Book extends Model {
     }
 
     public function deleteBook($id, $libraryId) {
-        $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
-        $stmt = $this->db->prepare($deleteQuery);
-        return $stmt->execute([$id, $libraryId]);
+        try {
+            $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
+            $stmt = $this->db->prepare($deleteQuery);
+            $result = $stmt->execute([$id, $libraryId]);
+            return $result && $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function getClassLevelsForLibrary($libraryId) {

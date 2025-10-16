@@ -249,5 +249,19 @@ class Borrow extends Model {
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function getBookBorrowHistory($bookId) {
+        $query = "SELECT br.*, 
+                         s.full_name as student_name, s.student_id, s.class
+                  FROM borrows br
+                  JOIN students s ON br.student_id = s.id
+                  WHERE br.book_id = :book_id
+                  ORDER BY br.borrowed_date DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':book_id', $bookId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>

@@ -23,8 +23,8 @@ include __DIR__ . '/../shared/navbar.php';
                             <h6 class="m-0 font-weight-bold text-primary">Book Information</h6>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="<?php echo BASE_PATH; ?>/librarian/edit-book/<?php echo $book['book_id']; ?>">
-                                <input type="hidden" name="id" value="<?php echo $book['book_id']; ?>">
+                            <form method="POST" action="<?php echo BASE_PATH; ?>/librarian/edit-book">
+                                <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
                                 <div class="row">
                                     <div class="col-md-8">
                                         <div class="mb-3">

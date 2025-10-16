@@ -59,6 +59,36 @@ class LibrarianController extends Controller {
         $this->view('librarian/books', $data);
     }
 
+    public function viewBook($id = null) {
+        $libraryId = $_SESSION['library_id'];
+        
+        // Get book ID from GET or POST
+        if (!$id && isset($_GET['id'])) {
+            $id = $_GET['id'];
+        }
+        
+        if (!$id) {
+            $_SESSION['error'] = "Book ID is required.";
+            $this->redirect('/librarian/books');
+            return;
+        }
+
+        $book = $this->bookModel->getBookWithLibrary($id);
+        if (!$book || $book['library_id'] != $libraryId) {
+            $_SESSION['error'] = "Book not found or access denied.";
+            $this->redirect('/librarian/books');
+            return;
+        }
+
+        $data = [
+            'book' => $book,
+            'borrow_history' => $this->borrowModel->getBookBorrowHistory($id),
+            'library' => $this->libraryModel->find($libraryId)
+        ];
+        
+        $this->view('librarian/view-book', $data);
+    }
+
     public function createBook() {
         $libraryId = $_SESSION['library_id'];
 
@@ -106,6 +136,11 @@ class LibrarianController extends Controller {
 
     public function editBook($id = null) {
         $libraryId = $_SESSION['library_id'];
+
+        // Get book ID from GET parameters if not provided as method parameter
+        if (!$id && isset($_GET['id'])) {
+            $id = $_GET['id'];
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
@@ -157,19 +192,39 @@ class LibrarianController extends Controller {
             $id = $_POST['id'] ?? null;
             $libraryId = $_SESSION['library_id'];
             
+            if (!$id) {
+                $_SESSION['error'] = "DEBUG: Book ID is required for deletion. POST data: " . print_r($_POST, true);
+                $this->redirect('/librarian/books');
+                return;
+            }
+            
+            // Verify the book belongs to this library
+            $book = $this->bookModel->getBookWithLibrary($id);
+            
+            if (!$book || $book['library_id'] != $libraryId) {
+                $_SESSION['error'] = "DEBUG: Book not found or access denied. Book ID: $id, Library ID: $libraryId";
+                $this->redirect('/librarian/books');
+                return;
+            }
+            
             // Check if book has active borrows
             $result = $this->bookModel->checkActiveBorrows($id);
 
             if ($result['count'] > 0) {
-                $_SESSION['error'] = "Cannot delete book. It has active borrows.";
+                $_SESSION['error'] = "Cannot delete book '{$book['title']}'. It has {$result['count']} active borrow(s).";
             } else {
-                if ($this->bookModel->deleteBook($id, $libraryId)) {
-                    $_SESSION['success'] = "Book deleted successfully!";
+                $deleteResult = $this->bookModel->deleteBook($id, $libraryId);
+                
+                if ($deleteResult) {
+                    $_SESSION['success'] = "DEBUG: Book '{$book['title']}' (ID: $id) deleted successfully!";
                 } else {
-                    $_SESSION['error'] = "Failed to delete book.";
+                    $_SESSION['error'] = "DEBUG: Failed to delete book '{$book['title']}' (ID: $id). Database error occurred.";
                 }
             }
+        } else {
+            $_SESSION['error'] = "DEBUG: Invalid request method for book deletion. Method: " . $_SERVER['REQUEST_METHOD'];
         }
+        
         $this->redirect('/librarian/books');
     }
 

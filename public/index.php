@@ -69,6 +69,7 @@ $router->add('/admin/activity-logs', 'AdminController', 'activityLogs');
 // Librarian routes
 $router->add('/librarian/dashboard', 'LibrarianController', 'dashboard');
 $router->add('/librarian/books', 'LibrarianController', 'books');
+$router->add('/librarian/view-book', 'LibrarianController', 'viewBook');
 $router->add('/librarian/create-book', 'LibrarianController', 'createBook');
 $router->add('/librarian/edit-book', 'LibrarianController', 'editBook');
 $router->add('/librarian/delete-book', 'LibrarianController', 'deleteBook');
