@@ -85,11 +85,30 @@ include '../app/views/shared/layout-header.php';
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="card-title">Total Fines</h5>
-                            <h2>$<?= $borrow_stats['total_fines'] ?? 0 ?></h2>
+                            <h2>MK<?= $borrow_stats['total_fines'] ?? 0 ?></h2>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-money-bill fa-2x"></i>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Search -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="liveSearch" class="form-control" placeholder="Search borrows (student, book title, ID, status...)">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="searchResults" class="text-muted">
+                        <small>Showing <span id="visibleCount">0</span> of <span id="totalCount">0</span> records</small>
                     </div>
                 </div>
             </div>
@@ -134,7 +153,7 @@ include '../app/views/shared/layout-header.php';
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table id="borrowsTable" class="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Student</th>
@@ -182,12 +201,12 @@ include '../app/views/shared/layout-header.php';
                                 </td>
                                 <td>
                                     <?php if ($borrow['fine_amount'] > 0): ?>
-                                        <span class="text-danger">$<?= $borrow['fine_amount'] ?></span>
+                                        <span class="text-danger">MK<?= $borrow['fine_amount'] ?></span>
                                         <?php if ($borrow['paid_amount'] > 0): ?>
-                                            <br><small>Paid: $<?= $borrow['paid_amount'] ?></small>
+                                            <br><small>Paid: MK<?= $borrow['paid_amount'] ?></small>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="text-muted">$0</span>
+                                        <span class="text-muted">MK0</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -217,5 +236,100 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('liveSearch');
+    const table = document.getElementById('borrowsTable');
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const visibleCountSpan = document.getElementById('visibleCount');
+    const totalCountSpan = document.getElementById('totalCount');
+
+    // Initialize counts
+    let totalRows = rows.length;
+    totalCountSpan.textContent = totalRows;
+    visibleCountSpan.textContent = totalRows;
+
+    // Function to highlight matching text
+    function highlightText(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+
+    // Function to remove existing highlights
+    function removeHighlights(element) {
+        element.innerHTML = element.innerHTML.replace(/<mark>/g, '').replace(/<\/mark>/g, '');
+    }
+
+    // Live search function
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        let visibleRows = 0;
+
+        rows.forEach(row => {
+            // Remove existing highlights
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => removeHighlights(cell));
+
+            if (!searchTerm) {
+                row.style.display = '';
+                visibleRows++;
+                return;
+            }
+
+            // Get text content from all cells
+            const rowText = Array.from(cells).map(cell => cell.textContent.toLowerCase()).join(' ');
+
+            if (rowText.includes(searchTerm)) {
+                row.style.display = '';
+                visibleRows++;
+
+                // Highlight matching terms
+                cells.forEach(cell => {
+                    const originalText = cell.textContent;
+                    if (originalText.toLowerCase().includes(searchTerm)) {
+                        cell.innerHTML = highlightText(originalText, searchTerm);
+                    }
+                });
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        visibleCountSpan.textContent = visibleRows;
+
+        // Show message if no results
+        const noResultsRow = tbody.querySelector('.no-results-row');
+        if (visibleRows === 0 && searchTerm) {
+            if (!noResultsRow) {
+                const newRow = document.createElement('tr');
+                newRow.className = 'no-results-row';
+                newRow.innerHTML = `
+                    <td colspan="7" class="text-center py-4">
+                        <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No borrows found matching "${searchInput.value}"</p>
+                    </td>
+                `;
+                tbody.appendChild(newRow);
+            }
+        } else if (noResultsRow) {
+            noResultsRow.remove();
+        }
+    }
+
+    // Add event listener for real-time search
+    searchInput.addEventListener('input', performSearch);
+
+    // Clear search on escape key
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            performSearch();
+        }
+    });
+});
+</script>
 
 <?php include '../app/views/shared/footer.php'; ?>
