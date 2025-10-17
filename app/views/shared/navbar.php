@@ -102,7 +102,18 @@ body {
 
 <nav class="navbar navbar-expand-lg modern-navbar fixed-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="<?= BASE_PATH ?>/">
+        <?php 
+        // Determine dashboard link based on user role
+        $dashboardLink = BASE_PATH . '/';
+        if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+            if ($_SESSION['role'] === 'super_admin') {
+                $dashboardLink = BASE_PATH . '/admin/dashboard';
+            } elseif ($_SESSION['role'] === 'librarian') {
+                $dashboardLink = BASE_PATH . '/librarian/dashboard';
+            }
+        }
+        ?>
+        <a class="navbar-brand" href="<?= $dashboardLink ?>">
             <i class="fas fa-book"></i> 
             <?= htmlspecialchars($system_name ?? 'Multi-Library System') ?>
         </a>
@@ -215,10 +226,15 @@ body {
                                         <i class="fas fa-cog"></i> System Settings
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= BASE_PATH ?>/system/preferences">
+                                        <i class="fas fa-user-cog"></i> Preferences
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <li>
-                                <a class="dropdown-item" href="<?= BASE_PATH ?>/system/preferences">
-                                    <i class="fas fa-user-cog"></i> Preferences
+                                <a class="dropdown-item" href="<?= BASE_PATH ?>/profile">
+                                    <i class="fas fa-user-circle"></i> My Profile
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>

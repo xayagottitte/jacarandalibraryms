@@ -84,6 +84,11 @@ $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 
+// Profile routes
+$router->add('/profile', 'ProfileController', 'index');
+$router->add('/profile/update', 'ProfileController', 'update');
+$router->add('/profile/upload-photo', 'ProfileController', 'uploadPhoto');
+
 // Report routes
 $router->add('/report', 'ReportController', 'index');
 $router->add('/report/generate-advanced', 'ReportController', 'generateAdvancedReport');

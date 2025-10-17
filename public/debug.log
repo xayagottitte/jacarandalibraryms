@@ -1,0 +1,4 @@
+[17-Oct-2025 13:57:53 UTC] Error getting librarian stats: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'returned_by' in 'where clause'
+[17-Oct-2025 13:57:53 UTC] Error getting recent activities: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'br.returned_by' in 'where clause'
+[17-Oct-2025 13:58:07 UTC] Error getting librarian stats: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'returned_by' in 'where clause'
+[17-Oct-2025 13:58:07 UTC] Error getting recent activities: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'br.returned_by' in 'where clause'

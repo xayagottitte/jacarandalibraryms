@@ -138,5 +138,46 @@ class Student extends Model {
         
         return $stmt->execute();
     }
+
+    public function getClassBorrowStats($libraryId) {
+        $query = "SELECT 
+                    s.class,
+                    COUNT(DISTINCT br.id) as borrow_count,
+                    COUNT(DISTINCT s.id) as student_count
+                  FROM students s
+                  LEFT JOIN borrows br ON br.student_id = s.id
+                  WHERE s.library_id = :library_id
+                  GROUP BY s.class
+                  ORDER BY CAST(s.class AS UNSIGNED)";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAtRiskStudents($libraryId) {
+        $query = "SELECT 
+                    s.id,
+                    s.student_id,
+                    s.full_name,
+                    s.class,
+                    COUNT(br.id) as total_borrows,
+                    COUNT(CASE WHEN br.status = 'overdue' THEN 1 END) as overdue_count,
+                    SUM(br.fine_amount - COALESCE(br.paid_amount, 0)) as unpaid_fines
+                  FROM students s
+                  LEFT JOIN borrows br ON br.student_id = s.id
+                  WHERE s.library_id = :library_id
+                  AND s.status = 'active'
+                  GROUP BY s.id, s.student_id, s.full_name, s.class
+                  HAVING total_borrows = 0 OR overdue_count > 0 OR unpaid_fines > 0
+                  ORDER BY overdue_count DESC, unpaid_fines DESC, total_borrows ASC
+                  LIMIT 10";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>

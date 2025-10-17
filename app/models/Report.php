@@ -50,12 +50,12 @@ class Report extends Model {
                   COUNT(CASE WHEN br.status = 'overdue' THEN 1 END) as overdue_books,
                   SUM(br.fine_amount) as total_fines,
                   SUM(br.paid_amount) as paid_fines,
-                  ROUND(COUNT(br.id) * 100.0 / (SELECT COUNT(*) FROM students WHERE library_id = :library_id), 2) as activity_percentage
+                  ROUND(COUNT(br.id) * 100.0 / (SELECT COUNT(*) FROM students WHERE library_id = :inner_library_id), 2) as activity_percentage
                   FROM students s
                   LEFT JOIN borrows br ON s.id = br.student_id
                   WHERE s.library_id = :library_id";
         
-        $params = ['library_id' => $libraryId];
+        $params = ['library_id' => $libraryId, 'inner_library_id' => $libraryId];
 
         if (!empty($filters['class'])) {
             $query .= " AND s.class = :class";

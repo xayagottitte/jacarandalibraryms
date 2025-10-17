@@ -192,10 +192,10 @@ function getSettingValue($settings, $key, $default = '') {
                                     </label>
                                     <input type="number" class="form-control-modern" 
                                            name="settings[fine_per_day]" 
-                                           value="<?= getSettingValue($settings, 'fine_per_day', '5') ?>" 
-                                           min="0" step="0.50" required>
+                                           value="<?= getSettingValue($settings, 'fine_per_day', '500') ?>" 
+                                           min="0" step="50" required>
                                     <div class="form-help">
-                                        Fine amount charged per day for overdue books (in dollars)
+                                        Fine amount charged per day for overdue books (in Malawian Kwacha)
                                     </div>
                                 </div>
                             </div>
@@ -231,7 +231,7 @@ function getSettingValue($settings, $key, $default = '') {
                                         <small>Max Books/Student</small>
                                     </div>
                                     <div class="col-md-3">
-                                        <h3 class="mb-0">$<?= getSettingValue($settings, 'fine_per_day', '5') ?></h3>
+                                        <h3 class="mb-0">MK <?= getSettingValue($settings, 'fine_per_day', '500') ?></h3>
                                         <small>Fine Per Day</small>
                                     </div>
                                     <div class="col-md-3">

@@ -222,6 +222,328 @@ include '../app/views/shared/layout-header.php';
             </div>
         </div>
     </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-fire text-danger"></i> Most Popular Books</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="popularBooksChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bed text-muted"></i> Underutilized Educational Books</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="underutilizedBooksChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users text-primary"></i> Most Active Classes</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="classActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Borrowing Trends (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="borrowingTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- At-Risk Students Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle text-warning"></i> At-Risk Students</h5>
+                    <span class="badge bg-warning text-dark"><?= count($at_risk_students) ?></span>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($at_risk_students)): ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Total Borrows</th>
+                                        <th>Overdue Books</th>
+                                        <th>Unpaid Fines</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($at_risk_students as $student): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($student['student_id']) ?></td>
+                                            <td><?= htmlspecialchars($student['full_name']) ?></td>
+                                            <td>Class <?= htmlspecialchars($student['class']) ?></td>
+                                            <td><?= $student['total_borrows'] ?></td>
+                                            <td>
+                                                <?php if ($student['overdue_count'] > 0): ?>
+                                                    <span class="badge bg-danger"><?= $student['overdue_count'] ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">0</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($student['unpaid_fines'] > 0): ?>
+                                                    <span class="text-danger">MK <?= number_format($student['unpaid_fines']) ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">MK 0</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($student['overdue_count'] > 0): ?>
+                                                    <span class="badge bg-danger">Overdue</span>
+                                                <?php elseif ($student['total_borrows'] == 0): ?>
+                                                    <span class="badge bg-warning text-dark">No Activity</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-info">Unpaid Fines</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-success text-center"><i class="fas fa-check-circle"></i> No at-risk students found!</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<?php include '../app/views/shared/footer.php'; ?>
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Data for Popular Books Chart
+    const popularBooksData = {
+        labels: <?= json_encode(array_map(function($book) {
+            return $book['title'] . ' (Class ' . $book['class_level'] . ')';
+        }, $popular_books)) ?>,
+        datasets: [{
+            label: 'Number of Borrows',
+            data: <?= json_encode(array_column($popular_books, 'borrow_count')) ?>,
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    // Popular Books Chart
+    const popularBooksCtx = document.getElementById('popularBooksChart').getContext('2d');
+    new Chart(popularBooksCtx, {
+        type: 'bar',
+        data: popularBooksData,
+        options: {
+            indexAxis: 'y', // Horizontal bar chart
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Top 5 Most Borrowed Books'
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Data for Underutilized Books Chart
+    const underutilizedBooksData = {
+        labels: <?= json_encode(array_map(function($book) {
+            return $book['title'] . ' (Class ' . $book['class_level'] . ')';
+        }, $underutilized_books)) ?>,
+        datasets: [{
+            label: 'Number of Borrows',
+            data: <?= json_encode(array_column($underutilized_books, 'borrow_count')) ?>,
+            backgroundColor: [
+                'rgba(255, 159, 64, 0.2)',
+                'rgba(255, 205, 86, 0.2)',
+                'rgba(201, 203, 207, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(153, 102, 255, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 159, 64, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(201, 203, 207, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    // Underutilized Books Chart
+    const underutilizedBooksCtx = document.getElementById('underutilizedBooksChart').getContext('2d');
+    new Chart(underutilizedBooksCtx, {
+        type: 'bar',
+        data: underutilizedBooksData,
+        options: {
+            indexAxis: 'y', // Horizontal bar chart
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: '5 Least Borrowed Books'
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Class Activity Chart
+    const classData = <?= json_encode($class_borrow_stats) ?>;
+    
+    if (classData && classData.length > 0) {
+        const classLabels = classData.map(item => 'Class ' + item.class);
+        const classBorrows = classData.map(item => parseInt(item.borrow_count));
+        
+        const classActivityData = {
+            labels: classLabels,
+            datasets: [{
+                label: 'Total Borrows',
+                data: classBorrows,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2
+            }]
+        };
+
+        const classActivityCtx = document.getElementById('classActivityChart').getContext('2d');
+        new Chart(classActivityCtx, {
+            type: 'bar',
+            data: classActivityData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Book Borrows by Class Level'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Borrowing Trends Chart
+    const trendsData = <?= json_encode($borrowing_trends) ?>;
+    
+    if (trendsData && trendsData.length > 0) {
+        const trendLabels = trendsData.map(item => {
+            const date = new Date(item.borrow_date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const trendValues = trendsData.map(item => parseInt(item.borrow_count));
+        
+        const trendsCtx = document.getElementById('borrowingTrendsChart').getContext('2d');
+        new Chart(trendsCtx, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Books Borrowed',
+                    data: trendValues,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Daily Borrowing Activity'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+<?php include '../app/views/shared/layout-footer.php'; ?>

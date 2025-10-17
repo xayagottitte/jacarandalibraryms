@@ -302,5 +302,86 @@ class Book extends Model {
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getPopularBooks($libraryId, $limit = 5) {
+        $query = "SELECT 
+                    b.title, 
+                    b.class_level,
+                    COUNT(br.id) as borrow_count
+                  FROM borrows br
+                  JOIN books b ON br.book_id = b.id
+                  WHERE b.library_id = :library_id
+                  GROUP BY b.id, b.title, b.class_level
+                  ORDER BY borrow_count DESC
+                  LIMIT :limit";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getUnderutilizedBooks($libraryId, $limit = 5) {
+        $query = "SELECT 
+                    b.title, 
+                    b.class_level,
+                    COALESCE(COUNT(br.id), 0) as borrow_count
+                  FROM books b
+                  LEFT JOIN borrows br ON br.book_id = b.id
+                  WHERE b.library_id = :library_id 
+                  AND (b.category = 'Educational' OR b.category = 'education')
+                  GROUP BY b.id, b.title, b.class_level
+                  ORDER BY borrow_count ASC, b.created_at DESC
+                  LIMIT :limit";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getCategoryBorrowStats($libraryId) {
+        $query = "SELECT 
+                    b.category,
+                    COUNT(DISTINCT br.id) as borrow_count
+                  FROM books b
+                  LEFT JOIN borrows br ON br.book_id = b.id
+                  WHERE b.library_id = :library_id 
+                  AND b.category IS NOT NULL 
+                  AND b.category != ''
+                  GROUP BY b.category
+                  ORDER BY borrow_count DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getBookUtilizationStats($libraryId, $limit = 10) {
+        $query = "SELECT 
+                    b.title,
+                    b.class_level,
+                    b.total_copies,
+                    b.available_copies,
+                    (b.total_copies - b.available_copies) as borrowed_copies,
+                    ROUND(((b.total_copies - b.available_copies) * 100.0 / b.total_copies), 1) as utilization_rate,
+                    COUNT(br.id) as total_borrows
+                  FROM books b
+                  LEFT JOIN borrows br ON br.book_id = b.id
+                  WHERE b.library_id = :library_id
+                  AND b.total_copies > 0
+                  GROUP BY b.id, b.title, b.class_level, b.total_copies, b.available_copies
+                  ORDER BY utilization_rate DESC
+                  LIMIT :limit";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>

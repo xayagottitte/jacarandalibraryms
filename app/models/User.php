@@ -163,5 +163,105 @@ class User extends Model {
         $stmt = $this->db->prepare($query);
         return $stmt->execute([$libraryId, $userId]);
     }
+
+    public function getUserProfile($userId) {
+        $query = "SELECT u.*, l.name as library_name, l.type as library_type 
+                  FROM users u 
+                  LEFT JOIN libraries l ON u.library_id = l.id 
+                  WHERE u.id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateProfile($userId, $data) {
+        error_log("User::updateProfile() - User ID: " . $userId);
+        error_log("User::updateProfile() - Input data: " . print_r($data, true));
+        
+        $allowedFields = ['full_name', 'employee_id', 'date_of_birth', 'gender', 'phone', 'email', 'address'];
+        $setClause = [];
+        $params = [];
+
+        foreach ($data as $field => $value) {
+            if (in_array($field, $allowedFields) && $value !== null && $value !== '') {
+                $setClause[] = "$field = ?";
+                $params[] = $value;
+                error_log("User::updateProfile() - Added field: $field = $value");
+            } else {
+                error_log("User::updateProfile() - Skipped field: $field (not allowed or empty)");
+            }
+        }
+
+        if (empty($setClause)) {
+            error_log("User::updateProfile() - No valid fields to update");
+            return false;
+        }
+
+        $params[] = $userId;
+        $query = "UPDATE users SET " . implode(', ', $setClause) . ", updated_at = NOW() WHERE id = ?";
+        
+        error_log("User::updateProfile() - Query: " . $query);
+        error_log("User::updateProfile() - Params: " . print_r($params, true));
+        
+        $stmt = $this->db->prepare($query);
+        $result = $stmt->execute($params);
+        
+        error_log("User::updateProfile() - Execute result: " . ($result ? 'success' : 'failed'));
+        error_log("User::updateProfile() - Affected rows: " . $stmt->rowCount());
+        
+        if (!$result) {
+            error_log("User::updateProfile() - Error info: " . print_r($stmt->errorInfo(), true));
+        }
+        
+        return $result;
+    }
+
+    public function updateProfilePhoto($userId, $photoPath) {
+        error_log("User::updateProfilePhoto() - User ID: " . $userId);
+        error_log("User::updateProfilePhoto() - Photo path: " . $photoPath);
+        
+        $query = "UPDATE users SET profile_photo = ?, updated_at = NOW() WHERE id = ?";
+        
+        error_log("User::updateProfilePhoto() - Query: " . $query);
+        
+        $stmt = $this->db->prepare($query);
+        $result = $stmt->execute([$photoPath, $userId]);
+        
+        error_log("User::updateProfilePhoto() - Execute result: " . ($result ? 'success' : 'failed'));
+        error_log("User::updateProfilePhoto() - Affected rows: " . $stmt->rowCount());
+        
+        if (!$result) {
+            error_log("User::updateProfilePhoto() - Error info: " . print_r($stmt->errorInfo(), true));
+        }
+        
+        return $result;
+    }
+
+    public function getUserStatistics($userId) {
+        // This method can be expanded based on your database structure
+        // For now, returning basic stats
+        $stats = [
+            'students_registered' => 0,
+            'reports_generated' => 0,
+            'total_transactions' => 0
+        ];
+
+        try {
+            // Count students registered by this user (if you track who created students)
+            $query = "SELECT COUNT(*) as count FROM students WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['students_registered'] = $result['count'] ?? 0;
+
+            // You can add more statistics queries here
+            // Example: reports generated, books added, etc.
+
+        } catch (Exception $e) {
+            error_log("Error getting user statistics: " . $e->getMessage());
+        }
+
+        return $stats;
+    }
 }
 ?>

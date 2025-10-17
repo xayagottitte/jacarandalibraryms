@@ -116,7 +116,7 @@ class Borrow extends Model {
 
             if (strtotime($returnDate) > strtotime($dueDate)) {
                 $daysOverdue = floor((strtotime($returnDate) - strtotime($dueDate)) / (60 * 60 * 24));
-                $fineAmount = $daysOverdue * 5; // $5 per day overdue
+                $fineAmount = $daysOverdue * 500; // MK 500 per day overdue
             }
 
             // Update borrow record
@@ -260,6 +260,145 @@ class Borrow extends Model {
         
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':book_id', $bookId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getLibrarianStats($userId) {
+        $stats = [
+            'books_issued' => 0,
+            'books_returned' => 0,
+            'fines_collected' => 0
+        ];
+
+        try {
+            // Books issued by this librarian
+            $query = "SELECT COUNT(*) as count FROM borrows WHERE borrowed_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['books_issued'] = $result['count'] ?? 0;
+
+            // Books returned (processed by this librarian)
+            $query = "SELECT COUNT(*) as count FROM borrows WHERE returned_by = ? AND status = 'returned'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['books_returned'] = $result['count'] ?? 0;
+
+            // Fines collected by this librarian
+            $query = "SELECT SUM(paid_amount) as total FROM borrows WHERE returned_by = ? AND paid_amount > 0";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['fines_collected'] = $result['total'] ?? 0;
+
+        } catch (Exception $e) {
+            error_log("Error getting librarian stats: " . $e->getMessage());
+        }
+
+        return $stats;
+    }
+
+    public function getRecentActivities($userId, $limit = 50) {
+        $activities = [];
+
+        try {
+            $query = "SELECT 
+                        'Book Borrow' as activity,
+                        CONCAT('Issued \"', b.title, '\" to ', s.full_name) as details,
+                        'success' as status,
+                        br.borrowed_date as created_at
+                      FROM borrows br
+                      JOIN books b ON br.book_id = b.id
+                      JOIN students s ON br.student_id = s.id
+                      WHERE br.borrowed_by = ?
+                      
+                      UNION ALL
+                      
+                      SELECT 
+                        'Book Return' as activity,
+                        CONCAT('Returned \"', b.title, '\" from ', s.full_name) as details,
+                        'success' as status,
+                        br.returned_date as created_at
+                      FROM borrows br
+                      JOIN books b ON br.book_id = b.id
+                      JOIN students s ON br.student_id = s.id
+                      WHERE br.returned_by = ? AND br.status = 'returned'
+                      
+                      ORDER BY created_at DESC
+                      LIMIT ?";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId, $userId, $limit]);
+            $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("Error getting recent activities: " . $e->getMessage());
+        }
+
+        return $activities;
+    }
+
+    public function getOverdueBookStats($libraryId) {
+        $query = "SELECT 
+                    b.title,
+                    b.category,
+                    COUNT(br.id) as overdue_count,
+                    AVG(DATEDIFF(COALESCE(br.returned_date, CURDATE()), br.due_date)) as avg_days_overdue
+                  FROM borrows br
+                  JOIN books b ON br.book_id = b.id
+                  WHERE b.library_id = :library_id 
+                  AND (
+                    (br.status IN ('borrowed', 'overdue') AND br.due_date < CURDATE())
+                    OR 
+                    (br.status = 'returned' AND br.returned_date > br.due_date)
+                  )
+                  GROUP BY b.id, b.title, b.category
+                  ORDER BY overdue_count DESC
+                  LIMIT 10";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getBorrowingTrends($libraryId, $days = 30) {
+        $query = "SELECT 
+                    DATE(br.borrowed_date) as borrow_date,
+                    COUNT(br.id) as borrow_count
+                  FROM borrows br
+                  JOIN books b ON br.book_id = b.id
+                  WHERE b.library_id = :library_id 
+                  AND br.borrowed_date >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                  GROUP BY DATE(br.borrowed_date)
+                  ORDER BY borrow_date ASC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->bindParam(':days', $days, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getFinancialStats($libraryId, $days = 30) {
+        $query = "SELECT 
+                    DATE(br.returned_date) as return_date,
+                    SUM(br.fine_amount) as total_fines,
+                    SUM(br.paid_amount) as total_paid,
+                    COUNT(CASE WHEN br.fine_amount > 0 THEN 1 END) as fined_returns
+                  FROM borrows br
+                  JOIN books b ON br.book_id = b.id
+                  WHERE b.library_id = :library_id 
+                  AND br.returned_date IS NOT NULL
+                  AND br.returned_date >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                  GROUP BY DATE(br.returned_date)
+                  ORDER BY return_date ASC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
+        $stmt->bindParam(':days', $days, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

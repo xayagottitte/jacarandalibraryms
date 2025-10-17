@@ -31,7 +31,12 @@ class LibrarianController extends Controller {
             'student_count' => count($this->studentModel->getStudentsByLibrary($libraryId)),
             'recent_borrows' => $this->borrowModel->getBorrowsByLibrary($libraryId, ['status' => 'borrowed']),
             'overdue_books' => $this->borrowModel->getOverdueBorrows($libraryId),
-            'library' => $this->libraryModel->find($libraryId)
+            'library' => $this->libraryModel->find($libraryId),
+            'popular_books' => $this->bookModel->getPopularBooks($libraryId, 5),
+            'underutilized_books' => $this->bookModel->getUnderutilizedBooks($libraryId, 5),
+            'class_borrow_stats' => $this->studentModel->getClassBorrowStats($libraryId),
+            'borrowing_trends' => $this->borrowModel->getBorrowingTrends($libraryId, 30),
+            'at_risk_students' => $this->studentModel->getAtRiskStudents($libraryId)
         ];
         
         $this->view('librarian/dashboard', $data);
@@ -450,7 +455,7 @@ class LibrarianController extends Controller {
                 $result = $borrowModel->returnBook($borrowId, $_SESSION['user_id']);
                 
                 if ($result['fine_amount'] > 0) {
-                    $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully! Fine amount: $" . $result['fine_amount'];
+                    $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully! Fine amount: MK " . number_format($result['fine_amount']);
                 } else {
                     $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully!";
                 }
@@ -521,7 +526,11 @@ class LibrarianController extends Controller {
             'book_stats' => $bookModel->getDashboardStats($libraryId),
             'categories' => $bookModel->getCategoriesByLibrary($libraryId),
             'classes' => $studentModel->getClassesByLibrary($libraryId),
-            'saved_reports' => $reportModel->getUserReports($_SESSION['user_id'])
+            'saved_reports' => $reportModel->getUserReports($_SESSION['user_id']),
+            'category_stats' => $bookModel->getCategoryBorrowStats($libraryId),
+            'overdue_stats' => $this->borrowModel->getOverdueBookStats($libraryId),
+            'financial_stats' => $this->borrowModel->getFinancialStats($libraryId, 30),
+            'utilization_stats' => $bookModel->getBookUtilizationStats($libraryId, 10)
         ];
         
         $this->view('librarian/reports', $data);
@@ -552,18 +561,24 @@ class LibrarianController extends Controller {
             }
 
             // Save report record
-            $reportModel->saveReport([
-                'title' => $_POST['report_title'] ?? 'Library Report',
-                'type' => $type,
-                'generated_by' => $_SESSION['user_id'],
-                'library_id' => $libraryId,
-                'date_range_start' => $filters['start_date'] ?? null,
-                'date_range_end' => $filters['end_date'] ?? null,
-                'filters' => json_encode($filters)
-            ]);
+            if (!empty($_POST['report_title'])) {
+                $reportModel->saveReport([
+                    'title' => $_POST['report_title'],
+                    'type' => $type,
+                    'generated_by' => $_SESSION['user_id'],
+                    'library_id' => $libraryId,
+                    'date_range_start' => $filters['start_date'] ?? null,
+                    'date_range_end' => $filters['end_date'] ?? null,
+                    'filters' => json_encode($filters)
+                ]);
+            }
 
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'data' => $data]);
+            // Instead of echoing JSON, load a view to generate a CSV
+            $this->view('librarian/report-csv', [
+                'title' => $_POST['report_title'] ?? 'Generated Report',
+                'type' => $type,
+                'data' => $data
+            ]);
             exit;
         }
     }

@@ -91,6 +91,62 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 
+    <!-- Analytics Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>Category Popularity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryPopularityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Overdue Hotspots
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="overdueHotspotsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-dollar-sign me-2"></i>Financial Performance (Last 30 Days)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="financialChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-percentage me-2"></i>Book Utilization Rate
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="utilizationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Report Generation -->
     <div class="row">
         <div class="col-lg-8">
@@ -412,6 +468,251 @@ function viewReport(reportId) {
 function downloadReport(reportId) {
     window.location.href = `<?= BASE_PATH ?>/librarian/download-report/${reportId}`;
 }
+</script>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Category Popularity Pie Chart
+    const categoryData = <?= json_encode($category_stats) ?>;
+    
+    if (categoryData && categoryData.length > 0) {
+        const categoryLabels = categoryData.map(item => item.category);
+        const categoryValues = categoryData.map(item => parseInt(item.borrow_count));
+        
+        const categoryCtx = document.getElementById('categoryPopularityChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'pie',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    label: 'Borrows by Category',
+                    data: categoryValues,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(201, 203, 207, 0.8)',
+                        'rgba(255, 99, 71, 0.8)',
+                        'rgba(144, 238, 144, 0.8)',
+                        'rgba(173, 216, 230, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(201, 203, 207, 1)',
+                        'rgba(255, 99, 71, 1)',
+                        'rgba(144, 238, 144, 1)',
+                        'rgba(173, 216, 230, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Book Borrows by Category'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} borrows (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Overdue Hotspots Chart
+    const overdueData = <?= json_encode($overdue_stats) ?>;
+    
+    if (overdueData && overdueData.length > 0) {
+        const overdueLabels = overdueData.map(item => item.title.substring(0, 30) + (item.title.length > 30 ? '...' : ''));
+        const overdueValues = overdueData.map(item => parseInt(item.overdue_count));
+        
+        const overdueCtx = document.getElementById('overdueHotspotsChart').getContext('2d');
+        new Chart(overdueCtx, {
+            type: 'bar',
+            data: {
+                labels: overdueLabels,
+                datasets: [{
+                    label: 'Times Overdue',
+                    data: overdueValues,
+                    backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Top 10 Most Frequently Overdue Books'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const avgDays = overdueData[index].avg_days_overdue;
+                                return 'Avg ' + parseFloat(avgDays).toFixed(1) + ' days overdue';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Financial Performance Chart
+    const financialData = <?= json_encode($financial_stats) ?>;
+    
+    if (financialData && financialData.length > 0) {
+        const financialLabels = financialData.map(item => {
+            const date = new Date(item.return_date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const fineValues = financialData.map(item => parseFloat(item.total_fines || 0));
+        
+        const financialCtx = document.getElementById('financialChart').getContext('2d');
+        new Chart(financialCtx, {
+            type: 'line',
+            data: {
+                labels: financialLabels,
+                datasets: [{
+                    label: 'Fines Collected (MK)',
+                    data: fineValues,
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Daily Fine Collections'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'MK ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Book Utilization Chart
+    const utilizationData = <?= json_encode($utilization_stats) ?>;
+    
+    if (utilizationData && utilizationData.length > 0) {
+        const utilizationLabels = utilizationData.map(item => 
+            item.title.substring(0, 25) + (item.title.length > 25 ? '...' : '') + ' (C' + item.class_level + ')'
+        );
+        const utilizationValues = utilizationData.map(item => parseFloat(item.utilization_rate));
+        
+        const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
+        new Chart(utilizationCtx, {
+            type: 'bar',
+            data: {
+                labels: utilizationLabels,
+                datasets: [{
+                    label: 'Utilization Rate (%)',
+                    data: utilizationValues,
+                    backgroundColor: utilizationValues.map(value => {
+                        if (value >= 80) return 'rgba(220, 53, 69, 0.6)'; // Red - need more copies
+                        if (value >= 50) return 'rgba(255, 193, 7, 0.6)'; // Yellow - moderate
+                        return 'rgba(40, 167, 69, 0.6)'; // Green - adequate
+                    }),
+                    borderColor: utilizationValues.map(value => {
+                        if (value >= 80) return 'rgba(220, 53, 69, 1)';
+                        if (value >= 50) return 'rgba(255, 193, 7, 1)';
+                        return 'rgba(40, 167, 69, 1)';
+                    }),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Top 10 Books by Utilization Rate'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const copies = utilizationData[index].total_copies;
+                                const borrowed = utilizationData[index].borrowed_copies;
+                                return borrowed + ' of ' + copies + ' copies in use';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
 </script>
 
 <?php include '../app/views/shared/layout-footer.php'; ?>
