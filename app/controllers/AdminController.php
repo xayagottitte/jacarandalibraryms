@@ -3,6 +3,8 @@ class AdminController extends Controller {
     private $userModel;
     private $libraryModel;
     private $bookModel;
+    private $borrowModel;
+    private $studentModel;
     private $mailer;
 
     public function __construct() {
@@ -15,15 +17,35 @@ class AdminController extends Controller {
         $this->userModel = new User();
         $this->libraryModel = new Library();
         $this->bookModel = new Book();
+        $this->borrowModel = new Borrow();
+        $this->studentModel = new Student();
         $this->mailer = new Mailer();
     }
 
     public function dashboard() {
+        // Get selected library from query parameter (0 = all libraries)
+        $selectedLibraryId = isset($_GET['library']) ? (int)$_GET['library'] : 0;
+        
         $data = [
             'pending_users' => $this->userModel->getPendingUsers(),
             'stats' => $this->userModel->getDashboardStats(),
-            'libraries' => $this->libraryModel->getAllWithStats()
+            'libraries' => $this->libraryModel->getAllWithStats(),
+            'selected_library' => $selectedLibraryId
         ];
+        
+        // If a specific library is selected, fetch its chart data
+        if ($selectedLibraryId > 0) {
+            $data['popular_books'] = $this->bookModel->getPopularBooks($selectedLibraryId, 5);
+            $data['underutilized_books'] = $this->bookModel->getUnderutilizedBooks($selectedLibraryId, 5);
+            $data['class_borrow_stats'] = $this->studentModel->getClassBorrowStats($selectedLibraryId);
+            $data['borrowing_trends'] = $this->borrowModel->getBorrowingTrends($selectedLibraryId, 30);
+        } else {
+            // For "All Libraries", we'll use aggregated data
+            $data['popular_books'] = [];
+            $data['underutilized_books'] = [];
+            $data['class_borrow_stats'] = [];
+            $data['borrowing_trends'] = [];
+        }
         
         $this->view('admin/dashboard', $data);
     }
@@ -154,10 +176,18 @@ class AdminController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = $_POST['user_id'] ?? null;
             
-            if ($userId && $this->userModel->deleteUser($userId)) {
-                $_SESSION['success'] = "User deleted successfully!";
+            if ($userId) {
+                try {
+                    if ($this->userModel->deleteUser($userId)) {
+                        $_SESSION['success'] = "User deleted successfully!";
+                    } else {
+                        $_SESSION['error'] = "Failed to delete user.";
+                    }
+                } catch (Exception $e) {
+                    $_SESSION['error'] = $e->getMessage();
+                }
             } else {
-                $_SESSION['error'] = "Failed to delete user.";
+                $_SESSION['error'] = "Invalid user ID.";
             }
         }
         $this->redirect('/admin/users');
@@ -175,6 +205,67 @@ class AdminController extends Controller {
             }
         }
         $this->redirect('/admin/users');
+    }
+
+    public function editUser($userId = null) {
+        if (!$userId) {
+            $_SESSION['error'] = "User ID is required.";
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        $user = $this->userModel->find($userId);
+        if (!$user) {
+            $_SESSION['error'] = "User not found.";
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Clean and prepare library_id
+            $libraryId = isset($_POST['library_id']) && !empty($_POST['library_id']) ? $_POST['library_id'] : null;
+            
+            $data = [
+                'id' => $userId,
+                'username' => trim($_POST['username']),
+                'full_name' => trim($_POST['full_name']),
+                'email' => trim($_POST['email']),
+                'role' => $_POST['role'],
+                'library_id' => $libraryId
+            ];
+
+            // Update password only if provided
+            if (!empty($_POST['password'])) {
+                if ($_POST['password'] !== $_POST['confirm_password']) {
+                    $_SESSION['error'] = "Passwords do not match.";
+                    $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                    return;
+                }
+                
+                if (strlen($_POST['password']) < 6) {
+                    $_SESSION['error'] = "Password must be at least 6 characters.";
+                    $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                    return;
+                }
+                
+                $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            }
+
+            if ($this->userModel->update($data)) {
+                $_SESSION['success'] = "User updated successfully!";
+                $this->redirect('/admin/users');
+                return;
+            } else {
+                $_SESSION['error'] = "Failed to update user.";
+            }
+        }
+
+        $data = [
+            'user' => $user,
+            'libraries' => $this->libraryModel->all()
+        ];
+        
+        $this->view('admin/edit-user', $data);
     }
 
     // Library Management Methods
@@ -334,7 +425,7 @@ class AdminController extends Controller {
         
         $data = [
             'libraries' => $libraryModel->getAllWithStats(),
-            'saved_reports' => $reportModel->getUserReports($_SESSION['user_id'])
+            'saved_reports' => $reportModel->getAllReports() // Show all reports for admin
         ];
         $this->view('admin/reports', $data);
     }

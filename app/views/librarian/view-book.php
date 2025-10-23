@@ -4,147 +4,490 @@ include '../app/views/shared/header.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-    <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Book Details</h2>
-        <div class="d-flex gap-2">
-            <a href="/jacarandalibraryms/librarian/edit-book?id=<?= $book['id'] ?>" class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i>Edit Book
-            </a>
-            <a href="/jacarandalibraryms/librarian/books" class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Books
-            </a>
+<style>
+:root {
+    --primary-purple: #6366f1;
+    --dark-purple: #4f46e5;
+    --light-purple: #818cf8;
+    --accent-purple: #a78bfa;
+    --grey-dark: #374151;
+    --grey-medium: #6b7280;
+    --grey-light: #e5e7eb;
+    --grey-lighter: #f3f4f6;
+    --success-gradient-start: #10b981;
+    --success-gradient-end: #059669;
+    --warning-gradient-start: #f59e0b;
+    --warning-gradient-end: #d97706;
+    --red-gradient-start: #ef4444;
+    --red-gradient-end: #dc2626;
+    --blue-gradient-start: #3b82f6;
+    --blue-gradient-end: #2563eb;
+}
+
+.view-book-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+
+/* Page Header */
+.page-header {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
+    color: white;
+}
+
+.page-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.page-header h2 i {
+    font-size: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-edit {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-edit:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* Modern Cards */
+.info-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.card-header-custom {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--grey-light);
+}
+
+.card-header-custom i {
+    font-size: 1.5rem;
+    color: var(--primary-purple);
+}
+
+.card-header-custom h5 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--grey-dark);
+    margin: 0;
+}
+
+/* Book Info Table */
+.info-table {
+    width: 100%;
+}
+
+.info-table tr {
+    border-bottom: 1px solid var(--grey-lighter);
+}
+
+.info-table tr:last-child {
+    border-bottom: none;
+}
+
+.info-table th {
+    padding: 1rem 0;
+    font-weight: 700;
+    color: var(--grey-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 160px;
+}
+
+.info-table td {
+    padding: 1rem 0;
+    color: var(--grey-medium);
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+/* Badges */
+.badge-custom {
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge-success {
+    background: linear-gradient(135deg, var(--success-gradient-start) 0%, var(--success-gradient-end) 100%);
+    color: white;
+}
+
+.badge-warning {
+    background: linear-gradient(135deg, var(--warning-gradient-start) 0%, var(--warning-gradient-end) 100%);
+    color: white;
+}
+
+.badge-danger {
+    background: linear-gradient(135deg, var(--red-gradient-start) 0%, var(--red-gradient-end) 100%);
+    color: white;
+}
+
+.badge-info {
+    background: linear-gradient(135deg, var(--blue-gradient-start) 0%, var(--blue-gradient-end) 100%);
+    color: white;
+}
+
+.badge-purple {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    color: white;
+}
+
+/* Stat Card */
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--accent-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    color: var(--grey-medium);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.stat-icon.purple {
+    color: var(--primary-purple);
+}
+
+.stat-icon.success {
+    color: var(--success-gradient-start);
+}
+
+.stat-icon.warning {
+    color: var(--warning-gradient-start);
+}
+
+.stat-icon.info {
+    color: var(--blue-gradient-start);
+}
+
+/* Borrow History Table */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table thead {
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+}
+
+.history-table thead th {
+    padding: 1rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+}
+
+.history-table tbody tr {
+    border-bottom: 1px solid var(--grey-lighter);
+    transition: all 0.2s;
+}
+
+.history-table tbody tr:hover {
+    background: var(--grey-lighter);
+}
+
+.history-table tbody td {
+    padding: 1rem;
+    color: var(--grey-dark);
+    font-weight: 500;
+}
+
+.history-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--grey-medium);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--grey-light);
+    margin-bottom: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .view-book-container {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        padding: 1.5rem;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-edit, .btn-back {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<div class="container-fluid view-book-container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <h2><i class="fas fa-book-open"></i>Book Details</h2>
+            <div class="header-actions">
+                <a href="/jacarandalibraryms/librarian/edit-book?id=<?= $book['id'] ?>" class="btn-edit">
+                    <i class="fas fa-edit"></i>Edit Book
+                </a>
+                <a href="/jacarandalibraryms/librarian/books" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>Back to Books
+                </a>
+            </div>
         </div>
     </div>    <!-- Flash Messages -->
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show auto-dismiss-alert" role="alert">
             <?= $_SESSION['success']; unset($_SESSION['success']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show auto-dismiss-alert" role="alert">
             <?= $_SESSION['error']; unset($_SESSION['error']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
+    <!-- Book Information -->
     <div class="row">
-        <!-- Book Information Card -->
         <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-book me-2"></i>Book Information</h5>
+            <div class="info-card">
+                <div class="card-header-custom">
+                    <i class="fas fa-info-circle"></i>
+                    <h5>Book Information</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="140">Title:</th>
-                                    <td><?= htmlspecialchars($book['title']) ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Author:</th>
-                                    <td><?= htmlspecialchars($book['author']) ?></td>
-                                </tr>
-                                <tr>
-                                    <th>ISBN:</th>
-                                    <td><?= htmlspecialchars($book['isbn'] ?? 'N/A') ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Publisher:</th>
-                                    <td><?= htmlspecialchars($book['publisher'] ?? 'N/A') ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Publication Year:</th>
-                                    <td><?= htmlspecialchars($book['publication_year'] ?? 'N/A') ?></td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="140">Category:</th>
-                                    <td><?= htmlspecialchars($book['category'] ?? 'N/A') ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Class Level:</th>
-                                    <td><?= htmlspecialchars($book['class_level'] ?? 'N/A') ?></td>
-                                </tr>
-                                <tr>
-                                    <th>Total Copies:</th>
-                                    <td><span class="badge bg-info"><?= $book['total_copies'] ?></span></td>
-                                </tr>
-                                <tr>
-                                    <th>Available:</th>
-                                    <td>
-                                        <?php if ($book['available_copies'] > 0): ?>
-                                            <span class="badge bg-success"><?= $book['available_copies'] ?> Available</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger">0 Available</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Status:</th>
-                                    <td>
-                                        <?php if ($book['available_copies'] > 0): ?>
-                                            <span class="badge bg-success">Available for Borrowing</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-warning">All Copies Borrowed</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <table class="info-table">
+                    <tr>
+                        <th><i class="fas fa-book me-2" style="color: var(--primary-purple);"></i>Title</th>
+                        <td><?= htmlspecialchars($book['title']) ?></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-user me-2" style="color: var(--primary-purple);"></i>Author</th>
+                        <td><?= htmlspecialchars($book['author']) ?></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-barcode me-2" style="color: var(--primary-purple);"></i>ISBN</th>
+                        <td><span class="badge-purple badge-custom"><?= htmlspecialchars($book['isbn'] ?? 'N/A') ?></span></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-building me-2" style="color: var(--primary-purple);"></i>Publisher</th>
+                        <td><?= htmlspecialchars($book['publisher'] ?? 'N/A') ?></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-calendar me-2" style="color: var(--primary-purple);"></i>Publication Year</th>
+                        <td><?= htmlspecialchars($book['publication_year'] ?? 'N/A') ?></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-tag me-2" style="color: var(--primary-purple);"></i>Category</th>
+                        <td><span class="badge-info badge-custom"><?= htmlspecialchars($book['category'] ?? 'N/A') ?></span></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-layer-group me-2" style="color: var(--primary-purple);"></i>Class Level</th>
+                        <td><?= htmlspecialchars($book['class_level'] ?? 'N/A') ?></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-copy me-2" style="color: var(--primary-purple);"></i>Total Copies</th>
+                        <td><strong style="color: var(--primary-purple); font-size: 1.125rem;"><?= $book['total_copies'] ?></strong></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-check-circle me-2" style="color: var(--success-gradient-start);"></i>Available</th>
+                        <td>
+                            <?php if ($book['available_copies'] > 0): ?>
+                                <span class="badge-success badge-custom"><?= $book['available_copies'] ?> Available</span>
+                            <?php else: ?>
+                                <span class="badge-danger badge-custom">0 Available</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-info-circle me-2" style="color: var(--blue-gradient-start);"></i>Status</th>
+                        <td>
+                            <?php if ($book['available_copies'] > 0): ?>
+                                <span class="badge-success badge-custom"><i class="fas fa-check-circle"></i>Available for Borrowing</span>
+                            <?php else: ?>
+                                <span class="badge-warning badge-custom"><i class="fas fa-exclamation-triangle"></i>All Copies Borrowed</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
 
-        <!-- Statistics Card -->
+        <!-- Statistics Sidebar -->
         <div class="col-lg-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Book Statistics</h6>
+            <div class="info-card">
+                <div class="card-header-custom">
+                    <i class="fas fa-chart-pie"></i>
+                    <h5>Statistics</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="border-end">
-                                <h4 class="text-primary mb-0"><?= $book['total_copies'] ?></h4>
-                                <small class="text-muted">Total Copies</small>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-books"></i>
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <h4 class="text-success mb-0"><?= $book['available_copies'] ?></h4>
-                            <small class="text-muted">Available</small>
+                            <div class="stat-value"><?= $book['total_copies'] ?></div>
+                            <div class="stat-label">Total Copies</div>
                         </div>
                     </div>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="border-end">
-                                <h4 class="text-warning mb-0"><?= $book['total_copies'] - $book['available_copies'] ?></h4>
-                                <small class="text-muted">Borrowed</small>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fas fa-check-circle"></i>
                             </div>
+                            <div class="stat-value" style="background: linear-gradient(135deg, var(--success-gradient-start) 0%, var(--success-gradient-end) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= $book['available_copies'] ?></div>
+                            <div class="stat-label">Available</div>
                         </div>
-                        <div class="col-6">
-                            <h4 class="text-info mb-0"><?= count($borrow_history ?? []) ?></h4>
-                            <small class="text-muted">Total Borrows</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon warning">
+                                <i class="fas fa-hand-holding-heart"></i>
+                            </div>
+                            <div class="stat-value" style="background: linear-gradient(135deg, var(--warning-gradient-start) 0%, var(--warning-gradient-end) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= $book['total_copies'] - $book['available_copies'] ?></div>
+                            <div class="stat-label">Borrowed</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-icon info">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="stat-value" style="background: linear-gradient(135deg, var(--blue-gradient-start) 0%, var(--blue-gradient-end) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><?= count($borrow_history ?? []) ?></div>
+                            <div class="stat-label">Total Borrows</div>
                         </div>
                     </div>
                 </div>
             </div>
-
+            </div>
+            
             <!-- Library Information -->
-            <div class="card shadow-sm mt-3">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="fas fa-building me-2"></i>Library Information</h6>
+            <div class="info-card">
+                <div class="card-header-custom">
+                    <i class="fas fa-university"></i>
+                    <h5>Library Information</h5>
                 </div>
-                <div class="card-body">
+                <table class="info-table">
+                    <tr>
+                        <th><i class="fas fa-landmark me-2" style="color: var(--primary-purple);"></i>Library Name</th>
+                        <td><?= htmlspecialchars($book['library_name'] ?? 'N/A') ?></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
                     <p><strong>Library:</strong> <?= htmlspecialchars($library['name']) ?></p>
                     <p><strong>Type:</strong> <?= ucfirst(htmlspecialchars($library['type'])) ?> School</p>
                     <?php if (!empty($library['address'])): ?>
@@ -156,83 +499,62 @@ include '../app/views/shared/layout-header.php';
     </div>
 
     <!-- Borrow History -->
-    <?php if (!empty($borrow_history)): ?>
-    <div class="card shadow-sm mt-4">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Borrow History</h5>
+    <div class="info-card">
+        <div class="card-header-custom">
+            <i class="fas fa-history"></i>
+            <h5>Borrow History</h5>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Student ID</th>
-                            <th>Class</th>
-                            <th>Borrowed Date</th>
-                            <th>Due Date</th>
-                            <th>Returned Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($borrow_history as $borrow): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($borrow['student_name']) ?></td>
-                            <td><?= htmlspecialchars($borrow['student_id']) ?></td>
-                            <td><?= htmlspecialchars($borrow['class']) ?></td>
-                            <td><?= date('M d, Y', strtotime($borrow['borrowed_date'])) ?></td>
-                            <td><?= date('M d, Y', strtotime($borrow['due_date'])) ?></td>
-                            <td>
-                                <?php if ($borrow['returned_date']): ?>
-                                    <?= date('M d, Y', strtotime($borrow['returned_date'])) ?>
-                                <?php else: ?>
-                                    <em class="text-muted">Not returned</em>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ($borrow['status'] === 'returned'): ?>
-                                    <span class="badge bg-success">Returned</span>
-                                <?php elseif ($borrow['status'] === 'overdue'): ?>
-                                    <span class="badge bg-danger">Overdue</span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning">Borrowed</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+        <?php if (!empty($borrow_history)): ?>
+        <div class="table-responsive">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-user me-2"></i>Student</th>
+                        <th><i class="fas fa-id-card me-2"></i>Student ID</th>
+                        <th><i class="fas fa-chalkboard me-2"></i>Class</th>
+                        <th><i class="fas fa-calendar-check me-2"></i>Borrowed</th>
+                        <th><i class="fas fa-calendar-times me-2"></i>Due Date</th>
+                        <th><i class="fas fa-calendar-day me-2"></i>Returned</th>
+                        <th><i class="fas fa-info-circle me-2"></i>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($borrow_history as $borrow): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($borrow['student_name']) ?></td>
+                        <td><?= htmlspecialchars($borrow['student_id']) ?></td>
+                        <td><?= htmlspecialchars($borrow['class']) ?></td>
+                        <td><?= date('M d, Y', strtotime($borrow['borrowed_date'])) ?></td>
+                        <td><?= date('M d, Y', strtotime($borrow['due_date'])) ?></td>
+                        <td>
+                            <?php if ($borrow['returned_date']): ?>
+                                <?= date('M d, Y', strtotime($borrow['returned_date'])) ?>
+                            <?php else: ?>
+                                <em style="color: var(--grey-medium);">Not returned</em>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($borrow['status'] === 'returned'): ?>
+                                <span class="badge-success badge-custom"><i class="fas fa-check-circle"></i>Returned</span>
+                            <?php elseif ($borrow['status'] === 'overdue'): ?>
+                                <span class="badge-danger badge-custom"><i class="fas fa-exclamation-circle"></i>Overdue</span>
+                            <?php else: ?>
+                                <span class="badge-warning badge-custom"><i class="fas fa-clock"></i>Borrowed</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
+        <?php else: ?>
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p class="mb-0">No borrow history available for this book.</p>
+        </div>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 </div>
-
-<style>
-.card {
-    border: none;
-    border-radius: 10px;
-}
-
-.card-header {
-    border-radius: 10px 10px 0 0 !important;
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    color: #495057;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.badge {
-    font-size: 0.85rem;
-}
-</style>
 
 <?php include '../app/views/shared/layout-footer.php'; ?>
 <?php include '../app/views/shared/footer.php'; ?>

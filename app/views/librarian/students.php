@@ -4,10 +4,361 @@ include '../app/views/shared/header.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Student Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="/jacarandalibraryms/librarian/create-student" class="btn btn-primary">
+<style>
+/* Modern Dashboard Color Variables */
+:root {
+    --primary-purple: #6366f1;
+    --dark-purple: #4f46e5;
+    --light-purple: #818cf8;
+    --accent-purple: #a78bfa;
+    --grey-dark: #374151;
+    --grey-medium: #6b7280;
+    --grey-light: #e5e7eb;
+    --grey-lighter: #f3f4f6;
+    --white: #ffffff;
+    --red-gradient-start: #ef4444;
+    --red-gradient-end: #dc2626;
+    --success-gradient-start: #10b981;
+    --success-gradient-end: #059669;
+    --warning-gradient-start: #f59e0b;
+    --warning-gradient-end: #d97706;
+}
+
+.students-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.page-header {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+    color: white;
+}
+
+.page-header h1 {
+    font-weight: 700;
+    font-size: 2rem;
+    margin: 0;
+    color: white;
+}
+
+.btn-add-student {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-add-student:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Modern Alert Messages */
+.alert-modern {
+    border-radius: 15px;
+    border: none;
+    padding: 1.25rem 1.5rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.alert-success-modern {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+}
+
+.alert-danger-modern {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+}
+
+/* Filter Card */
+.filter-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.filter-card label {
+    font-weight: 600;
+    color: var(--grey-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.filter-card .form-control,
+.filter-card .form-select {
+    border: 2px solid var(--grey-light);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.filter-card .form-control:focus,
+.filter-card .form-select:focus {
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+    outline: none;
+}
+
+.filter-card .input-group-text,
+.filter-card .btn-outline-secondary {
+    border: 2px solid var(--grey-light);
+    border-radius: 12px;
+    background: white;
+    color: var(--grey-medium);
+}
+
+.filter-card .btn-outline-secondary:hover {
+    background: var(--red-gradient-start);
+    border-color: var(--red-gradient-start);
+    color: white;
+}
+
+.btn-filter {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+}
+
+.btn-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    color: white;
+}
+
+/* Modern Table Container */
+.table-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.modern-students-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.modern-students-table thead th {
+    background: linear-gradient(135deg, var(--grey-lighter) 0%, white 100%);
+    border-bottom: 2px solid var(--grey-light);
+    padding: 1.25rem 1rem;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    text-align: left;
+    color: var(--grey-dark);
+    text-transform: uppercase;
+}
+
+.modern-students-table tbody tr {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid var(--grey-light);
+}
+
+.modern-students-table tbody tr:hover {
+    background: var(--grey-lighter);
+    transform: scale(1.005);
+}
+
+.modern-students-table tbody td {
+    padding: 1.25rem 1rem;
+    vertical-align: middle;
+    color: var(--grey-medium);
+    font-weight: 500;
+}
+
+.student-id {
+    font-weight: 700;
+    color: var(--grey-dark);
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+}
+
+.student-name {
+    font-weight: 600;
+    color: var(--grey-dark);
+    font-size: 1rem;
+}
+
+.class-info {
+    font-weight: 600;
+    color: var(--grey-medium);
+}
+
+.contact-info {
+    font-size: 0.85rem;
+}
+
+.contact-info i {
+    color: var(--primary-purple);
+    margin-right: 0.5rem;
+}
+
+/* Status Badges */
+.badge-modern {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.badge-success-modern {
+    background: linear-gradient(135deg, var(--success-gradient-start) 0%, var(--success-gradient-end) 100%);
+    color: white;
+}
+
+.badge-warning-modern {
+    background: linear-gradient(135deg, var(--warning-gradient-start) 0%, var(--warning-gradient-end) 100%);
+    color: white;
+}
+
+.badge-secondary-modern {
+    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+    color: white;
+}
+
+/* Action Buttons */
+.action-buttons-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn-modern {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-view {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    color: white;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+}
+
+.btn-borrow {
+    background: linear-gradient(135deg, var(--success-gradient-start) 0%, var(--success-gradient-end) 100%);
+    color: white;
+}
+
+/* Info Card */
+.info-card {
+    background: linear-gradient(135deg, var(--grey-lighter) 0%, white 100%);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.info-card h6 {
+    font-weight: 700;
+    color: var(--grey-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.info-card p {
+    color: var(--grey-medium);
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state i {
+    color: var(--grey-medium);
+}
+
+.empty-state p {
+    color: var(--grey-medium);
+    font-size: 1.125rem;
+    margin-top: 1rem;
+}
+
+.empty-state a {
+    color: var(--primary-purple);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.empty-state a:hover {
+    text-decoration: underline;
+}
+
+/* Live Search Styling */
+.search-highlight {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+</style>
+
+<div class="container-fluid students-container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h1><i class="fas fa-user-graduate me-3"></i>Student Management</h1>
+            <a href="/jacarandalibraryms/librarian/create-student" class="btn-add-student">
                 <i class="fas fa-user-plus"></i> Add Student
             </a>
         </div>
@@ -15,187 +366,157 @@ include '../app/views/shared/layout-header.php';
 
     <!-- Flash Messages -->
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+        <div class="alert alert-success-modern alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success']; unset($_SESSION['success']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+        <div class="alert alert-danger-modern alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i><?= $_SESSION['error']; unset($_SESSION['error']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <!-- Search and Filter Form -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="POST" action="/jacarandalibraryms/librarian/students">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">Live Search Students</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="studentLiveSearch" 
-                                   placeholder="Search by name, student ID, email, or class" 
-                                   autocomplete="off">
-                            <button class="btn btn-outline-secondary" type="button" id="clearStudentSearch">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <input type="hidden" class="form-control" id="search" name="search" 
-                               value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+    <div class="filter-card">
+        <form method="POST" action="/jacarandalibraryms/librarian/students">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Live Search Students</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="studentLiveSearch" 
+                               placeholder="Search by name, ID, email, or class" 
+                               autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="button" id="clearStudentSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <div class="col-md-3">
-                        <label for="class" class="form-label">Class</label>
-                        <select class="form-select" id="class" name="class">
-                            <option value="">All Classes</option>
-                            <?php foreach ($classes as $class): ?>
-                                <option value="<?= htmlspecialchars($class['class']) ?>" 
-                                    <?= ($filters['class'] ?? '') === $class['class'] ? 'selected' : '' ?>>
-                                    Class <?= htmlspecialchars($class['class']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="">All Status</option>
-                            <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
-                            <option value="inactive" <?= ($filters['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
-                    </div>
+                    <input type="hidden" class="form-control" id="search" name="search" 
+                           value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
                 </div>
-            </form>
-        </div>
+                <div class="col-md-3">
+                    <label for="class" class="form-label">Class</label>
+                    <select class="form-select" id="class" name="class">
+                        <option value="">All Classes</option>
+                        <?php foreach ($classes as $class): ?>
+                            <option value="<?= htmlspecialchars($class['class']) ?>" 
+                                <?= ($filters['class'] ?? '') === $class['class'] ? 'selected' : '' ?>>
+                                Class <?= htmlspecialchars($class['class']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Status</option>
+                        <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
+                        <option value="inactive" <?= ($filters['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-filter w-100">Filter</button>
+                </div>
+            </div>
+        </form>
     </div>
 
     <!-- Students Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Full Name</th>
-                            <th>Class & Section</th>
-                            <th>Contact</th>
-                            <th>Active Borrows</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($students as $student): ?>
-                            <tr>
-                                <td>
-                                    <strong><?= htmlspecialchars($student['student_id']) ?></strong>
-                                </td>
-                                <td><?= htmlspecialchars($student['full_name']) ?></td>
-                                <td>
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="modern-students-table">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Full Name</th>
+                        <th>Class & Section</th>
+                        <th>Contact</th>
+                        <th>Active Borrows</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($students as $student): ?>
+                        <tr class="student-row">
+                            <td>
+                                <span class="student-id"><?= htmlspecialchars($student['student_id']) ?></span>
+                            </td>
+                            <td><span class="student-name"><?= htmlspecialchars($student['full_name']) ?></span></td>
+                            <td>
+                                <span class="class-info">
                                     Class <?= htmlspecialchars($student['class']) ?>
                                     <?php if ($student['section']): ?>
                                         - Section <?= htmlspecialchars($student['section']) ?>
                                     <?php endif; ?>
-                                </td>
-                                <td>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="contact-info">
                                     <?php if ($student['email']): ?>
                                         <div><i class="fas fa-envelope"></i> <?= htmlspecialchars($student['email']) ?></div>
                                     <?php endif; ?>
                                     <?php if ($student['phone']): ?>
                                         <div><i class="fas fa-phone"></i> <?= htmlspecialchars($student['phone']) ?></div>
                                     <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($student['active_borrows'] > 0): ?>
-                                        <span class="badge bg-warning"><?= $student['active_borrows'] ?> books</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-success">No active borrows</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?= $student['status'] === 'active' ? 'success' : 'secondary' ?>">
-                                        <?= ucfirst($student['status']) ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="/jacarandalibraryms/librarian/view-student?id=<?= $student['id'] ?>" class="btn btn-outline-primary" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="/jacarandalibraryms/librarian/edit-student?id=<?= $student['id'] ?>" class="btn btn-outline-secondary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="/jacarandalibraryms/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="btn btn-outline-success" title="Borrow Book">
-                                            <i class="fas fa-book"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                </div>
+                            </td>
+                            <td>
+                                <?php if ($student['active_borrows'] > 0): ?>
+                                    <span class="badge-modern badge-warning-modern"><?= $student['active_borrows'] ?> books</span>
+                                <?php else: ?>
+                                    <span class="badge-modern badge-success-modern">No borrows</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="badge-modern <?= $student['status'] === 'active' ? 'badge-success-modern' : 'badge-secondary-modern' ?>">
+                                    <?= ucfirst($student['status']) ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons-group">
+                                    <a href="/jacarandalibraryms/librarian/view-student?id=<?= $student['id'] ?>" class="action-btn-modern btn-view" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="/jacarandalibraryms/librarian/edit-student?id=<?= $student['id'] ?>" class="action-btn-modern btn-edit" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="/jacarandalibraryms/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="action-btn-modern btn-borrow" title="Borrow Book">
+                                        <i class="fas fa-book"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
 
-                <?php if (empty($students)): ?>
-                    <div class="text-center py-4">
-                        <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No students found. <a href="/jacarandalibraryms/librarian/create-student">Add your first student</a></p>
-                    </div>
-                <?php endif; ?>
-            </div>
+            <?php if (empty($students)): ?>
+                <div class="empty-state">
+                    <i class="fas fa-user-graduate fa-3x"></i>
+                    <p>No students found. <a href="/jacarandalibraryms/librarian/create-student">Add your first student</a></p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- Library Info -->
-    <div class="card mt-4">
-        <div class="card-body">
-            <h6>Library Information</h6>
-            <p class="mb-0">
-                <strong><?= htmlspecialchars($library['name']) ?></strong> 
-                (<?= ucfirst($library['type']) ?> School) - 
-                Valid classes: <?= $library['type'] === 'primary' ? '1-8' : '1-4' ?>
-            </p>
-        </div>
+    <div class="info-card">
+        <h6><i class="fas fa-info-circle me-2"></i>Library Information</h6>
+        <p>
+            <strong><?= htmlspecialchars($library['name']) ?></strong> 
+            (<?= ucfirst($library['type']) ?> School) - 
+            Valid classes: <?= $library['type'] === 'primary' ? '1-8' : '1-4' ?>
+        </p>
     </div>
 </div>
 
 <style>
 /* Live Search Styling */
-#studentLiveSearch {
-    transition: all 0.3s ease;
-    border: 2px solid #e9ecef;
-}
-
-#studentLiveSearch:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-#clearStudentSearch {
-    transition: all 0.2s ease;
-    display: none;
-}
-
-#clearStudentSearch:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
-}
-
 .student-row {
     transition: opacity 0.3s ease;
-}
-
-.search-highlight {
-    background-color: #fff3cd;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
 }
 
 #searchStatus {

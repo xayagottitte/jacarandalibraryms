@@ -140,70 +140,69 @@
 
         <!-- Search and Filter -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Search & Filter Libraries</h6>
+            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-search me-2"></i>Search & Filter Libraries
+                </h6>
             </div>
             <div class="card-body">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">Search</label>
-                        <input type="text" name="search" id="search" class="form-control" 
-                               placeholder="Library name or address..." 
-                               value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="liveSearch" class="form-label">
+                            <i class="fas fa-search me-1"></i>Search (Live)
+                        </label>
+                        <input type="text" id="liveSearch" class="form-control" 
+                               placeholder="Type to search library name or address..." 
+                               autocomplete="off">
                     </div>
                     
-                    <div class="col-md-2">
-                        <label for="type" class="form-label">Type</label>
-                        <select name="type" id="type" class="form-select">
+                    <div class="col-md-3">
+                        <label for="typeFilter" class="form-label">
+                            <i class="fas fa-filter me-1"></i>Type
+                        </label>
+                        <select id="typeFilter" class="form-select">
                             <option value="">All Types</option>
-                            <option value="primary" <?php echo ($_GET['type'] ?? '') === 'primary' ? 'selected' : ''; ?>>Primary</option>
-                            <option value="secondary" <?php echo ($_GET['type'] ?? '') === 'secondary' ? 'selected' : ''; ?>>Secondary</option>
+                            <option value="primary">Primary</option>
+                            <option value="secondary">Secondary</option>
                         </select>
                     </div>
                     
-                    <div class="col-md-2">
-                        <label for="librarian_status" class="form-label">Librarian Status</label>
-                        <select name="librarian_status" id="librarian_status" class="form-select">
+                    <div class="col-md-3">
+                        <label for="librarianFilter" class="form-label">
+                            <i class="fas fa-user-tie me-1"></i>Librarian Status
+                        </label>
+                        <select id="librarianFilter" class="form-select">
                             <option value="">All Libraries</option>
-                            <option value="assigned" <?php echo ($_GET['librarian_status'] ?? '') === 'assigned' ? 'selected' : ''; ?>>Has Librarian</option>
-                            <option value="unassigned" <?php echo ($_GET['librarian_status'] ?? '') === 'unassigned' ? 'selected' : ''; ?>>No Librarian</option>
+                            <option value="assigned">Has Librarian</option>
+                            <option value="unassigned">No Librarian</option>
                         </select>
                     </div>
                     
-                    <div class="col-md-2">
-                        <label for="sort_by" class="form-label">Sort By</label>
-                        <select name="sort_by" id="sort_by" class="form-select">
-                            <option value="name" <?php echo ($_GET['sort_by'] ?? 'name') === 'name' ? 'selected' : ''; ?>>Name</option>
-                            <option value="type" <?php echo ($_GET['sort_by'] ?? '') === 'type' ? 'selected' : ''; ?>>Type</option>
-                            <option value="created_at" <?php echo ($_GET['sort_by'] ?? '') === 'created_at' ? 'selected' : ''; ?>>Date Created</option>
-                            <option value="total_books" <?php echo ($_GET['sort_by'] ?? '') === 'total_books' ? 'selected' : ''; ?>>Books Count</option>
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-2 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i>Filter
+                    <div class="col-12">
+                        <button type="button" id="clearFilters" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear Filters
                         </button>
-                        <a href="<?php echo BASE_PATH; ?>/admin/libraries" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Clear
-                        </a>
+                        <span class="ms-3 text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Showing <span id="libraryCount"><?php echo count($libraries); ?></span> of <?php echo count($libraries); ?> libraries
+                        </span>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
 
         <!-- Libraries Table -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">System Libraries (<?php echo count($libraries); ?> libraries)</h6>
-                <button class="btn btn-sm btn-outline-primary" onclick="toggleLibrarianAssign()">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <h6 class="m-0 font-weight-bold text-white">System Libraries (<span id="totalCount"><?php echo count($libraries); ?></span> libraries)</h6>
+                <button class="btn btn-sm btn-light" onclick="toggleLibrarianAssign()">
                     <i class="fas fa-user-plus me-1"></i>Assign Librarian
                 </button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                        <thead class="table-light">
+                        <thead style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
                             <tr>
                                 <th>Name</th>
                                 <th>Type</th>
@@ -217,10 +216,14 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="librariesTableBody">
                             <?php if (!empty($libraries)): ?>
                                 <?php foreach ($libraries as $library): ?>
-                                <tr>
+                                <tr class="library-row" 
+                                    data-name="<?php echo strtolower(htmlspecialchars($library['name'])); ?>"
+                                    data-address="<?php echo strtolower(htmlspecialchars($library['address'])); ?>"
+                                    data-type="<?php echo $library['type']; ?>"
+                                    data-has-librarian="<?php echo $library['total_librarians'] > 0 ? 'yes' : 'no'; ?>">
                                     <td><strong><?php echo htmlspecialchars($library['name']); ?></strong></td>
                                     <td>
                                         <span class="badge bg-<?php echo $library['type'] === 'primary' ? 'primary' : 'success'; ?>">
@@ -277,18 +280,29 @@
         </div>
 
         <!-- Assign Librarian Section (Hidden by default) -->
-        <div class="card shadow mb-4" id="librarianAssignCard" style="display: none;">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-user-plus me-2"></i>Assign Librarian to Library
-                </h6>
+        <div class="card shadow mb-4" id="librarianAssignCard" style="display: none; border: 2px solid #7c3aed;">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-white">
+                        <i class="fas fa-user-plus me-2"></i>Assign Librarian to Library
+                    </h6>
+                    <button type="button" class="btn btn-sm btn-light" onclick="toggleLibrarianAssign()">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <?php if (!empty($available_librarians)): ?>
-                    <form method="POST" action="<?php echo BASE_PATH; ?>/admin/assign-librarian">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have <strong><?php echo count($available_librarians); ?></strong> librarian(s) available for assignment.
+                    </div>
+                    <form method="POST" action="<?php echo BASE_PATH; ?>/admin/assign-librarian" id="assignLibrarianForm">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="library_id" class="form-label">Select Library</label>
+                                <label for="assign_library_id" class="form-label">
+                                    <i class="fas fa-building me-1"></i>Select Library <span class="text-danger">*</span>
+                                </label>
                                 <select class="form-select" id="assign_library_id" name="library_id" required>
                                     <option value="">Choose a library...</option>
                                     <?php foreach ($libraries as $library): ?>
@@ -300,7 +314,9 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="librarian_id" class="form-label">Select Librarian</label>
+                                <label for="assign_librarian_id" class="form-label">
+                                    <i class="fas fa-user-tie me-1"></i>Select Librarian <span class="text-danger">*</span>
+                                </label>
                                 <select class="form-select" id="assign_librarian_id" name="librarian_id" required>
                                     <option value="">Choose a librarian...</option>
                                     <?php foreach ($available_librarians as $librarian): ?>
@@ -311,19 +327,19 @@
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success me-2">
-                                    <i class="fas fa-user-plus me-1"></i>Assign Librarian
+                            <div class="col-md-4 d-flex align-items-end gap-2">
+                                <button type="submit" class="btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+                                    <i class="fas fa-check me-1"></i>Assign Librarian
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary" onclick="toggleLibrarianAssign()">
-                                    Cancel
+                                    <i class="fas fa-times me-1"></i>Cancel
                                 </button>
                             </div>
                         </div>
                     </form>
                 <?php else: ?>
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i>
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
                         <strong>No Available Librarians</strong><br>
                         All active librarians have been assigned to libraries. 
                         <a href="<?php echo BASE_PATH; ?>/admin/users" class="alert-link">Manage users</a> to create new librarians or unassign existing ones.
@@ -380,11 +396,83 @@
 </div>
 
 <script>
+// Live Search and Filter Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const liveSearch = document.getElementById('liveSearch');
+    const typeFilter = document.getElementById('typeFilter');
+    const librarianFilter = document.getElementById('librarianFilter');
+    const clearFilters = document.getElementById('clearFilters');
+    const libraryRows = document.querySelectorAll('.library-row');
+    const libraryCount = document.getElementById('libraryCount');
+    const totalCount = document.getElementById('totalCount');
+    
+    // Live search function
+    function filterLibraries() {
+        const searchTerm = liveSearch.value.toLowerCase();
+        const typeValue = typeFilter.value;
+        const librarianValue = librarianFilter.value;
+        
+        let visible = 0;
+        
+        libraryRows.forEach(row => {
+            const name = row.dataset.name || '';
+            const address = row.dataset.address || '';
+            const type = row.dataset.type || '';
+            const hasLibrarian = row.dataset.hasLibrarian || '';
+            
+            let matchesSearch = true;
+            let matchesType = true;
+            let matchesLibrarian = true;
+            
+            // Check search term
+            if (searchTerm) {
+                matchesSearch = name.includes(searchTerm) || address.includes(searchTerm);
+            }
+            
+            // Check type filter
+            if (typeValue) {
+                matchesType = type === typeValue;
+            }
+            
+            // Check librarian filter
+            if (librarianValue === 'assigned') {
+                matchesLibrarian = hasLibrarian === 'yes';
+            } else if (librarianValue === 'unassigned') {
+                matchesLibrarian = hasLibrarian === 'no';
+            }
+            
+            // Show/hide row based on all filters
+            if (matchesSearch && matchesType && matchesLibrarian) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        libraryCount.textContent = visible;
+        totalCount.textContent = visible;
+    }
+    
+    // Attach event listeners
+    liveSearch.addEventListener('input', filterLibraries);
+    typeFilter.addEventListener('change', filterLibraries);
+    librarianFilter.addEventListener('change', filterLibraries);
+    
+    // Clear all filters
+    clearFilters.addEventListener('click', function() {
+        liveSearch.value = '';
+        typeFilter.value = '';
+        librarianFilter.value = '';
+        filterLibraries();
+    });
+});
+
 function toggleLibrarianAssign() {
     const card = document.getElementById('librarianAssignCard');
-    if (card.style.display === 'none') {
+    if (card.style.display === 'none' || card.style.display === '') {
         card.style.display = 'block';
-        card.scrollIntoView({ behavior: 'smooth' });
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
         card.style.display = 'none';
     }
@@ -431,6 +519,15 @@ function confirmDelete(libraryId, libraryName) {
     document.getElementById('deleteLibraryName').textContent = libraryName;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
+
+// Auto-dismiss alerts after 5 seconds
+setTimeout(function() {
+    var alerts = document.querySelectorAll('.alert-dismissible');
+    alerts.forEach(function(alert) {
+        var bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+}, 5000);
 </script>
 
 <style>

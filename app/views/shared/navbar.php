@@ -1,106 +1,257 @@
 <style>
 :root {
-    --jacaranda-primary: #663399;
-    --jacaranda-secondary: #8a4baf;
-    --navbar-height: 60px;
+    --jacaranda-primary: #6366f1;
+    --jacaranda-secondary: #4f46e5;
+    --jacaranda-light: #818cf8;
+    --jacaranda-dark: #3730a3;
+    --navbar-height: 70px;
 }
 
 .modern-navbar {
     background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 30px rgba(99, 102, 241, 0.3);
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1.5rem;
     height: var(--navbar-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
 }
 
 .modern-navbar .navbar-brand {
-    font-weight: 600;
-    font-size: 1rem;
+    font-weight: 700;
+    font-size: 1.25rem;
     color: white !important;
     text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.modern-navbar .navbar-brand:hover {
+    transform: translateY(-2px);
 }
 
 .modern-navbar .navbar-brand i {
-    font-size: 1.1rem;
-    background: rgba(255,255,255,0.2);
-    padding: 0.3rem;
-    border-radius: 50%;
+    font-size: 1.5rem;
+    background: rgba(255,255,255,0.25);
+    padding: 0.5rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.modern-navbar .navbar-brand:hover i {
+    background: rgba(255,255,255,0.35);
+    transform: rotate(5deg);
 }
 
 .modern-navbar .nav-link {
     color: rgba(255,255,255,0.9) !important;
-    font-weight: 500;
-    padding: 0.3rem 0.8rem !important;
-    border-radius: 15px;
+    font-weight: 600;
+    padding: 0.5rem 1rem !important;
+    border-radius: 12px;
     transition: all 0.3s ease;
-    margin: 0 0.15rem;
-    font-size: 0.9rem;
+    margin: 0 0.25rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modern-navbar .nav-link i {
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
 .modern-navbar .nav-link:hover {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.2);
     color: white !important;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.modern-navbar .nav-link:hover i {
+    transform: scale(1.1);
 }
 
 .modern-navbar .nav-link.active {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.3);
     color: white !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modern-navbar .dropdown-toggle::after {
+    margin-left: 0.5rem;
+    vertical-align: 0.15em;
 }
 
 .modern-navbar .dropdown-menu {
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     backdrop-filter: blur(10px);
-    background: rgba(255,255,255,0.95);
-    margin-top: 0.5rem;
+    background: rgba(255,255,255,0.98);
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    min-width: 240px;
+}
+
+.modern-navbar .dropdown-item-text {
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.modern-navbar .dropdown-item-text small {
+    display: block;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
 .modern-navbar .dropdown-item {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    margin: 0.15rem;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    margin: 0.25rem 0;
     transition: all 0.3s ease;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modern-navbar .dropdown-item i {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
 }
 
 .modern-navbar .dropdown-item:hover {
-    background: var(--jacaranda-primary);
+    background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
     color: white;
     transform: translateX(5px);
 }
 
+.modern-navbar .dropdown-item.text-danger {
+    color: #dc3545 !important;
+}
+
 .modern-navbar .dropdown-item.text-danger:hover {
-    background: #dc3545;
-    color: white;
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white !important;
+}
+
+.modern-navbar .dropdown-divider {
+    border-top: 2px solid rgba(0,0,0,0.08);
+    margin: 0.75rem 0;
 }
 
 .navbar-toggler {
     border: none;
-    background: rgba(255,255,255,0.2);
-    border-radius: 10px;
-    padding: 0.5rem;
+    background: rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.navbar-toggler:hover {
+    background: rgba(255,255,255,0.35);
+    transform: translateY(-2px);
 }
 
 .navbar-toggler:focus {
-    box-shadow: none;
+    box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.3);
 }
 
 .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.5' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 body {
     padding-top: var(--navbar-height);
 }
+
+/* Mobile Responsive */
+@media (max-width: 991.98px) {
+    .modern-navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    .modern-navbar .navbar-collapse {
+        background: rgba(255,255,255,0.98);
+        border-radius: 16px;
+        padding: 1rem;
+        margin-top: 1rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    
+    .modern-navbar .nav-link {
+        color: var(--jacaranda-primary) !important;
+        margin: 0.25rem 0;
+    }
+    
+    .modern-navbar .nav-link:hover {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--jacaranda-secondary) !important;
+    }
+    
+    .modern-navbar .nav-link.active {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--jacaranda-secondary) !important;
+    }
+    
+    .modern-navbar .dropdown-menu {
+        background: rgba(249, 250, 251, 0.98);
+        margin-left: 1rem;
+    }
+}
+
+/* User Badge */
+.user-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.user-badge:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.user-badge i {
+    font-size: 1.25rem;
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
 </style>
 
-<nav class="navbar navbar-expand-lg modern-navbar fixed-top">
+<nav class="navbar navbar-expand-lg modern-navbar">
     <div class="container-fluid">
         <?php 
         // Determine dashboard link based on user role
@@ -203,18 +354,19 @@ body {
                 <!-- User Dropdown -->
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                        <a class="nav-link dropdown-toggle user-badge" href="#" id="userDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-circle"></i> 
-                            <?= htmlspecialchars($_SESSION['username']) ?>
+                            <span class="d-none d-lg-inline"><?= htmlspecialchars($_SESSION['username']) ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li>
                                 <span class="dropdown-item-text">
+                                    <strong style="color: var(--jacaranda-primary);"><?= htmlspecialchars($_SESSION['username']) ?></strong>
                                     <small class="text-muted">
-                                        <?= ucfirst(str_replace('_', ' ', $_SESSION['role'])) ?>
+                                        <i class="fas fa-shield-alt"></i> <?= ucfirst(str_replace('_', ' ', $_SESSION['role'])) ?>
                                         <?php if ($_SESSION['role'] === 'librarian' && isset($_SESSION['library_id'])): ?>
-                                            <br><?= htmlspecialchars($_SESSION['library_name'] ?? 'Library') ?>
+                                            <br><i class="fas fa-building"></i> <?= htmlspecialchars($_SESSION['library_name'] ?? 'Library') ?>
                                         <?php endif; ?>
                                     </small>
                                 </span>
@@ -254,20 +406,61 @@ body {
 
 
 <!-- Flash Messages Display -->
-<div class="container-fluid" style="margin-top: 1rem;">
+<div class="container-fluid" style="margin-top: 1.5rem;">
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);">
-            <i class="fas fa-check-circle me-2"></i>
-            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-dismissible fade show auto-dismiss-alert" role="alert" 
+             style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+                    border-left: 4px solid #10b981;
+                    border-radius: 16px; 
+                    border: none; 
+                    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+                    padding: 1.25rem 1.5rem;
+                    font-weight: 500;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-3" style="font-size: 1.5rem; color: #10b981;"></i>
+                <span style="color: #047857;"><?= $_SESSION['success']; unset($_SESSION['success']); ?></span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <?= $_SESSION['error']; unset($_SESSION['error']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-dismissible fade show auto-dismiss-alert" role="alert" 
+             style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+                    border-left: 4px solid #ef4444;
+                    border-radius: 16px; 
+                    border: none; 
+                    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+                    padding: 1.25rem 1.5rem;
+                    font-weight: 500;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle me-3" style="font-size: 1.5rem; color: #ef4444;"></i>
+                <span style="color: #b91c1c;"><?= $_SESSION['error']; unset($_SESSION['error']); ?></span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+// Auto-dismiss flash messages after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.auto-dismiss-alert');
+    
+    alerts.forEach(function(alert) {
+        // Add fade-out animation after 5 seconds
+        setTimeout(function() {
+            // Add smooth fade-out transition
+            alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-20px)';
+            
+            // Remove element from DOM after animation completes
+            setTimeout(function() {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 500);
+        }, 5000); // 5 seconds delay
+    });
+});
+</script>

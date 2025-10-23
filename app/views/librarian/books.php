@@ -4,31 +4,342 @@ include '../app/views/shared/header.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2 class="mb-0">Book Inventory</h2>
-            <small id="bookCount" class="text-muted">Total: <?= count($books) ?> books</small>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <span id="searchStatus" class="text-muted small" style="display: none;"></span>
-            <input type="text" id="bookSearch" class="form-control form-control-sm" placeholder="Search by title, author, ISBN, category, or class" style="width: 350px;">
-            <button class="btn btn-outline-secondary btn-sm" id="clearSearch" title="Clear search">
-                <i class="fas fa-times"></i>
-            </button>
+<style>
+/* Modern Dashboard Color Variables */
+:root {
+    --primary-purple: #6366f1;
+    --dark-purple: #4f46e5;
+    --light-purple: #818cf8;
+    --accent-purple: #a78bfa;
+    --grey-dark: #374151;
+    --grey-medium: #6b7280;
+    --grey-light: #e5e7eb;
+    --grey-lighter: #f3f4f6;
+    --white: #ffffff;
+    --red-gradient-start: #ef4444;
+    --red-gradient-end: #dc2626;
+    --success-gradient-start: #10b981;
+    --success-gradient-end: #059669;
+}
+
+.books-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.page-header {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+    color: white;
+}
+
+.page-header h2 {
+    font-weight: 700;
+    font-size: 2rem;
+    margin: 0;
+    color: white;
+}
+
+.page-header small {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1rem;
+}
+
+.search-section {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.search-input {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 50px;
+    width: 350px;
+    font-size: 0.95rem;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.search-input:focus {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    outline: none;
+    color: white;
+}
+
+.btn-clear {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 50px;
+    transition: all 0.3s;
+}
+
+.btn-clear:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.search-status {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+}
+
+/* Modern Alert Messages */
+.alert-modern {
+    border-radius: 15px;
+    border: none;
+    padding: 1.25rem 1.5rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.alert-success-modern {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+}
+
+.alert-danger-modern {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+}
+
+/* Modern Table Container */
+.modern-table-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.table-responsive {
+    border-radius: 20px;
+    overflow-x: auto;
+}
+
+.modern-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* Table Header */
+.table-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    border-bottom: none;
+}
+
+.table-header th {
+    padding: 1rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border: none;
+    white-space: nowrap;
+    color: white;
+    text-transform: uppercase;
+}
+
+/* Table Rows */
+.table-row {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid var(--grey-light);
+}
+
+.table-row:hover {
+    background: var(--grey-lighter);
+    transform: scale(1.005);
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.table-row td {
+    padding: 1.25rem 1rem;
+    vertical-align: middle;
+    border: none;
+    color: var(--grey-medium);
+    font-weight: 500;
+}
+
+/* Book Title Styling */
+.book-title {
+    font-weight: 600;
+    color: var(--grey-dark);
+    font-size: 1rem;
+}
+
+/* ISBN Code Styling */
+.isbn-code {
+    font-family: 'Courier New', monospace;
+    background: var(--grey-lighter);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--grey-dark);
+    font-weight: 600;
+}
+
+/* Class Badge */
+.class-badge {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+/* Availability Number */
+.availability-number {
+    font-weight: 700;
+    color: var(--primary-purple);
+    font-size: 1.25rem;
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.status-badge.available {
+    background: linear-gradient(135deg, var(--success-gradient-start) 0%, var(--success-gradient-end) 100%);
+    color: white;
+}
+
+.status-badge.unavailable {
+    background: linear-gradient(135deg, var(--red-gradient-start) 0%, var(--red-gradient-end) 100%);
+    color: white;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.view-btn {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    color: white;
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, var(--red-gradient-start) 0%, var(--red-gradient-end) 100%);
+    color: white;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state i {
+    color: var(--grey-medium);
+}
+
+.empty-state p {
+    color: var(--grey-medium);
+    font-size: 1.125rem;
+    margin-top: 1rem;
+}
+
+.empty-state a {
+    color: var(--primary-purple);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.empty-state a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<div class="container-fluid books-container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2><i class="fas fa-book me-3"></i>Book Inventory</h2>
+                <small id="bookCount">Total: <?= count($books) ?> books</small>
+            </div>
+            <div class="d-flex gap-3 align-items-center flex-wrap">
+                <div class="search-section">
+                    <span id="searchStatus" class="search-status" style="display: none;"></span>
+                    <input type="text" id="bookSearch" class="search-input" placeholder="Search by title, author, ISBN, category, or class">
+                    <button class="btn btn-clear" id="clearSearch" title="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <a href="<?= BASE_PATH ?>/librarian/create-book" class="btn btn-light px-4 py-2" style="border-radius: 50px; font-weight: 600;">
+                    <i class="fas fa-plus me-2"></i>Add Book
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Flash Messages -->
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+        <div class="alert alert-success-modern alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success']; unset($_SESSION['success']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+        <div class="alert alert-danger-modern alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i><?= $_SESSION['error']; unset($_SESSION['error']); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -44,8 +355,8 @@ include '../app/views/shared/layout-header.php';
                             <th>ISBN</th>
                             <th>CATEGORY</th>
                             <th>CLASS LEVEL</th>
-                            <th>AVAILABLE</th>
-                            <th>TOTAL</th>
+                            <th class="text-center">AVAILABLE</th>
+                            <th class="text-center">TOTAL</th>
                             <th>STATUS</th>
                             <th>ACTIONS</th>
                         </tr>
@@ -55,7 +366,7 @@ include '../app/views/shared/layout-header.php';
                             <tr class="table-row">
                                 <td class="book-title"><?= htmlspecialchars($book['title']) ?></td>
                                 <td><?= htmlspecialchars($book['author']) ?></td>
-                                <td class="isbn-code"><?= htmlspecialchars($book['isbn'] ?? '') ?></td>
+                                <td><span class="isbn-code"><?= htmlspecialchars($book['isbn'] ?? '') ?></span></td>
                                 <td><?= htmlspecialchars($book['category'] ?? '') ?></td>
                                 <td class="text-center">
                                     <?php if (!empty($book['class_level'])): ?>
@@ -65,7 +376,7 @@ include '../app/views/shared/layout-header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center"><span class="availability-number"><?= $book['available_copies'] ?></span></td>
-                                <td class="text-center"><?= $book['total_copies'] ?></td>
+                                <td class="text-center"><strong><?= $book['total_copies'] ?></strong></td>
                                 <td>
                                     <?php if ($book['available_copies'] > 0): ?>
                                         <span class="status-badge available">Available</span>
@@ -90,23 +401,19 @@ include '../app/views/shared/layout-header.php';
 
                 <?php if (empty($books)): ?>
                     <div class="empty-state">
-                        <i class="fas fa-book fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No books found. <a href="/librarian/create-book">Add your first book</a></p>
+                        <i class="fas fa-book fa-3x"></i>
+                        <p>No books found. <a href="<?= BASE_PATH ?>/librarian/create-book">Add your first book</a></p>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
+</div>
 
 <style>
-/* Modern Table Styling */
+/* Additional Table Styles */
 .modern-table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    margin: 0 auto;
-    width: 90%;
-    min-width: 1000px;
+    width: 98%;
+    min-width: 1200px;
 }
 
 .table-responsive {
@@ -119,6 +426,7 @@ include '../app/views/shared/layout-header.php';
     margin-bottom: 0;
     border-collapse: collapse;
     font-size: 14px;
+    table-layout: auto;
 }
 
 /* Table Header */
@@ -128,14 +436,25 @@ include '../app/views/shared/layout-header.php';
 }
 
 .table-header th {
-    padding: 18px 16px;
+    padding: 1rem;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 0.75rem;
     letter-spacing: 0.5px;
     text-align: left;
     border: none;
     white-space: nowrap;
 }
+
+/* Specific column widths */
+.table-header th:nth-child(1) { width: auto; } /* TITLE */
+.table-header th:nth-child(2) { width: auto; } /* AUTHOR */
+.table-header th:nth-child(3) { width: 120px; } /* ISBN */
+.table-header th:nth-child(4) { width: 110px; } /* CATEGORY */
+.table-header th:nth-child(5) { width: 100px; } /* CLASS LEVEL */
+.table-header th:nth-child(6) { width: 90px; text-align: center; } /* AVAILABLE */
+.table-header th:nth-child(7) { width: 80px; text-align: center; } /* TOTAL */
+.table-header th:nth-child(8) { width: 120px; } /* STATUS */
+.table-header th:nth-child(9) { width: 280px; } /* ACTIONS - increased width */
 
 /* Table Rows */
 .table-row {
@@ -202,8 +521,11 @@ include '../app/views/shared/layout-header.php';
 /* Action Buttons */
 .action-buttons {
     display: flex;
+    flex-direction: row;
     gap: 8px;
     justify-content: flex-start;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
 .action-btn {
@@ -216,6 +538,8 @@ include '../app/views/shared/layout-header.php';
     cursor: pointer;
     transition: all 0.2s ease;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .view-btn {

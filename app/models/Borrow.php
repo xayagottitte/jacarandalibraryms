@@ -90,6 +90,12 @@ class Borrow extends Model {
         $this->db->beginTransaction();
 
         try {
+            // Get fine per day from system settings
+            $settingsQuery = "SELECT setting_value FROM system_settings WHERE setting_key = 'fine_per_day'";
+            $settingsStmt = $this->db->prepare($settingsQuery);
+            $settingsStmt->execute();
+            $finePerDay = $settingsStmt->fetchColumn() ?: 5; // Default to 5 if not set
+            
             // Get borrow record
             $borrowQuery = "SELECT br.*, bk.title, s.full_name as student_name 
                            FROM borrows br
@@ -116,7 +122,7 @@ class Borrow extends Model {
 
             if (strtotime($returnDate) > strtotime($dueDate)) {
                 $daysOverdue = floor((strtotime($returnDate) - strtotime($dueDate)) / (60 * 60 * 24));
-                $fineAmount = $daysOverdue * 500; // MK 500 per day overdue
+                $fineAmount = $daysOverdue * $finePerDay;
             }
 
             // Update borrow record
@@ -153,11 +159,24 @@ class Borrow extends Model {
     }
 
     public function getBorrowsByLibrary($libraryId, $filters = []) {
+        // Get fine per day from system settings
+        $settingsQuery = "SELECT setting_value FROM system_settings WHERE setting_key = 'fine_per_day'";
+        $settingsStmt = $this->db->prepare($settingsQuery);
+        $settingsStmt->execute();
+        $finePerDay = $settingsStmt->fetchColumn() ?: 5; // Default to 5 if not set
+        
         $query = "SELECT br.*, 
                          bk.title, bk.author, bk.isbn,
                          s.full_name as student_name, s.student_id, s.class,
                          u.username as librarian_name,
-                         DATEDIFF(CURDATE(), br.due_date) as days_overdue_calc
+                         DATEDIFF(CURDATE(), br.due_date) as days_overdue_calc,
+                         CASE 
+                           WHEN br.status = 'returned' AND br.returned_date > br.due_date 
+                           THEN DATEDIFF(br.returned_date, br.due_date) * {$finePerDay}
+                           WHEN br.status IN ('borrowed', 'overdue') AND CURDATE() > br.due_date 
+                           THEN DATEDIFF(CURDATE(), br.due_date) * {$finePerDay}
+                           ELSE br.fine_amount
+                         END as calculated_fine
                   FROM borrows br
                   JOIN books bk ON br.book_id = bk.id
                   JOIN students s ON br.student_id = s.id
@@ -185,7 +204,14 @@ class Borrow extends Model {
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $borrows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Update fine_amount with calculated_fine for display
+        foreach ($borrows as &$borrow) {
+            $borrow['fine_amount'] = $borrow['calculated_fine'];
+        }
+        
+        return $borrows;
     }
 
     public function getActiveBorrowsByStudent($studentId) {

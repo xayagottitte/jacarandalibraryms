@@ -476,6 +476,126 @@
             </div>
         </div>
 
+        <!-- Library Analytics Section -->
+        <?php if (!empty($libraries)): ?>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="modern-card">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Library Analytics & Insights</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="mb-0 me-2 text-muted small">Filter by Library:</label>
+                            <select id="libraryFilter" class="form-select form-select-sm modern-select" style="width: 250px;" onchange="filterByLibrary(this.value)">
+                                <option value="0" <?= $selected_library == 0 ? 'selected' : '' ?>>All Libraries</option>
+                                <?php foreach ($libraries as $lib): ?>
+                                    <option value="<?= $lib['id'] ?>" <?= $selected_library == $lib['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($lib['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <?php if ($selected_library > 0): ?>
+                            <!-- Charts Row 1 -->
+                            <div class="row g-4 mb-4">
+                                <!-- Popular Books Chart -->
+                                <div class="col-lg-6">
+                                    <div class="chart-card">
+                                        <div class="chart-header">
+                                            <h6><i class="fas fa-fire me-2 text-danger"></i>Most Popular Books</h6>
+                                            <small class="text-muted">Top 5 most borrowed books</small>
+                                        </div>
+                                        <div class="chart-body">
+                                            <?php if (!empty($popular_books)): ?>
+                                                <canvas id="popularBooksChart" height="280"></canvas>
+                                            <?php else: ?>
+                                                <div class="empty-chart-state">
+                                                    <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">No borrowing data available yet</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Underutilized Books Chart -->
+                                <div class="col-lg-6">
+                                    <div class="chart-card">
+                                        <div class="chart-header">
+                                            <h6><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Underutilized Educational Books</h6>
+                                            <small class="text-muted">Books with fewer than 3 borrows</small>
+                                        </div>
+                                        <div class="chart-body">
+                                            <?php if (!empty($underutilized_books)): ?>
+                                                <canvas id="underutilizedBooksChart" height="280"></canvas>
+                                            <?php else: ?>
+                                                <div class="empty-chart-state">
+                                                    <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">No underutilized books found</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts Row 2 -->
+                            <div class="row g-4">
+                                <!-- Class Activity Chart -->
+                                <div class="col-lg-6">
+                                    <div class="chart-card">
+                                        <div class="chart-header">
+                                            <h6><i class="fas fa-users me-2 text-primary"></i>Most Active Classes</h6>
+                                            <small class="text-muted">Borrowing activity by class</small>
+                                        </div>
+                                        <div class="chart-body">
+                                            <?php if (!empty($class_borrow_stats)): ?>
+                                                <canvas id="classActivityChart" height="280"></canvas>
+                                            <?php else: ?>
+                                                <div class="empty-chart-state">
+                                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">No class activity data available</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Borrowing Trends Chart -->
+                                <div class="col-lg-6">
+                                    <div class="chart-card">
+                                        <div class="chart-header">
+                                            <h6><i class="fas fa-chart-area me-2 text-success"></i>Borrowing Trends</h6>
+                                            <small class="text-muted">Last 30 days</small>
+                                        </div>
+                                        <div class="chart-body">
+                                            <?php if (!empty($borrowing_trends)): ?>
+                                                <canvas id="borrowingTrendsChart" height="280"></canvas>
+                                            <?php else: ?>
+                                                <div class="empty-chart-state">
+                                                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">No trend data available</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <!-- All Libraries View - Show instruction -->
+                            <div class="text-center py-5">
+                                <i class="fas fa-chart-bar fa-4x mb-3" style="color: var(--jacaranda-primary); opacity: 0.3;"></i>
+                                <h5 class="mb-2">Select a Library to View Analytics</h5>
+                                <p class="text-muted">Choose a specific library from the dropdown above to view detailed charts and insights.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Quick Access Configuration Cards -->
         <div class="row mt-4">
             <div class="col-12">
@@ -544,7 +664,15 @@
 
 <?php include '../app/views/shared/layout-footer.php'; ?>
 
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+// Library filter function
+function filterByLibrary(libraryId) {
+    window.location.href = '<?= BASE_PATH ?>/admin/dashboard?library=' + libraryId;
+}
+
 // Counter animation for statistics
 document.addEventListener('DOMContentLoaded', function() {
     const counters = document.querySelectorAll('.stat-number');
@@ -565,6 +693,295 @@ document.addEventListener('DOMContentLoaded', function() {
             counter.textContent = Math.floor(current);
         }, 16);
     });
+
+    <?php if ($selected_library > 0): ?>
+    // Initialize Charts only if a library is selected
+    
+    // Popular Books Chart
+    <?php if (!empty($popular_books)): ?>
+    const popularBooksData = {
+        labels: <?= json_encode(array_map(function($book) {
+            return $book['title'] . ' (Class ' . $book['class_level'] . ')';
+        }, $popular_books)) ?>,
+        datasets: [{
+            label: 'Number of Borrows',
+            data: <?= json_encode(array_column($popular_books, 'borrow_count')) ?>,
+            backgroundColor: [
+                'rgba(99, 102, 241, 0.8)',
+                'rgba(139, 92, 246, 0.8)',
+                'rgba(79, 70, 229, 0.8)',
+                'rgba(129, 140, 248, 0.8)',
+                'rgba(167, 139, 250, 0.8)'
+            ],
+            borderColor: [
+                'rgba(99, 102, 241, 1)',
+                'rgba(139, 92, 246, 1)',
+                'rgba(79, 70, 229, 1)',
+                'rgba(129, 140, 248, 1)',
+                'rgba(167, 139, 250, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 8
+        }]
+    };
+
+    const popularBooksCtx = document.getElementById('popularBooksChart').getContext('2d');
+    new Chart(popularBooksCtx, {
+        type: 'bar',
+        data: popularBooksData,
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: '#6b7280',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: '#374151',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    <?php endif; ?>
+
+    // Underutilized Books Chart
+    <?php if (!empty($underutilized_books)): ?>
+    const underutilizedBooksData = {
+        labels: <?= json_encode(array_map(function($book) {
+            return $book['title'] . ' (Class ' . $book['class_level'] . ')';
+        }, $underutilized_books)) ?>,
+        datasets: [{
+            label: 'Number of Borrows',
+            data: <?= json_encode(array_column($underutilized_books, 'borrow_count')) ?>,
+            backgroundColor: function(context) {
+                const value = context.parsed.x;
+                if (value === 0) return 'rgba(239, 68, 68, 0.8)';
+                if (value <= 2) return 'rgba(245, 158, 11, 0.8)';
+                return 'rgba(156, 163, 175, 0.8)';
+            },
+            borderColor: function(context) {
+                const value = context.parsed.x;
+                if (value === 0) return 'rgba(239, 68, 68, 1)';
+                if (value <= 2) return 'rgba(245, 158, 11, 1)';
+                return 'rgba(156, 163, 175, 1)';
+            },
+            borderWidth: 2,
+            borderRadius: 8
+        }]
+    };
+
+    const underutilizedBooksCtx = document.getElementById('underutilizedBooksChart').getContext('2d');
+    new Chart(underutilizedBooksCtx, {
+        type: 'bar',
+        data: underutilizedBooksData,
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: '#6b7280',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: '#374151',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    <?php endif; ?>
+
+    // Class Activity Chart
+    <?php if (!empty($class_borrow_stats)): ?>
+    const classData = <?= json_encode($class_borrow_stats) ?>;
+    const classLabels = classData.map(item => 'Class ' + item.class);
+    const classBorrows = classData.map(item => parseInt(item.borrow_count));
+    
+    const classActivityData = {
+        labels: classLabels,
+        datasets: [{
+            label: 'Total Borrows',
+            data: classBorrows,
+            backgroundColor: 'rgba(99, 102, 241, 0.8)',
+            borderColor: 'rgba(99, 102, 241, 1)',
+            borderWidth: 2,
+            borderRadius: 8
+        }]
+    };
+
+    const classActivityCtx = document.getElementById('classActivityChart').getContext('2d');
+    new Chart(classActivityCtx, {
+        type: 'bar',
+        data: classActivityData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: '#6b7280',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#374151',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    <?php endif; ?>
+
+    // Borrowing Trends Chart
+    <?php if (!empty($borrowing_trends)): ?>
+    const trendsData = <?= json_encode($borrowing_trends) ?>;
+    const trendLabels = trendsData.map(item => {
+        const date = new Date(item.borrow_date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const trendValues = trendsData.map(item => parseInt(item.borrow_count));
+    
+    const trendsCtx = document.getElementById('borrowingTrendsChart').getContext('2d');
+    new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Books Borrowed',
+                data: trendValues,
+                borderColor: 'rgba(16, 185, 129, 1)',
+                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: '#6b7280',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#374151',
+                        font: {
+                            weight: '600'
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    <?php endif; ?>
+    
+    <?php endif; ?>
 });
 </script>
 
@@ -591,6 +1008,91 @@ document.addEventListener('DOMContentLoaded', function() {
     justify-content: center;
     color: white;
     font-size: 0.5rem;
+}
+
+/* Modern Select Styling */
+.modern-select {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    font-weight: 600;
+    color: #374151;
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236366f1' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.modern-select:focus {
+    outline: none;
+    border-color: var(--jacaranda-primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.modern-select:hover {
+    border-color: var(--jacaranda-primary);
+}
+
+/* Chart Card Styling */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.chart-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.chart-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.chart-header h6 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+}
+
+.chart-header small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.chart-body {
+    position: relative;
+    height: 280px;
+}
+
+.empty-chart-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+.empty-chart-state i {
+    opacity: 0.3;
+}
+
+.empty-chart-state p {
+    margin: 0;
+    font-size: 0.875rem;
 }
 </style>
 

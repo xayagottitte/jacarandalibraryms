@@ -242,9 +242,31 @@ class Report extends Model {
     }
 
     public function getUserReports($userId) {
-        $query = "SELECT * FROM reports WHERE generated_by = :user_id ORDER BY created_at DESC";
+        $query = "SELECT 
+                    r.*,
+                    l.name as library_name,
+                    u.username
+                  FROM reports r
+                  LEFT JOIN libraries l ON r.library_id = l.id
+                  LEFT JOIN users u ON r.generated_by = u.id
+                  WHERE r.generated_by = :user_id 
+                  ORDER BY r.created_at DESC";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllReports() {
+        $query = "SELECT 
+                    r.*,
+                    l.name as library_name,
+                    u.username
+                  FROM reports r
+                  LEFT JOIN libraries l ON r.library_id = l.id
+                  LEFT JOIN users u ON r.generated_by = u.id
+                  ORDER BY r.created_at DESC";
+        $stmt = $this->db->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

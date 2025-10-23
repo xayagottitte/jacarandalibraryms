@@ -4,88 +4,456 @@ include '../app/views/shared/header.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">
-            <i class="fas fa-chart-bar me-2 text-primary"></i>Library Reports
-        </h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportReport('pdf')">
-                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+<style>
+:root {
+    --primary-purple: #6366f1;
+    --dark-purple: #4f46e5;
+    --light-purple: #818cf8;
+    --accent-purple: #a78bfa;
+    --grey-dark: #374151;
+    --grey-medium: #6b7280;
+    --grey-light: #e5e7eb;
+    --grey-lighter: #f3f4f6;
+    --success-gradient-start: #10b981;
+    --success-gradient-end: #059669;
+    --red-gradient-start: #ef4444;
+    --red-gradient-end: #dc2626;
+    --warning-gradient-start: #f59e0b;
+    --warning-gradient-end: #d97706;
+    --info-gradient-start: #3b82f6;
+    --info-gradient-end: #2563eb;
+}
+
+.reports-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+
+/* Page Header */
+.page-header {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
+    color: white;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn-header {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.6rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-header:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Statistics Cards */
+.stat-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    height: 100%;
+    border-left: 5px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    opacity: 0.1;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card.purple {
+    border-left-color: var(--primary-purple);
+}
+
+.stat-card.purple::before {
+    background: var(--primary-purple);
+}
+
+.stat-card.green {
+    border-left-color: var(--success-gradient-start);
+}
+
+.stat-card.green::before {
+    background: var(--success-gradient-start);
+}
+
+.stat-card.blue {
+    border-left-color: var(--info-gradient-start);
+}
+
+.stat-card.blue::before {
+    background: var(--info-gradient-start);
+}
+
+.stat-card.orange {
+    border-left-color: var(--warning-gradient-start);
+}
+
+.stat-card.orange::before {
+    background: var(--warning-gradient-start);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+    color: var(--grey-medium);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--grey-dark);
+    margin: 0;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.3;
+}
+
+/* Chart Cards */
+.chart-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+    transition: all 0.3s;
+}
+
+.chart-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.chart-header {
+    background: linear-gradient(135deg, var(--grey-lighter) 0%, white 100%);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--primary-purple);
+}
+
+.chart-header h6 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--grey-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chart-header.danger {
+    border-left-color: var(--red-gradient-start);
+}
+
+.chart-header.success {
+    border-left-color: var(--success-gradient-start);
+}
+
+.chart-header.info {
+    border-left-color: var(--info-gradient-start);
+}
+
+/* Form Card */
+.form-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.form-card label {
+    font-weight: 600;
+    color: var(--grey-dark);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-card .form-control,
+.form-card .form-select {
+    border: 2px solid var(--grey-light);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.form-card .form-control:focus,
+.form-card .form-select:focus {
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+    outline: none;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    color: white;
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, var(--grey-medium) 0%, var(--grey-dark) 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+}
+
+.btn-reset:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.3);
+    color: white;
+}
+
+/* Saved Reports Card */
+.reports-list-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.report-item {
+    background: var(--grey-lighter);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-purple);
+    transition: all 0.3s;
+}
+
+.report-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.report-item h6 {
+    font-weight: 700;
+    color: var(--grey-dark);
+    margin-bottom: 0.5rem;
+}
+
+.report-item p {
+    color: var(--grey-medium);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.btn-view {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.3s;
+    margin-right: 0.5rem;
+}
+
+.btn-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    color: white;
+}
+
+.btn-download {
+    background: linear-gradient(135deg, var(--grey-medium) 0%, var(--grey-dark) 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.3s;
+}
+
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+    color: white;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-state i {
+    color: var(--grey-medium);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: var(--grey-medium);
+    font-size: 1rem;
+}
+
+/* Quick Actions */
+.btn-quick-action {
+    background: white;
+    border: 2px solid var(--grey-light);
+    color: var(--grey-dark);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.3s;
+    width: 100%;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-quick-action:hover {
+    border-color: var(--primary-purple);
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+    color: white;
+    transform: translateX(5px);
+}
+
+.btn-quick-action i {
+    font-size: 1.125rem;
+}
+</style>
+
+<div class="container-fluid reports-container">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h1><i class="fas fa-chart-bar"></i>Library Reports</h1>
+            <div class="header-actions">
+                <button type="button" class="btn-header" onclick="exportReport('pdf')">
+                    <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportReport('excel')">
-                    <i class="fas fa-file-excel me-1"></i> Export Excel
+                <button type="button" class="btn-header" onclick="exportReport('excel')">
+                    <i class="fas fa-file-excel"></i> Export Excel
                 </button>
+                <a href="<?= BASE_PATH ?>/librarian/dashboard" class="btn-header">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
             </div>
-            <a href="<?= BASE_PATH ?>/librarian/dashboard" class="btn btn-sm btn-secondary">
-                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
-            </a>
         </div>
     </div>
 
     <!-- Statistics Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Books</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= $book_stats['total_books'] ?? 0 ?></div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-book fa-2x text-gray-300"></i>
-                        </div>
+            <div class="stat-card purple">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Total Books</div>
+                        <div class="stat-value"><?= $book_stats['total_books'] ?? 0 ?></div>
                     </div>
+                    <i class="fas fa-book stat-icon" style="color: var(--primary-purple);"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Available Copies</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= $book_stats['available_copies'] ?? 0 ?></div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
+            <div class="stat-card green">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Available Copies</div>
+                        <div class="stat-value"><?= $book_stats['available_copies'] ?? 0 ?></div>
                     </div>
+                    <i class="fas fa-check-circle stat-icon" style="color: var(--success-gradient-start);"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Borrowed Books</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= $book_stats['borrowed_books'] ?? 0 ?></div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-hand-holding fa-2x text-gray-300"></i>
-                        </div>
+            <div class="stat-card blue">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Borrowed Books</div>
+                        <div class="stat-value"><?= $book_stats['borrowed_books'] ?? 0 ?></div>
                     </div>
+                    <i class="fas fa-hand-holding stat-icon" style="color: var(--info-gradient-start);"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Overdue Books</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= $book_stats['overdue_books'] ?? 0 ?></div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
+            <div class="stat-card orange">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Overdue Books</div>
+                        <div class="stat-value"><?= $book_stats['overdue_books'] ?? 0 ?></div>
                     </div>
+                    <i class="fas fa-exclamation-triangle stat-icon" style="color: var(--warning-gradient-start);"></i>
                 </div>
             </div>
         </div>
@@ -94,25 +462,23 @@ include '../app/views/shared/layout-header.php';
     <!-- Analytics Charts Row 1 -->
     <div class="row mb-4">
         <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-pie me-2"></i>Category Popularity
-                    </h6>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h6><i class="fas fa-chart-pie"></i>Category Popularity</h6>
+                <div class="chart-header">
+                    <h6><i class="fas fa-chart-pie"></i>Category Popularity</h6>
                 </div>
-                <div class="card-body">
+                <div class="chart-body">
                     <canvas id="categoryPopularityChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Overdue Hotspots
-                    </h6>
+            <div class="chart-card">
+                <div class="chart-header danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i>Overdue Hotspots</h6>
                 </div>
-                <div class="card-body">
+                <div class="chart-body">
                     <canvas id="overdueHotspotsChart"></canvas>
                 </div>
             </div>
@@ -122,25 +488,21 @@ include '../app/views/shared/layout-header.php';
     <!-- Analytics Charts Row 2 -->
     <div class="row mb-4">
         <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-success">
-                        <i class="fas fa-dollar-sign me-2"></i>Financial Performance (Last 30 Days)
-                    </h6>
+            <div class="chart-card">
+                <div class="chart-header success">
+                    <h6><i class="fas fa-dollar-sign"></i>Financial Performance (Last 30 Days)</h6>
                 </div>
-                <div class="card-body">
+                <div class="chart-body">
                     <canvas id="financialChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-info">
-                        <i class="fas fa-percentage me-2"></i>Book Utilization Rate
-                    </h6>
+            <div class="chart-card">
+                <div class="chart-header info">
+                    <h6><i class="fas fa-percentage"></i>Book Utilization Rate</h6>
                 </div>
-                <div class="card-body">
+                <div class="chart-body">
                     <canvas id="utilizationChart"></canvas>
                 </div>
             </div>
@@ -150,13 +512,10 @@ include '../app/views/shared/layout-header.php';
     <!-- Report Generation -->
     <div class="row">
         <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-line me-2"></i>Generate Reports
-                    </h6>
+            <div class="form-card">
+                <div class="chart-header mb-4">
+                    <h6><i class="fas fa-chart-line"></i>Generate Reports</h6>
                 </div>
-                <div class="card-body">
                     <form method="POST" action="<?= BASE_PATH ?>/librarian/generate-report" id="reportForm">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -242,11 +601,11 @@ include '../app/views/shared/layout-header.php';
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="button" class="btn btn-secondary me-md-2" onclick="resetForm()">
+                        <div class="d-flex gap-3 justify-content-end mt-4">
+                            <button type="button" class="btn-reset" onclick="resetForm()">
                                 <i class="fas fa-undo me-1"></i> Reset
                             </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn-submit">
                                 <i class="fas fa-chart-bar me-1"></i> Generate Report
                             </button>
                         </div>
@@ -256,123 +615,61 @@ include '../app/views/shared/layout-header.php';
         </div>
 
         <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-save me-2"></i>Saved Reports
-                    </h6>
+            <div class="reports-list-card">
+                <div class="chart-header mb-4">
+                    <h6><i class="fas fa-save"></i>Saved Reports</h6>
                 </div>
-                <div class="card-body">
+                <div>
                     <?php if (!empty($saved_reports)): ?>
-                        <div class="list-group">
-                            <?php foreach ($saved_reports as $report): ?>
-                                <div class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1"><?= htmlspecialchars($report['title']) ?></h6>
-                                        <small><?= date('M j, Y', strtotime($report['created_at'])) ?></small>
-                                    </div>
-                                    <p class="mb-1"><?= ucfirst($report['type']) ?> Report</p>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" 
-                                                onclick="viewReport(<?= $report['id'] ?>)">
-                                            <i class="fas fa-eye"></i> View
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                onclick="downloadReport(<?= $report['id'] ?>)">
-                                            <i class="fas fa-download"></i> Download
-                                        </button>
-                                    </div>
+                        <?php foreach ($saved_reports as $report): ?>
+                            <div class="report-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6><?= htmlspecialchars($report['title']) ?></h6>
+                                    <small class="text-muted"><?= date('M j, Y', strtotime($report['created_at'])) ?></small>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
+                                <p><?= ucfirst($report['type']) ?> Report</p>
+                                <div>
+                                    <button type="button" class="btn-view" onclick="viewReport(<?= $report['id'] ?>)">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button type="button" class="btn-download" onclick="downloadReport(<?= $report['id'] ?>)">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-4">
-                            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No saved reports yet. Generate your first report above!</p>
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No saved reports yet. Generate your first report above!</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
 
             <!-- Quick Actions -->
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
-                    </h6>
+            <div class="reports-list-card">
+                <div class="chart-header mb-4">
+                    <h6><i class="fas fa-bolt"></i>Quick Actions</h6>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary btn-sm" 
-                                onclick="generateQuickReport('overdue')">
-                            <i class="fas fa-exclamation-triangle me-1"></i> Overdue Books
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm"
-                                onclick="generateQuickReport('popular')">
-                            <i class="fas fa-star me-1"></i> Popular Books
-                        </button>
-                        <button type="button" class="btn btn-outline-info btn-sm"
-                                onclick="generateQuickReport('monthly')">
-                            <i class="fas fa-calendar-alt me-1"></i> Monthly Summary
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm"
-                                onclick="generateQuickReport('inventory')">
-                            <i class="fas fa-boxes me-1"></i> Inventory Status
-                        </button>
-                    </div>
+                <div>
+                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('overdue')">
+                        <i class="fas fa-exclamation-triangle"></i> Overdue Books
+                    </button>
+                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('popular')">
+                        <i class="fas fa-star"></i> Popular Books
+                    </button>
+                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('monthly')">
+                        <i class="fas fa-calendar-alt"></i> Monthly Summary
+                    </button>
+                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('inventory')">
+                        <i class="fas fa-boxes"></i> Inventory Status
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-.border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
-}
-
-.border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
-}
-
-.text-gray-800 {
-    color: #5a5c69 !important;
-}
-
-.text-gray-300 {
-    color: #dddfeb !important;
-}
-
-.shadow {
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
-}
-
-.card {
-    border: 1px solid #e3e6f0;
-}
-
-.card-header {
-    background-color: #f8f9fc;
-    border-bottom: 1px solid #e3e6f0;
-}
-
-.list-group-item {
-    border: 1px solid #e3e6f0;
-}
-
-.btn-outline-primary:hover {
-    background-color: #663399;
-    border-color: #663399;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -491,30 +788,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Borrows by Category',
                     data: categoryValues,
                     backgroundColor: [
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 206, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)',
-                        'rgba(255, 159, 64, 0.8)',
-                        'rgba(201, 203, 207, 0.8)',
-                        'rgba(255, 99, 71, 0.8)',
-                        'rgba(144, 238, 144, 0.8)',
-                        'rgba(173, 216, 230, 0.8)'
+                        'rgba(99, 102, 241, 0.85)',    // Purple
+                        'rgba(16, 185, 129, 0.85)',    // Green
+                        'rgba(245, 158, 11, 0.85)',    // Orange
+                        'rgba(239, 68, 68, 0.85)',     // Red
+                        'rgba(59, 130, 246, 0.85)',    // Blue
+                        'rgba(167, 139, 250, 0.85)',   // Light Purple
+                        'rgba(5, 150, 105, 0.85)',     // Dark Green
+                        'rgba(217, 119, 6, 0.85)',     // Dark Orange
+                        'rgba(129, 140, 248, 0.85)',   // Very Light Purple
+                        'rgba(16, 185, 129, 0.6)'      // Lighter Green
                     ],
                     borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)',
-                        'rgba(201, 203, 207, 1)',
-                        'rgba(255, 99, 71, 1)',
-                        'rgba(144, 238, 144, 1)',
-                        'rgba(173, 216, 230, 1)'
+                        'rgba(99, 102, 241, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(167, 139, 250, 1)',
+                        'rgba(5, 150, 105, 1)',
+                        'rgba(217, 119, 6, 1)',
+                        'rgba(129, 140, 248, 1)',
+                        'rgba(16, 185, 129, 1)'
                     ],
-                    borderWidth: 1
+                    borderWidth: 2
                 }]
             },
             options: {
@@ -522,10 +819,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 plugins: {
                     legend: {
                         position: 'right',
+                        labels: {
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
                     },
                     title: {
                         display: true,
-                        text: 'Book Borrows by Category'
+                        text: 'Book Borrows by Category',
+                        font: {
+                            size: 16,
+                            weight: '700'
+                        },
+                        color: '#374151'
                     },
                     tooltip: {
                         callbacks: {
@@ -536,7 +846,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const percentage = ((value / total) * 100).toFixed(1);
                                 return `${label}: ${value} borrows (${percentage}%)`;
                             }
-                        }
+                        },
+                        backgroundColor: 'rgba(55, 65, 81, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: '700'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: '#6366f1',
+                        borderWidth: 2
                     }
                 }
             }
@@ -558,9 +879,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Times Overdue',
                     data: overdueValues,
-                    backgroundColor: 'rgba(220, 53, 69, 0.6)',
-                    borderColor: 'rgba(220, 53, 69, 1)',
-                    borderWidth: 2
+                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
                 }]
             },
             options: {
@@ -572,7 +894,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     title: {
                         display: true,
-                        text: 'Top 10 Most Frequently Overdue Books'
+                        text: 'Top 10 Most Frequently Overdue Books',
+                        font: {
+                            size: 16,
+                            weight: '700'
+                        },
+                        color: '#374151'
                     },
                     tooltip: {
                         callbacks: {
@@ -581,14 +908,42 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const avgDays = overdueData[index].avg_days_overdue;
                                 return 'Avg ' + parseFloat(avgDays).toFixed(1) + ' days overdue';
                             }
-                        }
+                        },
+                        backgroundColor: 'rgba(55, 65, 81, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: '700'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: '#ef4444',
+                        borderWidth: 2
                     }
                 },
                 scales: {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            precision: 0
+                            precision: 0,
+                            font: {
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(229, 231, 235, 0.5)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: {
+                                weight: '600',
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -614,22 +969,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Fines Collected (MK)',
                     data: fineValues,
-                    borderColor: 'rgba(40, 167, 69, 1)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
-                    borderWidth: 2,
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    borderWidth: 3,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
                     legend: {
-                        display: true
+                        display: true,
+                        labels: {
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
                     },
                     title: {
                         display: true,
-                        text: 'Daily Fine Collections'
+                        text: 'Daily Fine Collections',
+                        font: {
+                            size: 16,
+                            weight: '700'
+                        },
+                        color: '#374151'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(55, 65, 81, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: '700'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: '#10b981',
+                        borderWidth: 2
                     }
                 },
                 scales: {
@@ -638,7 +1024,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         ticks: {
                             callback: function(value) {
                                 return 'MK ' + value.toLocaleString();
+                            },
+                            font: {
+                                weight: '600'
                             }
+                        },
+                        grid: {
+                            color: 'rgba(229, 231, 235, 0.5)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -664,16 +1066,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Utilization Rate (%)',
                     data: utilizationValues,
                     backgroundColor: utilizationValues.map(value => {
-                        if (value >= 80) return 'rgba(220, 53, 69, 0.6)'; // Red - need more copies
-                        if (value >= 50) return 'rgba(255, 193, 7, 0.6)'; // Yellow - moderate
-                        return 'rgba(40, 167, 69, 0.6)'; // Green - adequate
+                        if (value >= 80) return 'rgba(239, 68, 68, 0.7)'; // Red - need more copies
+                        if (value >= 50) return 'rgba(245, 158, 11, 0.7)'; // Orange - moderate
+                        return 'rgba(16, 185, 129, 0.7)'; // Green - adequate
                     }),
                     borderColor: utilizationValues.map(value => {
-                        if (value >= 80) return 'rgba(220, 53, 69, 1)';
-                        if (value >= 50) return 'rgba(255, 193, 7, 1)';
-                        return 'rgba(40, 167, 69, 1)';
+                        if (value >= 80) return 'rgba(239, 68, 68, 1)';
+                        if (value >= 50) return 'rgba(245, 158, 11, 1)';
+                        return 'rgba(16, 185, 129, 1)';
                     }),
-                    borderWidth: 2
+                    borderWidth: 2,
+                    borderRadius: 8
                 }]
             },
             options: {
@@ -685,7 +1088,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     title: {
                         display: true,
-                        text: 'Top 10 Books by Utilization Rate'
+                        text: 'Top 10 Books by Utilization Rate',
+                        font: {
+                            size: 16,
+                            weight: '700'
+                        },
+                        color: '#374151'
                     },
                     tooltip: {
                         callbacks: {
@@ -695,7 +1103,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const borrowed = utilizationData[index].borrowed_copies;
                                 return borrowed + ' of ' + copies + ' copies in use';
                             }
-                        }
+                        },
+                        backgroundColor: 'rgba(55, 65, 81, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: '700'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: '#6366f1',
+                        borderWidth: 2
                     }
                 },
                 scales: {
@@ -705,7 +1124,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         ticks: {
                             callback: function(value) {
                                 return value + '%';
+                            },
+                            font: {
+                                weight: '600'
                             }
+                        },
+                        grid: {
+                            color: 'rgba(229, 231, 235, 0.5)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: {
+                                weight: '600',
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            display: false
                         }
                     }
                 }

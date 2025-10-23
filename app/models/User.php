@@ -153,15 +153,134 @@ class User extends Model {
     }
 
     public function deleteUser($userId) {
-        $query = "DELETE FROM users WHERE id = ? AND role != 'super_admin'";
-        $stmt = $this->db->prepare($query);
-        return $stmt->execute([$userId]);
+        // Admin can delete ANY user including super admins
+        // But first check if user has created any records
+        
+        try {
+            // Check if user has created any records in related tables
+            $hasRecords = false;
+            $recordTypes = [];
+            
+            // Check libraries
+            $query = "SELECT COUNT(*) as count FROM libraries WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                $hasRecords = true;
+                $recordTypes[] = 'libraries';
+            }
+            
+            // Check books
+            $query = "SELECT COUNT(*) as count FROM books WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                $hasRecords = true;
+                $recordTypes[] = 'books';
+            }
+            
+            // Check students
+            $query = "SELECT COUNT(*) as count FROM students WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                $hasRecords = true;
+                $recordTypes[] = 'students';
+            }
+            
+            // Check categories
+            $query = "SELECT COUNT(*) as count FROM categories WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                $hasRecords = true;
+                $recordTypes[] = 'categories';
+            }
+            
+            // Check borrows
+            $query = "SELECT COUNT(*) as count FROM borrows WHERE created_by = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$userId]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
+                $hasRecords = true;
+                $recordTypes[] = 'borrow records';
+            }
+            
+            // If user has created records, prevent deletion
+            if ($hasRecords) {
+                $types = implode(', ', $recordTypes);
+                throw new Exception("Cannot delete user. This user has created: {$types}. Please deactivate the user instead.");
+            }
+            
+            // If no records, proceed with deletion
+            $query = "DELETE FROM users WHERE id = ?";
+            $stmt = $this->db->prepare($query);
+            return $stmt->execute([$userId]);
+            
+        } catch (Exception $e) {
+            throw $e;
+        }
     }
 
     public function assignLibrary($userId, $libraryId) {
         $query = "UPDATE users SET library_id = ? WHERE id = ? AND role = 'librarian'";
         $stmt = $this->db->prepare($query);
         return $stmt->execute([$libraryId, $userId]);
+    }
+
+    public function update($data) {
+        $userId = $data['id'];
+        $setClause = [];
+        $params = [];
+
+        // Update basic fields
+        if (isset($data['username'])) {
+            $setClause[] = "username = ?";
+            $params[] = $data['username'];
+        }
+        if (isset($data['full_name'])) {
+            $setClause[] = "full_name = ?";
+            $params[] = $data['full_name'];
+        }
+        if (isset($data['email'])) {
+            $setClause[] = "email = ?";
+            $params[] = $data['email'];
+        }
+        if (isset($data['role'])) {
+            $setClause[] = "role = ?";
+            $params[] = $data['role'];
+        }
+        
+        // Handle library_id properly
+        if (isset($data['library_id'])) {
+            // If role is super_admin, always set library_id to NULL
+            if (isset($data['role']) && $data['role'] === 'super_admin') {
+                $setClause[] = "library_id = NULL";
+            } else {
+                // For librarians, set library_id (can be NULL or a valid ID)
+                if (empty($data['library_id'])) {
+                    $setClause[] = "library_id = NULL";
+                } else {
+                    $setClause[] = "library_id = ?";
+                    $params[] = $data['library_id'];
+                }
+            }
+        }
+        
+        if (isset($data['password'])) {
+            $setClause[] = "password = ?";
+            $params[] = $data['password'];
+        }
+
+        if (empty($setClause)) {
+            return false;
+        }
+
+        $params[] = $userId;
+        $query = "UPDATE users SET " . implode(", ", $setClause) . " WHERE id = ?";
+        
+        $stmt = $this->db->prepare($query);
+        return $stmt->execute($params);
     }
 
     public function getUserProfile($userId) {

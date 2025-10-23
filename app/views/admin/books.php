@@ -26,28 +26,33 @@
 
         <!-- Search and Filters -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Search & Filter Books</h6>
+            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-search me-2"></i>Search & Filter Books
+                </h6>
             </div>
             <div class="card-body">
-                <form method="GET" class="row g-3">
+                <div class="row g-3">
                     <div class="col-md-4">
-                        <label for="search" class="form-label">Search</label>
-                        <input type="text" name="search" id="search" class="form-control" 
-                               placeholder="Title, Author, ISBN..." 
-                               value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+                        <label for="liveSearch" class="form-label">
+                            <i class="fas fa-search me-1"></i>Search (Live)
+                        </label>
+                        <input type="text" id="liveSearch" class="form-control" 
+                               placeholder="Type to search title, author, ISBN..." 
+                               autocomplete="off">
                     </div>
                     
-                    <div class="col-md-3">
-                        <label for="category" class="form-label">Category</label>
-                        <select name="category" id="category" class="form-select">
+                    <div class="col-md-2">
+                        <label for="categoryFilter" class="form-label">
+                            <i class="fas fa-tag me-1"></i>Category
+                        </label>
+                        <select id="categoryFilter" class="form-select">
                             <option value="">All Categories</option>
                             <?php 
                             // Get all unique categories from all books
                             $allCategories = array_unique(array_filter(array_column($all_books, 'category')));
                             foreach ($allCategories as $category): ?>
-                                <option value="<?php echo htmlspecialchars($category); ?>" 
-                                        <?php echo ($_GET['category'] ?? '') === $category ? 'selected' : ''; ?>>
+                                <option value="<?php echo htmlspecialchars($category); ?>">
                                     <?php echo htmlspecialchars($category); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -55,12 +60,13 @@
                     </div>
                     
                     <div class="col-md-2">
-                        <label for="library_filter" class="form-label">Library</label>
-                        <select name="library_filter" id="library_filter" class="form-select">
+                        <label for="libraryFilter" class="form-label">
+                            <i class="fas fa-building me-1"></i>Library
+                        </label>
+                        <select id="libraryFilter" class="form-select">
                             <option value="">All Libraries</option>
                             <?php foreach ($libraries as $library): ?>
-                                <option value="<?php echo $library['id']; ?>" 
-                                        <?php echo ($_GET['library_filter'] ?? '') == $library['id'] ? 'selected' : ''; ?>>
+                                <option value="<?php echo $library['id']; ?>">
                                     <?php echo htmlspecialchars($library['name']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -68,23 +74,29 @@
                     </div>
                     
                     <div class="col-md-2">
-                        <label for="status" class="form-label">Availability</label>
-                        <select name="status" id="status" class="form-select">
+                        <label for="statusFilter" class="form-label">
+                            <i class="fas fa-check-circle me-1"></i>Availability
+                        </label>
+                        <select id="statusFilter" class="form-select">
                             <option value="">All Books</option>
-                            <option value="available" <?php echo ($_GET['status'] ?? '') === 'available' ? 'selected' : ''; ?>>Available</option>
-                            <option value="unavailable" <?php echo ($_GET['status'] ?? '') === 'unavailable' ? 'selected' : ''; ?>>Unavailable</option>
+                            <option value="available">Available</option>
+                            <option value="unavailable">Unavailable</option>
                         </select>
                     </div>
                     
-                    <div class="col-md-2 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i>Filter
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" id="clearFilters" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times me-1"></i>Clear Filters
                         </button>
-                        <a href="<?php echo BASE_PATH; ?>/admin/books" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Clear
-                        </a>
                     </div>
-                </form>
+                    
+                    <div class="col-12">
+                        <span class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Showing <span id="bookCount"><?php echo count($all_books); ?></span> of <?php echo count($all_books); ?> books
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -174,8 +186,8 @@
 
         <!-- All Books Table -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <h6 class="m-0 font-weight-bold text-white">
                     <?php if ($selected_library_id): ?>
                         <?php 
                         $selectedLibrary = array_filter($libraries, function($lib) use ($selected_library_id) {
@@ -183,13 +195,13 @@
                         });
                         $selectedLibrary = reset($selectedLibrary);
                         ?>
-                        <?php echo htmlspecialchars($selectedLibrary['name']); ?> Books (<?php echo count($all_books); ?> books)
+                        <i class="fas fa-book me-2"></i><?php echo htmlspecialchars($selectedLibrary['name']); ?> Books (<span id="totalCount"><?php echo count($all_books); ?></span> books)
                     <?php else: ?>
-                        All Books Overview (<?php echo count($all_books); ?> books)
+                        <i class="fas fa-book me-2"></i>All Books Overview (<span id="totalCount"><?php echo count($all_books); ?></span> books)
                     <?php endif; ?>
                 </h6>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="toggleCategoryStats()">
+                    <button class="btn btn-sm btn-light" onclick="toggleCategoryStats()">
                         <i class="fas fa-chart-pie me-1"></i>Category Stats
                     </button>
                 </div>
@@ -197,7 +209,7 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                        <thead class="table-light">
+                        <thead style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
                             <tr>
                                 <th>Title</th>
                                 <th>Author</th>
@@ -210,10 +222,16 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="booksTableBody">
                             <?php if (!empty($all_books)): ?>
                                 <?php foreach ($all_books as $book): ?>
-                                <tr>
+                                <tr class="book-row"
+                                    data-title="<?php echo strtolower(htmlspecialchars($book['title'])); ?>"
+                                    data-author="<?php echo strtolower(htmlspecialchars($book['author'])); ?>"
+                                    data-isbn="<?php echo strtolower(htmlspecialchars($book['isbn'] ?? '')); ?>"
+                                    data-category="<?php echo strtolower(htmlspecialchars($book['category'] ?? '')); ?>"
+                                    data-library-id="<?php echo $book['library_id']; ?>"
+                                    data-available="<?php echo $book['available_copies'] > 0 ? 'yes' : 'no'; ?>">
                                     <td><strong><?php echo htmlspecialchars($book['title']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($book['author']); ?></td>
                                     <td>
@@ -254,8 +272,9 @@
                                                class="btn btn-sm btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="confirmDelete(<?php echo $book['id']; ?>, '<?php echo htmlspecialchars($book['title']); ?>')" 
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-book" 
+                                                    data-book-id="<?php echo $book['id']; ?>"
+                                                    data-book-title="<?php echo htmlspecialchars($book['title']); ?>"
                                                     title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -360,7 +379,106 @@
 </div>
 
 <script>
-function confirmDelete(bookId, bookTitle) {
+// Live Search and Filter Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const liveSearch = document.getElementById('liveSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const libraryFilter = document.getElementById('libraryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const clearFilters = document.getElementById('clearFilters');
+    const bookRows = document.querySelectorAll('.book-row');
+    const bookCount = document.getElementById('bookCount');
+    const totalCount = document.getElementById('totalCount');
+    
+    // Live search function
+    function filterBooks() {
+        const searchTerm = liveSearch.value.toLowerCase();
+        const categoryValue = categoryFilter.value.toLowerCase();
+        const libraryValue = libraryFilter.value;
+        const statusValue = statusFilter.value;
+        
+        let visible = 0;
+        
+        bookRows.forEach(row => {
+            const title = row.dataset.title || '';
+            const author = row.dataset.author || '';
+            const isbn = row.dataset.isbn || '';
+            const category = row.dataset.category || '';
+            const libraryId = row.dataset.libraryId || '';
+            const available = row.dataset.available || '';
+            
+            let matchesSearch = true;
+            let matchesCategory = true;
+            let matchesLibrary = true;
+            let matchesStatus = true;
+            
+            // Check search term (title, author, or ISBN)
+            if (searchTerm) {
+                matchesSearch = title.includes(searchTerm) || 
+                               author.includes(searchTerm) || 
+                               isbn.includes(searchTerm);
+            }
+            
+            // Check category filter
+            if (categoryValue) {
+                matchesCategory = category === categoryValue;
+            }
+            
+            // Check library filter
+            if (libraryValue) {
+                matchesLibrary = libraryId === libraryValue;
+            }
+            
+            // Check status filter
+            if (statusValue === 'available') {
+                matchesStatus = available === 'yes';
+            } else if (statusValue === 'unavailable') {
+                matchesStatus = available === 'no';
+            }
+            
+            // Show/hide row based on all filters
+            if (matchesSearch && matchesCategory && matchesLibrary && matchesStatus) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        bookCount.textContent = visible;
+        totalCount.textContent = visible;
+    }
+    
+    // Attach event listeners
+    liveSearch.addEventListener('input', filterBooks);
+    categoryFilter.addEventListener('change', filterBooks);
+    libraryFilter.addEventListener('change', filterBooks);
+    statusFilter.addEventListener('change', filterBooks);
+    
+    // Clear all filters
+    clearFilters.addEventListener('click', function() {
+        liveSearch.value = '';
+        categoryFilter.value = '';
+        libraryFilter.value = '';
+        statusFilter.value = '';
+        filterBooks();
+    });
+    
+    // Delete book event listeners
+    const deleteButtons = document.querySelectorAll('.btn-delete-book');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const bookId = this.dataset.bookId;
+            const bookTitle = this.dataset.bookTitle;
+            if (bookId && bookTitle) {
+                confirmDeleteBook(bookId, bookTitle);
+            }
+        });
+    });
+});
+
+function confirmDeleteBook(bookId, bookTitle) {
     document.getElementById('deleteBookId').value = bookId;
     document.getElementById('deleteBookTitle').textContent = bookTitle;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
@@ -368,12 +486,22 @@ function confirmDelete(bookId, bookTitle) {
 
 function toggleCategoryStats() {
     const categoryStatsDiv = document.getElementById('categoryStats');
-    if (categoryStatsDiv.style.display === 'none') {
+    if (categoryStatsDiv.style.display === 'none' || categoryStatsDiv.style.display === '') {
         categoryStatsDiv.style.display = 'block';
+        categoryStatsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
         categoryStatsDiv.style.display = 'none';
     }
 }
+
+// Auto-dismiss alerts after 5 seconds
+setTimeout(function() {
+    var alerts = document.querySelectorAll('.alert-dismissible');
+    alerts.forEach(function(alert) {
+        var bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    });
+}, 5000);
 </script>
 
 <style>

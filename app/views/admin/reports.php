@@ -1,668 +1,882 @@
 <?php 
 $title = "Advanced Reports - Multi-Library System";
 include '../app/views/shared/header.php'; 
+include '../app/views/shared/navbar.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Advanced Reports & Analytics</h3>
-    </div>
-
-    <!-- Advanced Report Generator -->
-    <div class="card mb-3 shadow-sm">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Generate Advanced Report</h5>
+<div class="main-content">
+    <div class="container-fluid px-4" style="max-width: 95%;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">Advanced Reports & Analytics</h1>
+                <p class="mb-0 text-muted">Generate comprehensive reports and view library insights</p>
+            </div>
         </div>
-        <div class="card-body p-3">
-            <form id="advancedReportForm">
-                <div class="row g-3">
-                    <div class="col-lg-3 col-md-6">
-                        <div class="mb-2">
-                            <label for="report_type" class="form-label form-label-sm">Report Type</label>
-                            <select class="form-select form-select-sm" id="report_type" name="report_type" required>
-                                <option value="">Select Report Type</option>
+
+        <!-- Quick Stats -->
+        <div class="row mb-4 g-3">
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Reports</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count($saved_reports) ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">This Month</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count(array_filter($saved_reports, function($r) {
+                                    return date('Y-m') === date('Y-m', strtotime($r['created_at']));
+                                })) ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Most Active Type</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    <?php
+                                    $types = array_count_values(array_column($saved_reports, 'type'));
+                                    arsort($types);
+                                    echo ucfirst(key($types) ?: 'N/A');
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-star fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Your Reports</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count(array_filter($saved_reports, function($r) {
+                                    return $r['generated_by'] == $_SESSION['user_id'];
+                                })) ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Insights -->
+        <div class="row mb-4 g-3">
+            <div class="col-lg-8">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Reports Generated Over Time</h6>
+                    </div>
+                    <div class="card-body" id="timelineChartContainer">
+                        <canvas id="reportsTimelineChart" height="100"></canvas>
+                        <div id="timelineNoData" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No report data available yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Reports by Type</h6>
+                    </div>
+                    <div class="card-body" id="typeChartContainer">
+                        <canvas id="reportTypeChart" height="200"></canvas>
+                        <div id="typeNoData" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No report data available yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4 g-3">
+            <div class="col-lg-6">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-building me-2"></i>Reports by Library</h6>
+                    </div>
+                    <div class="card-body" id="libraryChartContainer">
+                        <canvas id="libraryReportsChart" height="150"></canvas>
+                        <div id="libraryNoData" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No report data available yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-users me-2"></i>Top Report Generators</h6>
+                    </div>
+                    <div class="card-body" id="generatorsChartContainer">
+                        <canvas id="topGeneratorsChart" height="150"></canvas>
+                        <div id="generatorsNoData" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No report data available yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Generator -->
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Generate New Report</h5>
+            </div>
+            <div class="card-body">
+                <form id="advancedReportForm">
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <label for="report_type" class="form-label">Report Type</label>
+                            <select class="form-select" id="report_type" name="report_type" required>
+                                <option value="">Select Type</option>
                                 <option value="comprehensive">Comprehensive Library Report</option>
                                 <option value="analytics">Library Analytics</option>
                                 <option value="performance">Performance Trends</option>
+                                <option value="borrowing">Borrowing Statistics</option>
+                                <option value="inventory">Inventory Status</option>
+                                <option value="student">Student Activity</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="mb-2">
-                            <label for="library_id" class="form-label form-label-sm">Library</label>
-                            <select class="form-select form-select-sm" id="library_id" name="library_id">
+                        <div class="col-lg-3 col-md-6">
+                            <label for="library_id" class="form-label">Library</label>
+                            <select class="form-select" id="library_id" name="library_id">
                                 <option value="">All Libraries</option>
                                 <?php foreach ($libraries as $library): ?>
                                     <option value="<?= $library['id'] ?>"><?= htmlspecialchars($library['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                    </div>
-                    <div class="col-lg-4 col-md-8">
-                        <div class="mb-2">
-                            <label for="report_title" class="form-label form-label-sm">Report Title</label>
-                            <input type="text" class="form-control form-control-sm" id="report_title" name="report_title" required>
+                        <div class="col-lg-4 col-md-8">
+                            <label for="report_title" class="form-label">Report Title</label>
+                            <input type="text" class="form-control" id="report_title" name="report_title" 
+                                   placeholder="Enter custom report title" required>
+                        </div>
+                        <div class="col-lg-2 col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar me-1"></i> Generate
+                            </button>
                         </div>
                     </div>
-                    <div class="col-lg-2 col-md-4">
-                        <div class="mb-2">
-                            <label class="form-label form-label-sm">&nbsp;</label>
-                            <div>
-                                <button type="submit" class="btn btn-primary btn-sm w-100">
-                                    <i class="fas fa-chart-bar me-1"></i> Generate Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Dynamic Filters -->
-                <div id="advancedFilters" class="row g-3 mb-3" style="display: none;">
-                    <!-- Filters will be loaded here based on report type -->
-                </div>
-            </form>
+                    <!-- Dynamic Filters -->
+                    <div id="advancedFilters" class="row g-3 mt-2" style="display: none;">
+                        <!-- Filters will be loaded here based on report type -->
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <!-- Advanced Report Results -->
-    <div class="card mb-4" id="advancedReportResults" style="display: none;">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0" id="resultsTitle">Report Results</h5>
+        <!-- Advanced Report Results -->
+        <div class="card mb-4 shadow" id="advancedReportResults" style="display: none;">
+            <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="resultsTitle">Report Results</h5>
+                <div>
+                    <button class="btn btn-sm btn-light" id="exportCSVAdvanced">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button class="btn btn-sm btn-light" id="exportPDFAdvanced">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-light" id="exportExcelAdvanced">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Summary Section -->
+                <div id="resultsSummary" class="mb-4"></div>
+                
+                <!-- Charts Section -->
+                <div id="resultsCharts" class="row mb-4"></div>
+                
+                <!-- Data Tables -->
+                <div id="resultsData"></div>
+            </div>
+        </div>
+
+    <!-- Saved Reports -->
+    <div class="card shadow">
+        <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
             <div>
-                <button class="btn btn-sm btn-success" id="exportCSVAdvanced">
-                    <i class="fas fa-file-csv"></i> CSV
-                </button>
-                <button class="btn btn-sm btn-danger" id="exportPDFAdvanced">
-                    <i class="fas fa-file-pdf"></i> PDF
-                </button>
-                <button class="btn btn-sm btn-warning" id="exportExcelAdvanced">
-                    <i class="fas fa-file-excel"></i> Excel
-                </button>
+                <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Saved Reports</h5>
+                <small class="text-white-50">Showing <span id="reportCount"><?= count($saved_reports) ?></span> of <?= count($saved_reports) ?> reports</small>
+            </div>
+            <div>
+                <input type="text" class="form-control form-control-sm" id="searchReports" 
+                       placeholder="Search reports..." style="width: 250px;">
             </div>
         </div>
         <div class="card-body">
-            <!-- Summary Section -->
-            <div id="resultsSummary" class="mb-4"></div>
-            
-            <!-- Charts Section -->
-            <div id="resultsCharts" class="row mb-4"></div>
-            
-            <!-- Data Tables -->
-            <div id="resultsData"></div>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="row mb-3 g-3">
-        <div class="col-xl-3 col-lg-6 col-md-6">
-            <div class="card text-white bg-info border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-1 fs-6">Total Reports</h6>
-                            <h4 class="mb-0"><?= count($saved_reports) ?></h4>
-                        </div>
-                        <div>
-                            <i class="fas fa-chart-bar fa-lg opacity-75"></i>
-                        </div>
-                    </div>
+            <?php if (empty($saved_reports)): ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No saved reports yet. Generate your first report above!</p>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6">
-            <div class="card text-white bg-success border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-1 fs-6">This Month</h6>
-                            <h4 class="mb-0"><?= count(array_filter($saved_reports, function($r) {
-                                return date('Y-m') === date('Y-m', strtotime($r['created_at']));
-                            })) ?></h4>
-                        </div>
-                        <div>
-                            <i class="fas fa-calendar fa-lg opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6">
-            <div class="card text-white bg-warning border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-1 fs-6">Most Active</h6>
-                            <h4 class="mb-0">
-                                <?php
-                                $types = array_count_values(array_column($saved_reports, 'type'));
-                                arsort($types);
-                                echo ucfirst(key($types) ?: 'N/A');
-                                ?>
-                            </h4>
-                        </div>
-                        <div>
-                            <i class="fas fa-star fa-lg opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6 col-md-6">
-            <div class="card text-white bg-primary border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title mb-1 fs-6">Your Reports</h6>
-                            <h4 class="mb-0"><?= count(array_filter($saved_reports, function($r) {
-                                return $r['generated_by'] == $_SESSION['user_id'];
-                            })) ?></h4>
-                        </div>
-                        <div>
-                            <i class="fas fa-user fa-lg opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Saved Reports -->
-    <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center py-2">
-            <h5 class="mb-0"><i class="fas fa-save me-2"></i>Saved Reports</h5>
-            <button class="btn btn-sm btn-outline-danger" id="cleanupReports">
-                <i class="fas fa-trash"></i> Cleanup Old Reports
-            </button>
-        </div>
-        <div class="card-body p-3">
-            <div class="table-responsive">
-                <table class="table table-striped table-sm table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Type</th>
-                            <th>Library</th>
-                            <th>Generated By</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($saved_reports as $report): ?>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <td><?= htmlspecialchars($report['title']) ?></td>
-                                <td>
-                                    <span class="badge bg-<?= 
-                                        $report['type'] === 'comprehensive' ? 'primary' : 
-                                        ($report['type'] === 'analytics' ? 'info' : 'success')
-                                    ?>">
-                                        <?= ucfirst($report['type']) ?>
-                                    </span>
-                                </td>
-                                <td><?= htmlspecialchars($report['library_name'] ?? 'All Libraries') ?></td>
-                                <td><?= htmlspecialchars($report['username'] ?? 'System') ?></td>
-                                <td><?= date('M j, Y g:i A', strtotime($report['created_at'])) ?></td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="/report/view/<?= $report['id'] ?>" class="btn btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <form method="POST" action="/report/delete" class="d-inline">
-                                            <input type="hidden" name="report_id" value="<?= $report['id'] ?>">
-                                            <button type="submit" class="btn btn-outline-danger" 
-                                                    onclick="return confirm('Delete this report?')">
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Library</th>
+                                <th>Generated By</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <?php foreach ($saved_reports as $report): ?>
+                                <tr data-title="<?= strtolower(htmlspecialchars($report['title'])) ?>"
+                                    data-type="<?= strtolower($report['type']) ?>"
+                                    data-library="<?= strtolower(htmlspecialchars($report['library_name'] ?? 'all libraries')) ?>">
+                                    <td>
+                                        <strong><?= htmlspecialchars($report['title']) ?></strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<?= 
+                                            $report['type'] === 'comprehensive' ? 'primary' : 
+                                            ($report['type'] === 'analytics' ? 'info' : 
+                                            ($report['type'] === 'performance' ? 'success' : 
+                                            ($report['type'] === 'borrowing' ? 'warning' : 
+                                            ($report['type'] === 'inventory' ? 'secondary' : 'dark'))))
+                                        ?>">
+                                            <?= ucfirst($report['type']) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-building text-muted me-1"></i>
+                                        <?= htmlspecialchars($report['library_name'] ?? 'All Libraries') ?>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-user text-muted me-1"></i>
+                                        <?= htmlspecialchars($report['username'] ?? 'System') ?>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar text-muted me-1"></i>
+                                            <?= date('M j, Y', strtotime($report['created_at'])) ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/report/view/<?= $report['id'] ?>" 
+                                               class="btn btn-outline-primary btn-sm"
+                                               title="View Report"
+                                               target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger btn-sm btn-delete-report"
+                                                    data-report-id="<?= $report['id'] ?>"
+                                                    data-report-title="<?= htmlspecialchars($report['title']) ?>"
+                                                    title="Delete Report">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                        </div>
+                                    </td>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Reports are automatically cleaned up after 90 days
+                </small>
+                <button class="btn btn-sm btn-outline-danger" id="cleanupReports">
+                    <i class="fas fa-broom me-1"></i> Cleanup Old Reports
+                </button>
             </div>
         </div>
     </div>
+</div>
+</div>
+
+<!-- Delete Report Modal -->
+<div class="modal fade" id="deleteReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this report?</p>
+                <p class="mb-0"><strong id="deleteReportTitle"></strong></p>
+                <small class="text-muted">This action cannot be undone.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="/report/delete" id="deleteReportForm">
+                    <input type="hidden" name="report_id" id="deleteReportId">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i> Delete Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const reportType = document.getElementById('report_type');
-    const filtersDiv = document.getElementById('advancedFilters');
-    const reportForm = document.getElementById('advancedReportForm');
-    const reportResults = document.getElementById('advancedReportResults');
-    const resultsTitle = document.getElementById('resultsTitle');
-    const resultsSummary = document.getElementById('resultsSummary');
-    const resultsCharts = document.getElementById('resultsCharts');
-    const resultsData = document.getElementById('resultsData');
-
-    // Load filters based on report type
-    reportType.addEventListener('change', function() {
-        const type = this.value;
-        if (!type) {
-            filtersDiv.style.display = 'none';
-            return;
-        }
-
-        let filtersHTML = '';
-        switch(type) {
-            case 'comprehensive':
-                filtersHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label">Date Range</label>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <input type="date" class="form-control" name="filters[start_date]" placeholder="Start Date">
-                            </div>
-                            <div class="col-md-6">
-                                <input type="date" class="form-control" name="filters[end_date]" placeholder="End Date">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Book Category</label>
-                        <input type="text" class="form-control" name="filters[category]" placeholder="Filter by category">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Student Class</label>
-                        <input type="text" class="form-control" name="filters[class]" placeholder="Filter by class">
-                    </div>
-                `;
-                break;
-            case 'analytics':
-                filtersHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label">Analysis Period</label>
-                        <select class="form-select" name="filters[period]">
-                            <option value="7">Last 7 Days</option>
-                            <option value="30" selected>Last 30 Days</option>
-                            <option value="90">Last 90 Days</option>
-                            <option value="365">Last Year</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Top Items Limit</label>
-                        <input type="number" class="form-control" name="filters[limit]" value="10" min="5" max="50">
-                    </div>
-                `;
-                break;
-            case 'performance':
-                filtersHTML = `
-                    <div class="col-md-6">
-                        <label class="form-label">Trend Period (Days)</label>
-                        <input type="number" class="form-control" name="filters[trend_days]" value="90" min="30" max="365">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Year</label>
-                        <select class="form-select" name="filters[year]">
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                        </select>
-                    </div>
-                `;
-                break;
-        }
-
-        filtersDiv.innerHTML = filtersHTML;
-        filtersDiv.style.display = 'block';
-    });
-
-    // Generate advanced report
-    reportForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    
+    // Prepare reports data for charts
+    const reportsData = <?= json_encode($saved_reports) ?>;
+    
+    // Show/hide no data messages
+    if (!reportsData || reportsData.length === 0) {
+        document.getElementById('reportsTimelineChart').style.display = 'none';
+        document.getElementById('timelineNoData').style.display = 'block';
         
-        const formData = new FormData(this);
-        const filters = {};
+        document.getElementById('reportTypeChart').style.display = 'none';
+        document.getElementById('typeNoData').style.display = 'block';
         
-        // Collect filter data
-        formData.forEach((value, key) => {
-            if (key.startsWith('filters[') && value) {
-                const filterKey = key.match(/filters\[(.*?)\]/)[1];
-                filters[filterKey] = value;
-            }
-        });
-
-        const payload = {
-            report_type: formData.get('report_type'),
-            library_id: formData.get('library_id'),
-            report_title: formData.get('report_title'),
-            filters: JSON.stringify(filters)
-        };
-
-        fetch('/report/generate-advanced', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayAdvancedResults(data.data, data.summary, formData.get('report_title'));
-                reportResults.style.display = 'block';
-                
-                // Store data for export
-                window.currentReportData = data.data;
-                window.currentReportType = formData.get('report_type');
-                window.currentReportTitle = formData.get('report_title');
-            } else {
-                alert('Error generating report: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error generating report.');
-        });
-    });
-
-    function displayAdvancedResults(data, summary, title) {
-        // Clear previous results
-        resultsSummary.innerHTML = '';
-        resultsCharts.innerHTML = '';
-        resultsData.innerHTML = '';
-        resultsTitle.textContent = title;
-
-        // Display summary
-        if (summary) {
-            let summaryHTML = '<div class="alert alert-info"><h5>Summary</h5><div class="row">';
-            for (const [key, value] of Object.entries(summary)) {
-                summaryHTML += `<div class="col-md-3"><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</div>`;
-            }
-            summaryHTML += '</div></div>';
-            resultsSummary.innerHTML = summaryHTML;
-        }
-
-        // Display charts and data based on report type
-        if (window.currentReportType === 'analytics') {
-            displayAnalyticsCharts(data);
-        } else if (window.currentReportType === 'performance') {
-            displayPerformanceCharts(data);
-        }
-
-        // Display data tables
-        displayDataTables(data);
+        document.getElementById('libraryReportsChart').style.display = 'none';
+        document.getElementById('libraryNoData').style.display = 'block';
+        
+        document.getElementById('topGeneratorsChart').style.display = 'none';
+        document.getElementById('generatorsNoData').style.display = 'block';
     }
-
-    function displayAnalyticsCharts(data) {
-        if (data.analytics) {
-            // Borrowing trend chart
-            const dates = data.analytics.map(item => item.date).reverse();
-            const dailyBorrows = data.analytics.map(item => item.daily_borrows).reverse();
-            
-            resultsCharts.innerHTML += `
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5>Daily Borrowing Trend</h5>
-                            <canvas id="borrowingChart" height="250"></canvas>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Popular books chart
-            if (data.popular_books) {
-                const bookTitles = data.popular_books.map(item => item.title.substring(0, 20) + '...');
-                const borrowCounts = data.popular_books.map(item => item.borrow_count);
-                
-                resultsCharts.innerHTML += `
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5>Most Popular Books</h5>
-                                <canvas id="popularBooksChart" height="250"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                // Render charts after DOM update
-                setTimeout(() => {
-                    renderBorrowingChart(dates, dailyBorrows);
-                    renderPopularBooksChart(bookTitles, borrowCounts);
-                }, 100);
-            }
-        }
-    }
-
-    function renderBorrowingChart(dates, dailyBorrows) {
-        const ctx = document.getElementById('borrowingChart').getContext('2d');
-        new Chart(ctx, {
+    
+    // ========== CHART 1: Reports Timeline ==========
+    const timelineCtx = document.getElementById('reportsTimelineChart');
+    if (timelineCtx && reportsData.length > 0) {
+        // Group reports by month
+        const monthlyData = {};
+        reportsData.forEach(report => {
+            const month = new Date(report.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            monthlyData[month] = (monthlyData[month] || 0) + 1;
+        });
+        
+        new Chart(timelineCtx, {
             type: 'line',
             data: {
-                labels: dates,
+                labels: Object.keys(monthlyData),
                 datasets: [{
-                    label: 'Daily Borrows',
-                    data: dailyBorrows,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1,
+                    label: 'Reports Generated',
+                    data: Object.values(monthlyData),
+                    borderColor: '#7c3aed',
+                    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                    tension: 0.4,
                     fill: true
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 plugins: {
-                    legend: {
-                        position: 'top',
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Reports: ' + context.parsed.y;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
                     }
                 }
             }
         });
     }
-
-    function renderPopularBooksChart(bookTitles, borrowCounts) {
-        const ctx = document.getElementById('popularBooksChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
+    
+    // ========== CHART 2: Reports by Type ==========
+    const typeCtx = document.getElementById('reportTypeChart');
+    if (typeCtx && reportsData.length > 0) {
+        const typeCounts = {};
+        reportsData.forEach(report => {
+            const type = report.type.charAt(0).toUpperCase() + report.type.slice(1);
+            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        });
+        
+        new Chart(typeCtx, {
+            type: 'doughnut',
             data: {
-                labels: bookTitles,
+                labels: Object.keys(typeCounts),
                 datasets: [{
-                    label: 'Borrow Count',
-                    data: borrowCounts,
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                    data: Object.values(typeCounts),
+                    backgroundColor: [
+                        '#7c3aed',
+                        '#6366f1',
+                        '#10b981',
+                        '#f59e0b',
+                        '#64748b',
+                        '#1e293b'
+                    ]
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
-                        position: 'top',
+                        position: 'bottom'
                     }
                 }
             }
         });
     }
-
-    function displayPerformanceCharts(data) {
-        // Implementation for performance charts
-        // Similar to analytics charts but for performance data
-    }
-
-    function displayDataTables(data) {
-        let tablesHTML = '';
+    
+    // ========== CHART 3: Reports by Library ==========
+    const libraryCtx = document.getElementById('libraryReportsChart');
+    if (libraryCtx && reportsData.length > 0) {
+        const libraryCounts = {};
+        reportsData.forEach(report => {
+            const lib = report.library_name || 'All Libraries';
+            libraryCounts[lib] = (libraryCounts[lib] || 0) + 1;
+        });
         
-        for (const [section, sectionData] of Object.entries(data)) {
-            if (sectionData && sectionData.length > 0 && section !== 'summary') {
-                tablesHTML += `
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">${ucfirst(section)}</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-sm">
-                                    <thead>
-                                        <tr>
-                                            ${Object.keys(sectionData[0]).map(key => 
-                                                `<th>${ucfirst(key.replace(/_/g, ' '))}</th>`
-                                            ).join('')}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${sectionData.map(row => `
-                                            <tr>
-                                                ${Object.values(row).map(value => 
-                                                    `<td>${value}</td>`
-                                                ).join('')}
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
+        new Chart(libraryCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(libraryCounts),
+                datasets: [{
+                    label: 'Reports',
+                    data: Object.values(libraryCounts),
+                    backgroundColor: '#7c3aed'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+    
+    // ========== CHART 4: Top Report Generators ==========
+    const generatorsCtx = document.getElementById('topGeneratorsChart');
+    if (generatorsCtx && reportsData.length > 0) {
+        const userCounts = {};
+        reportsData.forEach(report => {
+            const user = report.username || 'System';
+            userCounts[user] = (userCounts[user] || 0) + 1;
+        });
+        
+        // Sort and get top 5
+        const sortedUsers = Object.entries(userCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+        
+        new Chart(generatorsCtx, {
+            type: 'bar',
+            data: {
+                labels: sortedUsers.map(u => u[0]),
+                datasets: [{
+                    label: 'Reports Generated',
+                    data: sortedUsers.map(u => u[1]),
+                    backgroundColor: '#6366f1'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+    
+    // ========== LIVE SEARCH FOR REPORTS ==========
+    const searchInput = document.getElementById('searchReports');
+    const reportRows = document.querySelectorAll('#reportsTableBody tr');
+    const reportCount = document.getElementById('reportCount');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            let visibleCount = 0;
+            
+            reportRows.forEach(row => {
+                const title = row.dataset.title || '';
+                const type = row.dataset.type || '';
+                const library = row.dataset.library || '';
+                
+                if (title.includes(searchTerm) || type.includes(searchTerm) || library.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            if (reportCount) {
+                reportCount.textContent = visibleCount;
+            }
+        });
+    }
+    
+    // ========== DELETE REPORT ==========
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteReportModal'));
+    const deleteButtons = document.querySelectorAll('.btn-delete-report');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.dataset.reportId;
+            const reportTitle = this.dataset.reportTitle;
+            
+            document.getElementById('deleteReportId').value = reportId;
+            document.getElementById('deleteReportTitle').textContent = reportTitle;
+            
+            deleteModal.show();
+        });
+    });
+    
+    // ========== CLEANUP OLD REPORTS ==========
+    const cleanupBtn = document.getElementById('cleanupReports');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', function() {
+            if (confirm('This will delete all reports older than 90 days. Continue?')) {
+                window.location.href = '/report/cleanup';
+            }
+        });
+    }
+    
+    // ========== ADVANCED REPORT FORM ==========
+    const reportType = document.getElementById('report_type');
+    const filtersDiv = document.getElementById('advancedFilters');
+    const reportForm = document.getElementById('advancedReportForm');
+    const reportResults = document.getElementById('advancedReportResults');
+    
+    // Load filters based on report type
+    if (reportType) {
+        reportType.addEventListener('change', function() {
+            const type = this.value;
+            if (!type) {
+                filtersDiv.style.display = 'none';
+                return;
+            }
+
+            let filtersHTML = '';
+            switch(type) {
+                case 'comprehensive':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Date Range</label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="date" class="form-control" name="filters[start_date]" placeholder="Start Date">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="date" class="form-control" name="filters[end_date]" placeholder="End Date">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                        <div class="col-md-3">
+                            <label class="form-label">Book Category</label>
+                            <input type="text" class="form-control" name="filters[category]" placeholder="Filter by category">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Student Class</label>
+                            <input type="text" class="form-control" name="filters[class]" placeholder="Filter by class">
+                        </div>
+                    `;
+                    break;
+                case 'analytics':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Analysis Period</label>
+                            <select class="form-select" name="filters[period]">
+                                <option value="7">Last 7 Days</option>
+                                <option value="30" selected>Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                                <option value="365">Last Year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Top Items Limit</label>
+                            <input type="number" class="form-control" name="filters[limit]" value="10" min="5" max="50">
+                        </div>
+                    `;
+                    break;
+                case 'performance':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Trend Period (Days)</label>
+                            <input type="number" class="form-control" name="filters[trend_days]" value="90" min="30" max="365">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Year</label>
+                            <select class="form-select" name="filters[year]">
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'borrowing':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="filters[status]">
+                                <option value="">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="returned">Returned</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date Range</label>
+                            <input type="date" class="form-control" name="filters[date_from]">
+                        </div>
+                    `;
+                    break;
+                case 'inventory':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Availability</label>
+                            <select class="form-select" name="filters[availability]">
+                                <option value="">All Books</option>
+                                <option value="available">Available Only</option>
+                                <option value="borrowed">Borrowed Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Minimum Copies</label>
+                            <input type="number" class="form-control" name="filters[min_copies]" value="1" min="0">
+                        </div>
+                    `;
+                    break;
+                case 'student':
+                    filtersHTML = `
+                        <div class="col-md-6">
+                            <label class="form-label">Activity Type</label>
+                            <select class="form-select" name="filters[activity]">
+                                <option value="all">All Activity</option>
+                                <option value="borrowing">Borrowing History</option>
+                                <option value="returns">Returns Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Class Filter</label>
+                            <input type="text" class="form-control" name="filters[class]" placeholder="e.g., Grade 10">
+                        </div>
+                    `;
+                    break;
             }
-        }
-        
-        resultsData.innerHTML = tablesHTML;
+
+            filtersDiv.innerHTML = filtersHTML;
+            filtersDiv.style.display = 'block';
+        });
     }
-
-    function ucfirst(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    // Export functionality
-    document.getElementById('exportCSVAdvanced').addEventListener('click', function() {
-        exportAdvancedReport('csv');
-    });
-
-    document.getElementById('exportPDFAdvanced').addEventListener('click', function() {
-        exportAdvancedReport('pdf');
-    });
-
-    document.getElementById('exportExcelAdvanced').addEventListener('click', function() {
-        exportAdvancedReport('excel');
-    });
-
-    function exportAdvancedReport(type) {
-        if (window.currentReportData) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/report/export';
-
-            const dataInput = document.createElement('input');
-            dataInput.type = 'hidden';
-            dataInput.name = 'report_data';
-            dataInput.value = JSON.stringify(window.currentReportData);
-            form.appendChild(dataInput);
-
-            const typeInput = document.createElement('input');
-            typeInput.type = 'hidden';
-            typeInput.name = 'export_type';
-            typeInput.value = type;
-            form.appendChild(typeInput);
-
-            const reportTypeInput = document.createElement('input');
-            reportTypeInput.type = 'hidden';
-            reportTypeInput.name = 'report_type';
-            reportTypeInput.value = window.currentReportType;
-            form.appendChild(reportTypeInput);
-
-            const filenameInput = document.createElement('input');
-            filenameInput.type = 'hidden';
-            filenameInput.name = 'filename';
-            filenameInput.value = window.currentReportTitle;
-            form.appendChild(filenameInput);
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-        }
-    }
-
-    // Cleanup reports
-    document.getElementById('cleanupReports').addEventListener('click', function() {
-        if (confirm('Clean up reports older than 30 days?')) {
-            fetch('/system/maintenance', {
+    
+    // Generate advanced report
+    if (reportForm) {
+        reportForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating...';
+            
+            fetch('/admin/generateReport', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'action=cleanup_reports'
-            }).then(() => location.reload());
-        }
-    });
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show results
+                    document.getElementById('resultsTitle').textContent = data.title;
+                    document.getElementById('resultsSummary').innerHTML = data.summary;
+                    document.getElementById('resultsCharts').innerHTML = data.charts || '';
+                    document.getElementById('resultsData').innerHTML = data.data;
+                    reportResults.style.display = 'block';
+                    
+                    // Scroll to results
+                    reportResults.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                    
+                    // Reload page to show new report in saved reports
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    alert('Error generating report: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to generate report. Please try again.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // ========== EXPORT FUNCTIONS ==========
+    function exportReport(format) {
+        const reportData = document.getElementById('resultsData').innerHTML;
+        const reportTitle = document.getElementById('resultsTitle').textContent;
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/report/export';
+        
+        const formatInput = document.createElement('input');
+        formatInput.type = 'hidden';
+        formatInput.name = 'format';
+        formatInput.value = format;
+        
+        const dataInput = document.createElement('input');
+        dataInput.type = 'hidden';
+        dataInput.name = 'data';
+        dataInput.value = reportData;
+        
+        const titleInput = document.createElement('input');
+        titleInput.type = 'hidden';
+        titleInput.name = 'title';
+        titleInput.value = reportTitle;
+        
+        form.appendChild(formatInput);
+        form.appendChild(dataInput);
+        form.appendChild(titleInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+    
+    document.getElementById('exportCSVAdvanced')?.addEventListener('click', () => exportReport('csv'));
+    document.getElementById('exportPDFAdvanced')?.addEventListener('click', () => exportReport('pdf'));
+    document.getElementById('exportExcelAdvanced')?.addEventListener('click', () => exportReport('excel'));
+    
+    // ========== AUTO-DISMISS ALERTS ==========
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+    
 });
 </script>
 
 <style>
-.form-label-sm {
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
 }
 
-.form-control-sm, .form-select-sm {
+.bg-gradient-success {
+    background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+}
+
+.border-left-info {
+    border-left: 4px solid #3b82f6;
+}
+
+.border-left-success {
+    border-left: 4px solid #10b981;
+}
+
+.border-left-warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.border-left-primary {
+    border-left: 4px solid #7c3aed;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(124, 58, 237, 0.05);
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
+}
+
+#searchReports:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.25);
 }
 
 .card {
-    border: 1px solid #e3e6f0;
-    border-radius: 0.35rem;
-}
-
-.table th {
-    font-size: 0.875rem;
-    font-weight: 600;
-    padding: 0.5rem;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.table td {
-    font-size: 0.875rem;
-    padding: 0.5rem;
-    vertical-align: middle;
-}
-
-.btn-sm {
-    font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
-}
-
-.fs-6 {
-    font-size: 0.875rem;
-}
-
-.opacity-75 {
-    opacity: 0.75;
-}
-
-/* Compact layout improvements */
-.card-body {
-    padding: 1rem;
+    border: none;
 }
 
 .card-header {
-    padding: 0.75rem 1rem;
-    background: rgba(102, 51, 153, 0.05);
-    border-bottom: 1px solid #e3e6f0;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
 }
 
-/* Remove excessive spacing */
-.mb-3 {
-    margin-bottom: 0.75rem !important;
-}
-
-.mb-2 {
-    margin-bottom: 0.5rem !important;
-}
-
-/* Improve responsive layout */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 0.75rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.8rem;
-    }
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
 }
 </style>
 
-<?php include '../app/views/shared/layout-footer.php'; ?>
-<?php include '../app/views/shared/footer.php'; ?>
+<?php 
+include '../app/views/shared/layout-footer.php';
+include '../app/views/shared/footer.php'; 
+?>
