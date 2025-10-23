@@ -5,7 +5,7 @@ class ReportController extends Controller {
     private $libraryModel;
 
     public function __construct() {
-        session_start();
+        // Session is already started in index.php
         $this->requireAuth();
         $this->reportModel = new Report();
         $this->userModel = new User();

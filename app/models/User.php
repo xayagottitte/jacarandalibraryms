@@ -111,11 +111,16 @@ class User extends Model {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function storePasswordResetToken($email, $token, $expires) {
-        $query = "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) 
-                 ON DUPLICATE KEY UPDATE token = VALUES(token), expires_at = VALUES(expires_at), created_at = NOW()";
+    public function storePasswordResetToken($email, $token, $expires = null) {
+        // Let MySQL handle the expiration time to avoid timezone issues
+        $query = "INSERT INTO password_resets (email, token, expires_at, created_at) 
+                 VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW()) 
+                 ON DUPLICATE KEY UPDATE 
+                    token = VALUES(token), 
+                    expires_at = DATE_ADD(NOW(), INTERVAL 1 HOUR), 
+                    created_at = NOW()";
         $stmt = $this->db->prepare($query);
-        return $stmt->execute([$email, $token, $expires]);
+        return $stmt->execute([$email, $token]);
     }
 
     public function findByPasswordResetToken($token) {

@@ -2,13 +2,110 @@
 <?php include '../app/views/shared/navbar.php'; ?>
 <?php include '../app/views/shared/layout-header.php'; ?>
 
-<div class="main-content">
-    <div class="container-fluid px-4" style="max-width: 80%;">
+<style>
+    :root {
+        --jacaranda-primary: #663399;
+        --jacaranda-secondary: #8a4baf;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --shadow-light: 0 4px 20px rgba(0,0,0,0.1);
+        --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .modern-dashboard {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-light);
+        border-left: 4px solid var(--jacaranda-primary);
+    }
+
+    .page-header h1 {
+        background: var(--jacaranda-primary);
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-card-gradient {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-light);
+        color: white;
+    }
+    
+    .stat-card-gradient:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+    }
+    
+    .stat-card-gradient.primary {
+        background: var(--gradient-primary);
+    }
+    
+    .stat-card-gradient.success {
+        background: var(--gradient-success);
+    }
+    
+    .stat-card-gradient.warning {
+        background: var(--gradient-warning);
+    }
+    
+    .stat-card-gradient.info {
+        background: var(--gradient-info);
+    }
+    
+    .stat-card-gradient .card-body {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card-gradient .icon-bg {
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.2;
+    }
+
+    .modern-card .card-header {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%) !important;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
+    }
+</style>
+
+<div class="main-content modern-dashboard">
+    <div class="container-fluid px-4">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="h3 mb-0 text-gray-800">User Management</h1>
-                <p class="mb-0 text-muted">Manage system users, roles, and permissions</p>
+                <h1 class="h3 mb-2">User Management</h1>
+                <p class="mb-0 text-muted"><i class="fas fa-users-cog me-2" style="color: var(--jacaranda-primary);"></i>Manage system users, roles, and permissions</p>
             </div>
             <a href="<?php echo BASE_PATH; ?>/admin/create-user" class="btn btn-primary">
                 <i class="fas fa-user-plus me-2"></i>Add New User
@@ -43,65 +140,57 @@
             ?>
             
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card stat-card-gradient primary h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $totalUsers; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Total Users</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalUsers; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-users icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
+                <div class="card stat-card-gradient success h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Users</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $activeUsers; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Active Users</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $activeUsers; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-user-check icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card stat-card-gradient warning h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $pendingUsers; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-clock fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Pending</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $pendingUsers; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-user-clock icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-info shadow h-100 py-2">
+                <div class="card stat-card-gradient info h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Librarians</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $librarians; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-tie fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Librarians</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $librarians; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-user-tie icon-bg"></i>
                     </div>
                 </div>
             </div>
@@ -122,7 +211,7 @@
 
         <!-- Search and Filter -->
         <div class="modern-card shadow mb-4">
-            <div class="card-header py-3 d-flex align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3 d-flex align-items-center" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <i class="fas fa-search me-2 text-white"></i>
                 <h6 class="m-0 font-weight-bold text-white">Search & Filter Users</h6>
             </div>
@@ -191,14 +280,14 @@
 
         <!-- Users Table -->
         <div class="modern-card shadow mb-4">
-            <div class="card-header py-3 d-flex align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3 d-flex align-items-center" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <i class="fas fa-users me-2 text-white"></i>
                 <h6 class="m-0 font-weight-bold text-white">System Users (<span id="userCount"><?php echo count($users); ?></span> users)</h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table modern-table" width="100%" cellspacing="0">
-                        <thead style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                        <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                             <tr>
                                 <th><i class="fas fa-user me-2"></i>Username</th>
                                 <th><i class="fas fa-id-badge me-2"></i>Full Name</th>
@@ -223,7 +312,7 @@
                                     <td>
                                         <strong><?php echo htmlspecialchars($user['username']); ?></strong>
                                         <?php if ($user['id'] == $_SESSION['user_id']): ?>
-                                            <span class="badge bg-info ms-1">You</span>
+                                            <span class="badge ms-1" style="background: var(--jacaranda-primary); color: white;">You</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($user['full_name'] ?? 'N/A'); ?></td>
@@ -238,7 +327,7 @@
                                                 <i class="fas fa-crown me-1"></i>Super Admin
                                             </span>
                                         <?php elseif ($user['role'] === 'librarian'): ?>
-                                            <span class="badge badge-modern" style="background: #7c3aed;">
+                                            <span class="badge badge-modern" style="background: var(--jacaranda-primary); color: white;">
                                                 <i class="fas fa-user-tie me-1"></i>Librarian
                                             </span>
                                         <?php else: ?>
@@ -247,7 +336,7 @@
                                     </td>
                                     <td>
                                         <?php if ($user['library_name']): ?>
-                                            <span class="badge badge-modern bg-info">
+                                            <span class="badge badge-modern" style="background: var(--gradient-info); color: white;">
                                                 <i class="fas fa-building me-1"></i><?php echo htmlspecialchars($user['library_name']); ?>
                                             </span>
                                         <?php else: ?>
@@ -295,7 +384,7 @@
                                             <?php else: ?>
                                                 <!-- Edit Button - Available for ALL users including super admins -->
                                                 <a href="<?php echo BASE_PATH; ?>/admin/edit-user/<?php echo $user['id']; ?>" 
-                                                   class="btn btn-sm modern-btn" style="background: #7c3aed; color: white;" title="Edit User">
+                                                   class="btn btn-sm modern-btn" style="background: var(--jacaranda-primary); color: white;" title="Edit User">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 
@@ -453,7 +542,7 @@
 <div class="modal fade" id="assignLibraryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                 <h5 class="modal-title">
                     <i class="fas fa-building me-2"></i>Assign Library
                 </h5>
@@ -484,7 +573,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="assignLibraryForm" class="btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+                <button type="submit" form="assignLibraryForm" class="btn" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                     <i class="fas fa-check me-1"></i>Assign Library
                 </button>
             </div>
@@ -707,12 +796,6 @@ setTimeout(function() {
 </script>
 
 <style>
-:root {
-    --jacaranda-primary: #7c3aed;
-    --jacaranda-secondary: #6366f1;
-    --jacaranda-hover: #8b5cf6;
-}
-
 .main-content {
     background: #f8f9fc;
     min-height: calc(100vh - 60px);

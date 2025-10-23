@@ -180,11 +180,13 @@
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger mb-3">
                     <i class="fas fa-exclamation-circle me-2"></i>
-                    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 
             <form method="POST" action="register">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                
                 <div class="form-group">
                     <label for="username" class="form-label">Username</label>
                     <input type="text" class="form-control" id="username" name="username" 
@@ -206,10 +208,22 @@
                 <div class="form-group">
                     <label for="password" class="form-label">Password</label>
                     <input type="password" class="form-control" id="password" name="password" 
-                           placeholder="Create password" required minlength="6">
+                           placeholder="Create password" required minlength="8">
                     <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">
-                        Password must be at least 6 characters long
+                        <strong>Password requirements:</strong>
+                        <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0;">
+                            <li>At least 8 characters long</li>
+                            <li>At least one uppercase letter (A-Z)</li>
+                            <li>At least one lowercase letter (a-z)</li>
+                            <li>At least one number (0-9)</li>
+                        </ul>
                     </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                           placeholder="Confirm password" required minlength="8">
                 </div>
                 
                 <button type="submit" class="btn-register">

@@ -5,15 +5,15 @@
 require_once '../config/config.php';
 require_once '../config/database.php';
 
-// Start session after configuration is loaded
-session_start();
-
 // Load core classes
 require_once '../app/core/Router.php';
 require_once '../app/core/Controller.php';
 require_once '../app/core/Model.php';
 require_once '../app/core/Security.php';
 require_once '../app/core/Mailer.php';
+
+// Start secure session after configuration and Security class are loaded
+Security::startSecureSession();
 
 // Load models
 require_once '../app/models/Database.php';
@@ -38,11 +38,11 @@ $router->add('/login', 'AuthController', 'login');
 $router->add('/register', 'AuthController', 'register');
 $router->add('/logout', 'AuthController', 'logout');
 
-// Password recovery routes
-$router->add('/forgot-password', 'ForgotPasswordController', 'show');
+// Password recovery routes (specific routes MUST come before general ones)
 $router->add('/forgot-password/send', 'ForgotPasswordController', 'sendResetLink');
-$router->add('/reset-password', 'ResetPasswordController', 'show');
+$router->add('/forgot-password', 'ForgotPasswordController', 'show');
 $router->add('/reset-password/reset', 'ResetPasswordController', 'reset');
+$router->add('/reset-password', 'ResetPasswordController', 'show');
 
 // Admin routes
 $router->add('/admin/dashboard', 'AdminController', 'dashboard');

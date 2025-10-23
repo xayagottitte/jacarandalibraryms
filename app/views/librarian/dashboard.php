@@ -7,10 +7,12 @@ include '../app/views/shared/layout-header.php';
 <style>
 /* Modern Dashboard Styles */
 :root {
-    --primary-purple: #6366f1;
-    --dark-purple: #4f46e5;
-    --light-purple: #818cf8;
-    --accent-purple: #a78bfa;
+    --primary-purple: #663399;
+    --dark-purple: #522d7a;
+    --light-purple: #8a4baf;
+    --accent-purple: #b07acc;
+    --jacaranda-primary: #663399;
+    --jacaranda-secondary: #8a4baf;
     --grey-dark: #374151;
     --grey-medium: #6b7280;
     --grey-light: #e5e7eb;

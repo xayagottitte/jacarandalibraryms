@@ -707,6 +707,7 @@ include '../app/views/shared/layout-header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="<?= BASE_PATH ?>/profile/update">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -771,6 +772,7 @@ include '../app/views/shared/layout-header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="<?= BASE_PATH ?>/profile/upload-photo" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="profile_photo" class="form-label">Choose Photo</label>

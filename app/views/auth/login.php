@@ -206,6 +206,16 @@
             color: #198754;
         }
         
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+        
+        .alert-warning strong {
+            font-weight: 600;
+        }
+        
         .floating-shapes {
             position: fixed;
             width: 100%;
@@ -265,21 +275,63 @@
                 <h2>Welcome Back!</h2>
                 <p>We missed you! Please enter your details.</p>
             </div>
+
+            <?php 
+            // Check for timeout or security redirect
+            if (isset($_GET['timeout']) && $_GET['timeout'] == '1'): ?>
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-clock me-2"></i>
+                    Your session has expired due to inactivity. Please log in again.
+                </div>
+            <?php elseif (isset($_GET['security']) && $_GET['security'] == '1'): ?>
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Session security violation detected. Please log in again.
+                </div>
+            <?php endif; ?>
+
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger mb-3">
                     <i class="fas fa-exclamation-circle me-2"></i>
-                    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
             
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success mb-3">
                     <i class="fas fa-check-circle me-2"></i>
-                    <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['success']); ?>
                 </div>
             <?php endif; ?>
+            
+            <?php 
+            // Display lockout information if available
+            if (isset($_SESSION['lockout_info'])): 
+                $lockoutInfo = $_SESSION['lockout_info'];
+            ?>
+                <?php if ($lockoutInfo['locked']): ?>
+                    <div class="alert alert-warning mb-3" id="lockout-alert">
+                        <i class="fas fa-lock me-2"></i>
+                        <strong>Account Locked</strong><br>
+                        <small>Too many failed attempts (<?= $lockoutInfo['attempts'] ?>). Please wait <span id="countdown"><?= $lockoutInfo['remaining_time'] ?></span> seconds.</small>
+                    </div>
+                <?php else: ?>
+                    <?php if ($lockoutInfo['attempts'] > 0): ?>
+                        <div class="alert alert-warning mb-3" style="font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Failed attempts: <?= $lockoutInfo['attempts'] ?> of <?= MAX_LOGIN_ATTEMPTS ?>. 
+                            <?= $lockoutInfo['remaining_attempts'] ?> attempt(s) remaining.
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            <?php 
+                unset($_SESSION['lockout_info']); 
+            endif; 
+            ?>
 
             <form method="POST" action="login">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                
                 <div class="form-group">
                     <label for="email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="email" name="email" 
@@ -320,12 +372,43 @@
     <script>
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
+            const alerts = document.querySelectorAll('.alert:not(#lockout-alert)');
             alerts.forEach(alert => {
                 const bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();
             });
         }, 5000);
+        
+        // Lockout countdown timer
+        const countdownElement = document.getElementById('countdown');
+        if (countdownElement) {
+            let remainingTime = parseInt(countdownElement.textContent);
+            const loginButton = document.querySelector('.btn-signin');
+            
+            // Disable login button during lockout
+            if (loginButton) {
+                loginButton.disabled = true;
+                loginButton.style.opacity = '0.5';
+                loginButton.style.cursor = 'not-allowed';
+            }
+            
+            const countdownInterval = setInterval(() => {
+                remainingTime--;
+                
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    // Re-enable login and reload page
+                    if (loginButton) {
+                        loginButton.disabled = false;
+                        loginButton.style.opacity = '1';
+                        loginButton.style.cursor = 'pointer';
+                    }
+                    location.reload();
+                } else {
+                    countdownElement.textContent = remainingTime;
+                }
+            }, 1000);
+        }
         
         // Add smooth entrance animation
         document.addEventListener('DOMContentLoaded', function() {

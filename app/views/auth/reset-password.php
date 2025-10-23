@@ -171,18 +171,19 @@
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger mb-3">
                     <i class="fas fa-exclamation-circle me-2"></i>
-                    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
             
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success mb-3">
                     <i class="fas fa-check-circle me-2"></i>
-                    <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['success']); ?>
                 </div>
             <?php endif; ?>
 
             <form method="POST" action="reset-password/reset" id="resetForm">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                 <input type="hidden" name="token" value="<?= htmlspecialchars($token ?? '') ?>">
                 
                 <div class="form-group">

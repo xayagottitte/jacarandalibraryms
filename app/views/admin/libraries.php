@@ -2,13 +2,118 @@
 <?php include '../app/views/shared/navbar.php'; ?>
 <?php include '../app/views/shared/layout-header.php'; ?>
 
-<div class="main-content">
-    <div class="container-fluid px-4" style="max-width: 80%;">
+<style>
+    :root {
+        --jacaranda-primary: #663399;
+        --jacaranda-secondary: #8a4baf;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --shadow-light: 0 4px 20px rgba(0,0,0,0.1);
+        --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .modern-dashboard {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-light);
+        border-left: 4px solid var(--jacaranda-primary);
+    }
+
+    .page-header h1 {
+        background: var(--jacaranda-primary);
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-card-gradient {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-light);
+        color: white;
+    }
+    
+    .stat-card-gradient:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+    }
+    
+    .stat-card-gradient.primary {
+        background: var(--gradient-primary);
+    }
+    
+    .stat-card-gradient.success {
+        background: var(--gradient-success);
+    }
+    
+    .stat-card-gradient.warning {
+        background: var(--gradient-warning);
+    }
+    
+    .stat-card-gradient.info {
+        background: var(--gradient-info);
+    }
+    
+    .stat-card-gradient.secondary {
+        background: linear-gradient(135deg, #a8a8ff 0%, #8e8eff 100%);
+    }
+    
+    .stat-card-gradient.teal {
+        background: linear-gradient(135deg, #3eadcf 0%, #abe9cd 100%);
+    }
+    
+    .stat-card-gradient .card-body {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card-gradient .icon-bg {
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.2;
+    }
+
+    .modern-card .card-header {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%) !important;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
+    }
+</style>
+
+<div class="main-content modern-dashboard">
+    <div class="container-fluid px-4">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="h3 mb-0 text-gray-800">Library Management</h1>
-                <p class="mb-0 text-muted">Manage libraries, locations, and librarian assignments</p>
+                <h1 class="h3 mb-2">Library Management</h1>
+                <p class="mb-0 text-muted"><i class="fas fa-building me-2" style="color: var(--jacaranda-primary);"></i>Manage libraries, locations, and librarian assignments</p>
             </div>
             <a href="<?php echo BASE_PATH; ?>/admin/create-library" class="btn btn-primary">
                 <i class="fas fa-building me-2"></i>Add New Library
@@ -42,97 +147,85 @@
             ?>
             
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card stat-card-gradient primary h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Libraries</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $totalLibraries; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-building fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Libraries</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalLibraries; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-building icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
+                <div class="card stat-card-gradient success h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Books</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $totalBooks; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-book fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Books</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalBooks; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-book icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card stat-card-gradient warning h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Copies</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $totalCopies; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Copies</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalCopies; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-layer-group icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-info shadow h-100 py-2">
+                <div class="card stat-card-gradient info h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Primary</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $primaryLibraries; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-school fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Primary</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $primaryLibraries; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-school icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card stat-card-gradient secondary h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Secondary</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $secondaryLibraries; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Secondary</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $secondaryLibraries; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-graduation-cap icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-2 col-md-4 mb-4">
-                <div class="card border-left-dark shadow h-100 py-2">
+                <div class="card stat-card-gradient teal h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Librarians</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $totalLibrarians; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-tie fa-2x text-gray-300"></i>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Librarians</div>
+                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalLibrarians; ?></div>
                             </div>
                         </div>
+                        <i class="fas fa-user-tie icon-bg"></i>
                     </div>
                 </div>
             </div>
@@ -140,7 +233,7 @@
 
         <!-- Search and Filter -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <h6 class="m-0 font-weight-bold text-white">
                     <i class="fas fa-search me-2"></i>Search & Filter Libraries
                 </h6>
@@ -193,7 +286,7 @@
 
         <!-- Libraries Table -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <h6 class="m-0 font-weight-bold text-white">System Libraries (<span id="totalCount"><?php echo count($libraries); ?></span> libraries)</h6>
                 <button class="btn btn-sm btn-light" onclick="toggleLibrarianAssign()">
                     <i class="fas fa-user-plus me-1"></i>Assign Librarian
@@ -202,7 +295,7 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                        <thead style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+                        <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                             <tr>
                                 <th>Name</th>
                                 <th>Type</th>
@@ -280,8 +373,8 @@
         </div>
 
         <!-- Assign Librarian Section (Hidden by default) -->
-        <div class="card shadow mb-4" id="librarianAssignCard" style="display: none; border: 2px solid #7c3aed;">
-            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+        <div class="card shadow mb-4" id="librarianAssignCard" style="display: none; border: 2px solid var(--jacaranda-primary);">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-white">
                         <i class="fas fa-user-plus me-2"></i>Assign Librarian to Library
@@ -328,7 +421,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4 d-flex align-items-end gap-2">
-                                <button type="submit" class="btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+                                <button type="submit" class="btn" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                                     <i class="fas fa-check me-1"></i>Assign Librarian
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary" onclick="toggleLibrarianAssign()">

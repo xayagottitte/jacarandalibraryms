@@ -7,10 +7,12 @@ include '../app/views/shared/layout-header.php';
 <style>
 /* Modern Dashboard Color Variables */
 :root {
-    --primary-purple: #6366f1;
-    --dark-purple: #4f46e5;
-    --light-purple: #818cf8;
-    --accent-purple: #a78bfa;
+    --primary-purple: #663399;
+    --dark-purple: #522d7a;
+    --light-purple: #8a4baf;
+    --accent-purple: #b07acc;
+    --jacaranda-primary: #663399;
+    --jacaranda-secondary: #8a4baf;
     --grey-dark: #374151;
     --grey-medium: #6b7280;
     --grey-light: #e5e7eb;
@@ -33,7 +35,7 @@ include '../app/views/shared/layout-header.php';
     border-radius: 20px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 10px 40px rgba(102, 51, 153, 0.2);
     color: white;
 }
 

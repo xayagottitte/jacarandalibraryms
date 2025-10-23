@@ -5,13 +5,109 @@ include '../app/views/shared/navbar.php';
 include '../app/views/shared/layout-header.php'; 
 ?>
 
-<div class="main-content">
-    <div class="container-fluid px-4" style="max-width: 95%;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h3 mb-0 text-gray-800">Advanced Reports & Analytics</h1>
-                <p class="mb-0 text-muted">Generate comprehensive reports and view library insights</p>
-            </div>
+<style>
+    :root {
+        --jacaranda-primary: #663399;
+        --jacaranda-secondary: #8a4baf;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --shadow-light: 0 4px 20px rgba(0,0,0,0.1);
+        --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .modern-dashboard {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-light);
+        border-left: 4px solid var(--jacaranda-primary);
+    }
+
+    .page-header h1 {
+        background: var(--jacaranda-primary);
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-card-gradient {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-light);
+        color: white;
+    }
+    
+    .stat-card-gradient:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+    }
+    
+    .stat-card-gradient.primary {
+        background: var(--gradient-primary);
+    }
+    
+    .stat-card-gradient.success {
+        background: var(--gradient-success);
+    }
+    
+    .stat-card-gradient.warning {
+        background: var(--gradient-warning);
+    }
+    
+    .stat-card-gradient.info {
+        background: var(--gradient-info);
+    }
+    
+    .stat-card-gradient .card-body {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card-gradient .icon-bg {
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.2;
+    }
+
+    .modern-card .card-header {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%) !important;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
+    }
+</style>
+
+<div class="main-content modern-dashboard">
+    <div class="container-fluid px-4">
+        <div class="page-header">
+            <h1 class="h3 mb-2">Advanced Reports & Analytics</h1>
+            <p class="mb-0 text-muted"><i class="fas fa-chart-bar me-2" style="color: var(--jacaranda-primary);"></i>Generate comprehensive reports and view library insights</p>
+        </div>
         </div>
 
         <!-- Quick Stats -->
@@ -400,8 +496,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Reports Generated',
                     data: Object.values(monthlyData),
-                    borderColor: '#7c3aed',
-                    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                    borderColor: '#663399',
+                    backgroundColor: 'rgba(102, 51, 153, 0.1)',
                     tension: 0.4,
                     fill: true
                 }]
@@ -445,8 +541,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: Object.values(typeCounts),
                     backgroundColor: [
-                        '#7c3aed',
-                        '#6366f1',
+                        '#663399',
+                        '#8a4baf',
                         '#10b981',
                         '#f59e0b',
                         '#64748b',
@@ -482,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Reports',
                     data: Object.values(libraryCounts),
-                    backgroundColor: '#7c3aed'
+                    backgroundColor: '#663399'
                 }]
             },
             options: {
@@ -522,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Reports Generated',
                     data: sortedUsers.map(u => u[1]),
-                    backgroundColor: '#6366f1'
+                    backgroundColor: '#8a4baf'
                 }]
             },
             options: {
@@ -825,7 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #663399 0%, #8a4baf 100%);
 }
 
 .bg-gradient-success {
@@ -845,11 +941,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .border-left-primary {
-    border-left: 4px solid #7c3aed;
+    border-left: 4px solid #663399;
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(124, 58, 237, 0.05);
+    background-color: rgba(102, 51, 153, 0.05);
 }
 
 .btn-group-sm > .btn {
@@ -858,8 +954,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 #searchReports:focus {
-    border-color: #7c3aed;
-    box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.25);
+    border-color: #663399;
+    box-shadow: 0 0 0 0.2rem rgba(102, 51, 153, 0.25);
 }
 
 .card {

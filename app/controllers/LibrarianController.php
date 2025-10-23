@@ -7,9 +7,7 @@ class LibrarianController extends Controller {
     private $libraryModel;
 
     public function __construct() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Session is already started in index.php
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
             $this->redirect('/login');
         }

@@ -303,6 +303,11 @@ body {
                                 <i class="fas fa-chart-line"></i> Reports
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/activity-logs') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/activity-logs">
+                                <i class="fas fa-history"></i> Activity Logs
+                            </a>
+                        </li>
                     <?php elseif ($_SESSION['role'] === 'librarian'): ?>
                         <li class="nav-item">
                             <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/librarian/dashboard') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/librarian/dashboard">

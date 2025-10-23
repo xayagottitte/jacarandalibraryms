@@ -2,11 +2,108 @@
 <?php include '../app/views/shared/navbar.php'; ?>
 <?php include '../app/views/shared/layout-header.php'; ?>
 
-<div class="main-content">
+<style>
+    :root {
+        --jacaranda-primary: #663399;
+        --jacaranda-secondary: #8a4baf;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-info: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --shadow-light: 0 4px 20px rgba(0,0,0,0.1);
+        --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .modern-dashboard {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-light);
+        border-left: 4px solid var(--jacaranda-primary);
+    }
+
+    .page-header h1 {
+        background: var(--jacaranda-primary);
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-card-gradient {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-light);
+        color: white;
+    }
+    
+    .stat-card-gradient:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+    }
+    
+    .stat-card-gradient.primary {
+        background: var(--gradient-primary);
+    }
+    
+    .stat-card-gradient.success {
+        background: var(--gradient-success);
+    }
+    
+    .stat-card-gradient.warning {
+        background: var(--gradient-warning);
+    }
+    
+    .stat-card-gradient.info {
+        background: var(--gradient-info);
+    }
+    
+    .stat-card-gradient .card-body {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card-gradient .icon-bg {
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.2;
+    }
+
+    .modern-card .card-header {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%) !important;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
+    }
+</style>
+
+<div class="main-content modern-dashboard">
     <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="h3 mb-0 text-gray-800">Book Management</h1>
+                <h1 class="h3 mb-2">Book Management</h1>
                 <?php if ($selected_library_id): ?>
                     <?php 
                     $selectedLibrary = array_filter($libraries, function($lib) use ($selected_library_id) {
@@ -14,9 +111,9 @@
                     });
                     $selectedLibrary = reset($selectedLibrary);
                     ?>
-                    <p class="mb-0 text-muted">Showing books for: <strong><?php echo htmlspecialchars($selectedLibrary['name']); ?></strong></p>
+                    <p class="mb-0 text-muted"><i class="fas fa-book me-2" style="color: var(--jacaranda-primary);"></i>Showing books for: <strong><?php echo htmlspecialchars($selectedLibrary['name']); ?></strong></p>
                 <?php else: ?>
-                    <p class="mb-0 text-muted">Showing books from all libraries</p>
+                    <p class="mb-0 text-muted"><i class="fas fa-book me-2" style="color: var(--jacaranda-primary);"></i>Showing books from all libraries</p>
                 <?php endif; ?>
             </div>
             <a href="<?php echo BASE_PATH; ?>/admin/create-book" class="btn btn-primary">
@@ -26,7 +123,7 @@
 
         <!-- Search and Filters -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <h6 class="m-0 font-weight-bold text-white">
                     <i class="fas fa-search me-2"></i>Search & Filter Books
                 </h6>
@@ -104,81 +201,73 @@
         <div class="row mb-4">
             <!-- Statistics Cards -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card stat-card-gradient primary h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">
                                     Total Books<?php echo $selected_library_id ? ' (Selected Library)' : ' (All Libraries)'; ?>
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <div class="h5 mb-0 font-weight-bold">
                                     <?php echo $book_stats['total_books'] ?? 0; ?>
                                 </div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-book fa-2x text-gray-300"></i>
-                            </div>
                         </div>
+                        <i class="fas fa-book icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
+                <div class="card stat-card-gradient success h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">
                                     Total Copies<?php echo $selected_library_id ? ' (Selected Library)' : ' (All Libraries)'; ?>
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <div class="h5 mb-0 font-weight-bold">
                                     <?php echo $book_stats['total_copies'] ?? 0; ?>
                                 </div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-layer-group fa-2x text-gray-300"></i>
-                            </div>
                         </div>
+                        <i class="fas fa-layer-group icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-info shadow h-100 py-2">
+                <div class="card stat-card-gradient info h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">
                                     Available<?php echo $selected_library_id ? ' (Selected Library)' : ' (All Libraries)'; ?>
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <div class="h5 mb-0 font-weight-bold">
                                     <?php echo $book_stats['available_copies'] ?? 0; ?>
                                 </div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                            </div>
                         </div>
+                        <i class="fas fa-check-circle icon-bg"></i>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card stat-card-gradient warning h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">
                                     Borrowed<?php echo $selected_library_id ? ' (Selected Library)' : ' (All Libraries)'; ?>
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <div class="h5 mb-0 font-weight-bold">
                                     <?php echo $book_stats['borrowed_copies'] ?? 0; ?>
                                 </div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-hand-holding fa-2x text-gray-300"></i>
-                            </div>
                         </div>
+                        <i class="fas fa-hand-holding icon-bg"></i>
                     </div>
                 </div>
             </div>
@@ -186,7 +275,7 @@
 
         <!-- All Books Table -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
                 <h6 class="m-0 font-weight-bold text-white">
                     <?php if ($selected_library_id): ?>
                         <?php 
@@ -209,7 +298,7 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                        <thead style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+                        <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                             <tr>
                                 <th>Title</th>
                                 <th>Author</th>

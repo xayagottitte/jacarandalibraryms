@@ -1,7 +1,7 @@
 <?php
 class DashboardController extends Controller {
     public function __construct() {
-        session_start();
+        // Session is already started in index.php
         if (!isset($_SESSION['user_id'])) {
             $this->redirect('/login');
         }

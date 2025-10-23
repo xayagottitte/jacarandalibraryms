@@ -11,9 +11,7 @@ class ProfileController extends Controller {
         ini_set('log_errors', 1);
         ini_set('error_log', $logPath);
         
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Session is already started in index.php
         if (!isset($_SESSION['user_id'])) {
             $this->redirect('/login');
         }
@@ -61,21 +59,60 @@ class ProfileController extends Controller {
 
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/profile');
+                return;
+            }
+            
             $userId = $_SESSION['user_id'];
             
             // Debug: Log the incoming data
             error_log("Profile update attempt for user ID: $userId");
             error_log("POST data: " . json_encode($_POST));
             
+            // Sanitize all inputs
             $updateData = [
-                'full_name' => $_POST['full_name'] ?? '',
-                'employee_id' => $_POST['employee_id'] ?? '',
-                'date_of_birth' => $_POST['date_of_birth'] ?? null,
-                'gender' => $_POST['gender'] ?? '',
-                'phone' => $_POST['phone'] ?? '',
-                'email' => $_POST['email'] ?? '',
-                'address' => $_POST['address'] ?? ''
+                'full_name' => Security::sanitizeInput($_POST['full_name'] ?? ''),
+                'employee_id' => Security::sanitizeInput($_POST['employee_id'] ?? ''),
+                'date_of_birth' => Security::sanitizeInput($_POST['date_of_birth'] ?? ''),
+                'gender' => Security::sanitizeInput($_POST['gender'] ?? ''),
+                'phone' => Security::sanitizeInput($_POST['phone'] ?? ''),
+                'email' => Security::sanitizeInput($_POST['email'] ?? ''),
+                'address' => Security::sanitizeInput($_POST['address'] ?? '')
             ];
+            
+            // Validate email if provided
+            if (!empty($updateData['email']) && !Security::validateEmail($updateData['email'])) {
+                $_SESSION['error'] = "Please enter a valid email address.";
+                $this->redirect('/profile');
+                return;
+            }
+            
+            // Validate phone if provided
+            if (!empty($updateData['phone']) && !Security::validatePhone($updateData['phone'])) {
+                $_SESSION['error'] = "Please enter a valid phone number.";
+                $this->redirect('/profile');
+                return;
+            }
+            
+            // Validate date of birth if provided
+            if (!empty($updateData['date_of_birth'])) {
+                $date = DateTime::createFromFormat('Y-m-d', $updateData['date_of_birth']);
+                if (!$date || $date->format('Y-m-d') !== $updateData['date_of_birth']) {
+                    $_SESSION['error'] = "Please enter a valid date of birth.";
+                    $this->redirect('/profile');
+                    return;
+                }
+            }
+            
+            // Validate gender if provided
+            if (!empty($updateData['gender']) && !in_array($updateData['gender'], ['male', 'female', 'other'])) {
+                $_SESSION['error'] = "Invalid gender selection.";
+                $this->redirect('/profile');
+                return;
+            }
 
             // Remove empty values
             $updateData = array_filter($updateData, function($value) {
@@ -101,6 +138,15 @@ class ProfileController extends Controller {
             error_log("Update result: " . ($success ? 'SUCCESS' : 'FAILED'));
 
             if ($success) {
+                // Log profile update
+                $changedFields = array_keys($updateData);
+                Security::logProfile(
+                    $userId,
+                    'profile_updated',
+                    "User updated profile fields: " . implode(', ', $changedFields),
+                    ['fields' => $changedFields]
+                );
+                
                 $_SESSION['success'] = "Profile updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update profile.";
@@ -117,6 +163,13 @@ class ProfileController extends Controller {
         error_log("ProfileController::uploadPhoto() - FILES data: " . print_r($_FILES, true));
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_photo'])) {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/profile');
+                return;
+            }
+            
             $userId = $_SESSION['user_id'];
             $file = $_FILES['profile_photo'];
             
@@ -183,6 +236,14 @@ class ProfileController extends Controller {
                 error_log("ProfileController::uploadPhoto() - DB update result: " . ($success ? 'success' : 'failed'));
                 
                 if ($success) {
+                    // Log photo upload
+                    Security::logProfile(
+                        $userId,
+                        'profile_photo_updated',
+                        "User updated profile photo",
+                        ['filename' => $filename]
+                    );
+                    
                     $_SESSION['success'] = "Profile photo updated successfully!";
                 } else {
                     $_SESSION['error'] = "Failed to update profile photo in database.";

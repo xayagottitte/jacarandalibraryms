@@ -250,6 +250,36 @@ CREATE TABLE password_resets (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Login attempts table for brute force protection
+CREATE TABLE login_attempts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    success TINYINT(1) DEFAULT 0,
+    INDEX idx_email_time (email, attempt_time),
+    INDEX idx_ip_time (ip_address, attempt_time)
+);
+
+-- Activity logs table for security and audit trail
+CREATE TABLE activity_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    event_category ENUM('authentication', 'profile', 'security', 'data', 'system') NOT NULL,
+    description TEXT NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent VARCHAR(255),
+    metadata JSON,
+    severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_time (user_id, created_at),
+    INDEX idx_event_type (event_type, created_at),
+    INDEX idx_category (event_category, created_at),
+    INDEX idx_severity (severity, created_at)
+);
+
 -- User preferences table
 CREATE TABLE user_preferences (
     id INT PRIMARY KEY AUTO_INCREMENT,

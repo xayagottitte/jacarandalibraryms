@@ -8,9 +8,7 @@ class AdminController extends Controller {
     private $mailer;
 
     public function __construct() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Session is already started in index.php
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'super_admin') {
             $this->redirect('/login');
         }
@@ -545,16 +543,6 @@ class AdminController extends Controller {
         exit;
     }
 
-    // Activity Logs
-    public function activityLogs() {
-        $activityModel = new ActivityLog();
-        
-        $data = [
-            'activities' => $activityModel->getSystemActivities()
-        ];
-        $this->view('admin/activity-logs', $data);
-    }
-
     // Book Management Methods
     public function books() {
         // Get filters from GET parameters
@@ -700,6 +688,47 @@ class AdminController extends Controller {
             }
         }
         $this->redirect('/admin/books');
+    }
+
+    public function activityLogs() {
+        $activityLogModel = new ActivityLog();
+        
+        // Get filters from query string
+        $filters = [
+            'user_id' => $_GET['user_id'] ?? null,
+            'event_type' => $_GET['event_type'] ?? null,
+            'event_category' => $_GET['event_category'] ?? null,
+            'severity' => $_GET['severity'] ?? null,
+            'date_from' => $_GET['date_from'] ?? null,
+            'date_to' => $_GET['date_to'] ?? null,
+        ];
+        
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 50;
+        
+        // Get logs with pagination
+        $result = $activityLogModel->getActivityLogs($filters, $page, $perPage);
+        
+        // Get statistics
+        $stats = $activityLogModel->getStatistics(7);
+        
+        // Get all users for filter dropdown
+        $users = $this->userModel->getAllUsers();
+        
+        $data = [
+            'logs' => $result['logs'],
+            'pagination' => [
+                'current' => $result['page'],
+                'total' => $result['totalPages'],
+                'perPage' => $result['perPage'],
+                'totalRecords' => $result['total']
+            ],
+            'filters' => $filters,
+            'stats' => $stats,
+            'users' => $users
+        ];
+        
+        $this->view('admin/activity-logs', $data);
     }
 }
 ?>
