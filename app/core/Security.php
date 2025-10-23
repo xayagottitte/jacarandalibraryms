@@ -336,7 +336,7 @@ class Security {
             }
             
             self::destroySession();
-            header('Location: ' . BASE_PATH . '/auth/login?timeout=1');
+            header('Location: ' . BASE_PATH . '/login?timeout=1');
             exit;
         }
 
@@ -348,7 +348,7 @@ class Security {
             self::logAuth($userId, 'session_timeout_inactivity', 'Session expired due to inactivity', 'info');
             
             self::destroySession();
-            header('Location: ' . BASE_PATH . '/auth/login?timeout=1');
+            header('Location: ' . BASE_PATH . '/login?timeout=1');
             exit;
         }
 
@@ -377,7 +377,7 @@ class Security {
                 'Session fingerprint mismatch. IP: ' . self::getClientIP()
             );
             self::destroySession();
-            header('Location: ' . BASE_PATH . '/auth/login?security=1');
+            header('Location: ' . BASE_PATH . '/login?security=1');
             exit;
         }
     }
