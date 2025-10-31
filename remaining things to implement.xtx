@@ -1,0 +1,48 @@
+1. test lost books
+2. categories should be a drop down and admin/librarian should be able to add new categories.
+3. enlarge users table inadmin dashboard
+4. library delete button  not working
+5. library type (adding library, there only primary and secondary)
+6. generate new report (admin)
+7. view report (admin button)
+8. delete report (admin)
+9. clean up old reports (admin)
+10. activity log filters should use ajax (no page reloads)
+10. System Settings
+            A. Reset to Defaults
+            B. Export Settings
+            C. Debug Tabs
+            D. default language
+            E. Timezone
+            F. date format 
+            G. system information
+            H. notification preferences
+            I. security configuration
+            J. to-profile drop down not working while in settings
+11. user preferences 
+12. profile edit 
+
+librarian dashboard students at risk has 0 unpaid fines
+
+13. add book. 
+14. ejohnso books table shfting to the right
+15. deleting a book not working
+16. student management 
+          A. all classes should be in filter (primary has 5 to 8)
+          B. filter should use ajax to avoid reloads
+          C. deactivate and activate students(with reasons)
+17. borrow management
+          A. add lost book status (some copies can be lost)
+          B. filter should use ajax
+          C. partial pay (student may not pay whole amount at once)
+18. report management 
+          A. delete the saved reports.
+          B. quick action 
+                    i. overdue books
+                    ii. monthly summary
+19. quick borrow
+          A. live search 
+20. profile management
+          A. profile pic upload
+          B profile detail edits
+

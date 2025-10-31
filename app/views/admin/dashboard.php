@@ -332,6 +332,68 @@
             </div>
         </div>
 
+        <!-- Lost Books Overview -->
+        <div class="row">
+            <div class="col-12">
+                <div class="modern-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-book-dead me-2"></i>Lost Books (Overdue > 30 days)</h5>
+                        <span class="badge badge-modern bg-danger"><?= (int)($lost_count ?? 0) ?> total</span>
+                    </div>
+                    <div class="card-body">
+                        <?php if (!empty($lost_books)): ?>
+                            <div class="table-responsive">
+                                <table class="table modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Library</th>
+                                            <th>Book</th>
+                                            <th>Borrower</th>
+                                            <th>Student ID</th>
+                                            <th>Days Overdue</th>
+                                            <th>Due Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($lost_books as $row): ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="library-icon me-2">
+                                                            <i class="fas fa-university"></i>
+                                                        </div>
+                                                        <strong><?= htmlspecialchars($row['library_name']) ?></strong>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-column">
+                                                        <strong><?= htmlspecialchars($row['title']) ?></strong>
+                                                        <small class="text-muted">ISBN: <?= htmlspecialchars($row['isbn']) ?></small>
+                                                    </div>
+                                                </td>
+                                                <td><?= htmlspecialchars($row['student_name']) ?></td>
+                                                <td><?= htmlspecialchars($row['student_code']) ?></td>
+                                                <td>
+                                                    <span class="badge badge-modern bg-danger"><?= (int)$row['days_overdue'] ?> days</span>
+                                                </td>
+                                                <td><?= date('M j, Y', strtotime($row['due_date'])) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-book"></i>
+                                <h5>No Lost Books</h5>
+                                <p class="text-muted">No books appear lost based on overdue > 30 days.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <!-- Pending Approvals -->
             <div class="col-lg-6">

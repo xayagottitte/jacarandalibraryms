@@ -86,6 +86,9 @@ $router->add('/librarian/borrows', 'LibrarianController', 'borrows');
 $router->add('/librarian/borrow-book', 'LibrarianController', 'borrowBook');
 $router->add('/librarian/return-book', 'LibrarianController', 'returnBook');
 $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
+$router->add('/librarian/pay-fine', 'LibrarianController', 'payFine');
+$router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
+$router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 

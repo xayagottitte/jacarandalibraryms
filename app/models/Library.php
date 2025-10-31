@@ -7,16 +7,17 @@ class Library extends Model {
     }
 
     public function getAllWithStats($filters = []) {
-        $query = "SELECT l.*, 
-                         COUNT(DISTINCT u.id) as total_librarians,
-                         COUNT(DISTINCT b.id) as total_books,
-                         COALESCE(SUM(b.total_copies), 0) as total_copies,
-                         COUNT(DISTINCT s.id) as total_students
-                  FROM libraries l
-                  LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
-                  LEFT JOIN books b ON l.id = b.library_id
-                  LEFT JOIN students s ON l.id = s.library_id
-                  WHERE 1=1";
+     $query = "SELECT l.*, 
+                COUNT(DISTINCT u.id) as total_librarians,
+                COUNT(DISTINCT b.id) as total_books,
+                COALESCE(SUM(b.total_copies), 0) as total_copies,
+                COALESCE(SUM(b.available_copies), 0) as available_copies,
+                COUNT(DISTINCT s.id) as total_students
+            FROM libraries l
+            LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
+            LEFT JOIN books b ON l.id = b.library_id
+            LEFT JOIN students s ON l.id = s.library_id
+            WHERE 1=1";
         
         $params = [];
 

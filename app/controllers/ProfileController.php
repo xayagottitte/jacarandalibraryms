@@ -72,30 +72,41 @@ class ProfileController extends Controller {
             error_log("Profile update attempt for user ID: $userId");
             error_log("POST data: " . json_encode($_POST));
             
-            // Sanitize all inputs
-            $updateData = [
-                'full_name' => Security::sanitizeInput($_POST['full_name'] ?? ''),
-                'employee_id' => Security::sanitizeInput($_POST['employee_id'] ?? ''),
-                'date_of_birth' => Security::sanitizeInput($_POST['date_of_birth'] ?? ''),
-                'gender' => Security::sanitizeInput($_POST['gender'] ?? ''),
-                'phone' => Security::sanitizeInput($_POST['phone'] ?? ''),
-                'email' => Security::sanitizeInput($_POST['email'] ?? ''),
-                'address' => Security::sanitizeInput($_POST['address'] ?? '')
+            // Use raw input for validation first (avoid sanitization altering validity)
+            $raw = [
+                'full_name' => $_POST['full_name'] ?? '',
+                'employee_id' => $_POST['employee_id'] ?? '',
+                'date_of_birth' => $_POST['date_of_birth'] ?? '',
+                'gender' => $_POST['gender'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? '',
+                'address' => $_POST['address'] ?? ''
             ];
-            
-            // Validate email if provided
-            if (!empty($updateData['email']) && !Security::validateEmail($updateData['email'])) {
+
+            // Validate email if provided (validate raw value)
+            if (!empty($raw['email']) && !Security::validateEmail($raw['email'])) {
                 $_SESSION['error'] = "Please enter a valid email address.";
                 $this->redirect('/profile');
                 return;
             }
-            
-            // Validate phone if provided
-            if (!empty($updateData['phone']) && !Security::validatePhone($updateData['phone'])) {
+
+            // Validate phone if provided (validate raw value)
+            if (!empty($raw['phone']) && !Security::validatePhone($raw['phone'])) {
                 $_SESSION['error'] = "Please enter a valid phone number.";
                 $this->redirect('/profile');
                 return;
             }
+
+            // Now sanitize inputs for DB/storage
+            $updateData = [
+                'full_name' => Security::sanitizeInput($raw['full_name']),
+                'employee_id' => Security::sanitizeInput($raw['employee_id']),
+                'date_of_birth' => Security::sanitizeInput($raw['date_of_birth']),
+                'gender' => Security::sanitizeInput($raw['gender']),
+                'phone' => Security::sanitizeInput($raw['phone']),
+                'email' => Security::sanitizeInput($raw['email']),
+                'address' => Security::sanitizeInput($raw['address'])
+            ];
             
             // Validate date of birth if provided
             if (!empty($updateData['date_of_birth'])) {

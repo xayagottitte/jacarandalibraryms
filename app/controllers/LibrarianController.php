@@ -34,7 +34,9 @@ class LibrarianController extends Controller {
             'underutilized_books' => $this->bookModel->getUnderutilizedBooks($libraryId, 5),
             'class_borrow_stats' => $this->studentModel->getClassBorrowStats($libraryId),
             'borrowing_trends' => $this->borrowModel->getBorrowingTrends($libraryId, 30),
-            'at_risk_students' => $this->studentModel->getAtRiskStudents($libraryId)
+            'at_risk_students' => $this->studentModel->getAtRiskStudents($libraryId),
+            'lost_count' => $this->borrowModel->getLostCounts($libraryId, 30),
+            'lost_books' => $this->borrowModel->getLostBooks($libraryId, 5, 30)
         ];
         
         $this->view('librarian/dashboard', $data);
@@ -452,14 +454,150 @@ class LibrarianController extends Controller {
             try {
                 $result = $borrowModel->returnBook($borrowId, $_SESSION['user_id']);
                 
+                // AJAX: return JSON without redirect
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => ($result['fine_amount'] > 0)
+                            ? "Book '{$result['book_title']}' returned successfully! Fine amount: MK " . number_format($result['fine_amount'])
+                            : "Book '{$result['book_title']}' returned successfully!",
+                        'data' => [
+                            'fine_amount' => (float)$result['fine_amount'],
+                            'book_title' => $result['book_title'],
+                            'student_name' => $result['student_name'],
+                            'returned_date' => date('Y-m-d'),
+                            'status' => 'returned'
+                        ]
+                    ]);
+                    return;
+                }
+
                 if ($result['fine_amount'] > 0) {
                     $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully! Fine amount: MK " . number_format($result['fine_amount']);
                 } else {
                     $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully!";
                 }
             } catch (Exception $e) {
+                // AJAX error
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    http_response_code(400);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                    return;
+                }
                 $_SESSION['error'] = $e->getMessage();
             }
+        }
+        $this->redirect('/librarian/borrows');
+    }
+
+    public function payFine() {
+        // Allow POST to process payment; redirect GET back to borrows
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+
+        $borrowId = $_POST['borrow_id'] ?? null;
+        // Optional: amount; if not provided, take full remaining
+        $amount = isset($_POST['amount']) && $_POST['amount'] !== '' ? (float)$_POST['amount'] : null;
+
+        if (!$borrowId) {
+            $_SESSION['error'] = 'Borrow ID is required.';
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+
+        try {
+            $result = $this->borrowModel->recordFinePayment($borrowId, $amount ?? PHP_FLOAT_MAX);
+            $paidNow = (float)$result['paid_now'];
+            $remainingRaw = (float)$result['remaining'];
+            $paidNowFmt = number_format($paidNow, 2);
+            $remainingFmt = number_format($remainingRaw, 2);
+
+            // AJAX: return JSON without redirect
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => ($remainingRaw <= 0)
+                        ? "Fine payment recorded: MK {$paidNowFmt}. Fine fully paid."
+                        : "Fine payment recorded: MK {$paidNowFmt}. Remaining: MK {$remainingFmt}.",
+                    'data' => [
+                        'paid_now' => $paidNow,
+                        'remaining' => $remainingRaw
+                    ]
+                ]);
+                return;
+            }
+
+            if ($remainingRaw <= 0) {
+                $_SESSION['success'] = "Fine payment recorded: MK {$paidNowFmt}. Fine fully paid.";
+            } else {
+                $_SESSION['success'] = "Fine payment recorded: MK {$paidNowFmt}. Remaining: MK {$remainingFmt}.";
+            }
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
+        }
+
+        $this->redirect('/librarian/borrows');
+    }
+
+    public function markLost() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+        $borrowId = $_POST['borrow_id'] ?? null;
+        try {
+            $ok = $this->borrowModel->markLost($borrowId, $_SESSION['user_id']);
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Marked as lost']);
+                return;
+            }
+            $_SESSION['success'] = 'Marked as lost';
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
+        }
+        $this->redirect('/librarian/borrows');
+    }
+
+    public function markFound() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+        $borrowId = $_POST['borrow_id'] ?? null;
+        try {
+            $ok = $this->borrowModel->markFound($borrowId, $_SESSION['user_id']);
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Marked as found']);
+                return;
+            }
+            $_SESSION['success'] = 'Marked as found';
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
         }
         $this->redirect('/librarian/borrows');
     }

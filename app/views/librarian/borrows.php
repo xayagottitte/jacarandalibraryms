@@ -403,6 +403,8 @@ include '../app/views/shared/layout-header.php';
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    line-height: 1;
+    height: 38px;
 }
 
 .btn-return {
@@ -414,6 +416,24 @@ include '../app/views/shared/layout-header.php';
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
     color: white;
+}
+
+.btn-lost {
+    background: linear-gradient(135deg, var(--red-gradient-start) 0%, var(--red-gradient-end) 100%);
+    color: white;
+}
+
+.btn-lost:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+    color: white;
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .returned-label {
@@ -634,11 +654,24 @@ include '../app/views/shared/layout-header.php';
                                 </span>
                             </td>
                             <td>
-                                <?php if ($borrow['fine_amount'] > 0): ?>
+                                <?php 
+                                    $fineTotal = (float)($borrow['fine_amount'] ?? 0);
+                                    $finePaid = (float)($borrow['paid_amount'] ?? 0);
+                                    $fineRemaining = max(0.0, $fineTotal - $finePaid);
+                                ?>
+                                <?php if ($fineTotal > 0): ?>
                                     <div class="fine-info">
-                                        <span class="badge-fine badge-danger">MK <?= number_format($borrow['fine_amount'], 2) ?></span>
-                                        <?php if ($borrow['paid_amount'] > 0): ?>
-                                            <br><small class="paid-info">Paid: MK <?= number_format($borrow['paid_amount'], 2) ?></small>
+                                        <?php if ($borrow['status'] === 'returned' && $fineRemaining <= 0): ?>
+                                            <span class="badge-fine badge-success">Paid: MK <?= number_format($finePaid, 2) ?></span>
+                                            <br><small class="paid-info">Fine fully paid</small>
+                                        <?php else: ?>
+                                            <span class="badge-fine badge-danger">MK <?= number_format($fineTotal, 2) ?></span>
+                                            <?php if ($finePaid > 0): ?>
+                                                <br><small class="paid-info">Paid: MK <?= number_format($finePaid, 2) ?></small>
+                                            <?php endif; ?>
+                                            <?php if ($borrow['status'] === 'returned'): ?>
+                                                <br><small class="text-muted">Remaining: MK <?= number_format($fineRemaining, 2) ?></small>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 <?php else: ?>
@@ -646,18 +679,34 @@ include '../app/views/shared/layout-header.php';
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if ($borrow['status'] !== 'returned'): ?>
-                                    <form method="POST" action="<?= BASE_PATH ?>/librarian/return-book" class="d-inline">
-                                        <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
-                                        <button type="submit" class="btn-action btn-return" title="Return Book">
-                                            <i class="fas fa-undo me-1"></i> Return
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <span class="returned-label">
-                                        <i class="fas fa-check-circle me-1"></i> Returned
-                                    </span>
-                                <?php endif; ?>
+                                <div class="action-buttons">
+                                    <?php if ($borrow['status'] !== 'returned'): ?>
+                                        <form method="POST" action="<?= BASE_PATH ?>/librarian/return-book" class="d-inline">
+                                            <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
+                                            <button type="submit" class="btn-action btn-return" title="Return Book">
+                                                <i class="fas fa-undo"></i> Return
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="<?= BASE_PATH ?>/librarian/mark-lost" class="d-inline">
+                                            <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
+                                            <button type="submit" class="btn-action btn-lost" title="Mark Lost">
+                                                <i class="fas fa-book-dead"></i> Mark Lost
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="returned-label">
+                                            <i class="fas fa-check-circle"></i> Returned
+                                        </span>
+                                        <?php if ($fineRemaining > 0): ?>
+                                            <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline">
+                                                <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
+                                                <button type="submit" class="btn-action btn-return" title="Pay Fine">
+                                                    <i class="fas fa-money-bill-wave"></i> Pay Fine
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -768,6 +817,201 @@ document.addEventListener('DOMContentLoaded', function() {
             performSearch();
         }
     });
+    // AJAX: handle Return and Pay Fine without reload
+    function showInlineAlert(message, type = 'success') {
+        const container = document.querySelector('.borrows-container');
+        if (!container) return;
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-' + (type === 'success' ? 'success-modern' : 'danger-modern') + ' alert-dismissible fade show';
+        alert.setAttribute('role', 'alert');
+        alert.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        container.insertBefore(alert, container.firstChild.nextSibling);
+        setTimeout(() => { if (alert) alert.remove(); }, 5000);
+    }
+
+    function findCell(row, index) {
+        return row.querySelectorAll('td')[index];
+    }
+
+    function updateRowAfterReturn(row, data) {
+        // Columns: 0 student, 1 book, 2 borrowed, 3 due, 4 returned, 5 status, 6 fine, 7 actions
+        const returnedCell = findCell(row, 4);
+        const statusCell = findCell(row, 5);
+        const fineCell = findCell(row, 6);
+        const actionsCell = findCell(row, 7);
+
+        if (returnedCell) {
+            const dt = new Date(data.returned_date);
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            returnedCell.textContent = dt.toLocaleDateString(undefined, options);
+        }
+
+        if (statusCell) {
+            statusCell.innerHTML = '<span class="badge-modern badge-returned">Returned</span>';
+        }
+
+        if (fineCell) {
+            const fineTotal = Number(data.fine_amount || 0);
+            if (fineTotal > 0) {
+                // Keep existing paid amount in the row if present
+                const paidMatch = fineCell.innerText.match(/Paid:\s*MK\s*([0-9,.]+)/i);
+                const paidValue = paidMatch ? Number(paidMatch[1].replace(/,/g, '')) : 0;
+                const remaining = Math.max(0, fineTotal - paidValue);
+                fineCell.innerHTML = `
+                    <div class="fine-info">
+                        <span class="badge-fine badge-danger">MK ${fineTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                        ${paidValue > 0 ? `<br><small class="paid-info">Paid: MK ${paidValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</small>` : ''}
+                        <br><small class="text-muted">Remaining: MK ${remaining.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</small>
+                    </div>
+                `;
+            } else {
+                fineCell.innerHTML = '<span class="badge-fine badge-success">MK 0.00</span>';
+            }
+        }
+
+        if (actionsCell) {
+            // Replace Return form with Returned label and Pay button (if fine)
+            const hasFine = Number(data.fine_amount || 0) > 0;
+            let html = `
+                <span class="returned-label">
+                    <i class="fas fa-check-circle me-1"></i> Returned
+                </span>
+            `;
+            if (hasFine) {
+                const borrowId = row.querySelector('input[name="borrow_id"]').value;
+                html = `
+                    <div class="action-buttons">
+                        ${html}
+                        <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline js-pay-fine-form">
+                            <input type="hidden" name="borrow_id" value="${borrowId}">
+                            <button type="submit" class="btn-action btn-return" title="Pay Fine">
+                                <i class="fas fa-money-bill-wave"></i> Pay Fine
+                            </button>
+                        </form>
+                    </div>
+                `;
+            } else {
+                html = `<div class="action-buttons">${html}</div>`;
+            }
+            actionsCell.innerHTML = html;
+        }
+    }
+
+    function updateRowAfterPayment(row, data) {
+        const fineCell = findCell(row, 6);
+        const actionsCell = findCell(row, 7);
+        if (!fineCell) return;
+
+        // Parse current totals
+        const totalMatch = fineCell.innerText.match(/MK\s*([0-9,.]+)/);
+        const paidMatch = fineCell.innerText.match(/Paid:\s*MK\s*([0-9,.]+)/i);
+        const total = totalMatch ? Number(totalMatch[1].replace(/,/g, '')) : 0;
+        const prevPaid = paidMatch ? Number(paidMatch[1].replace(/,/g, '')) : 0;
+        const newPaid = prevPaid + Number(data.paid_now || 0);
+        const remaining = Math.max(0, total - newPaid);
+
+        if (remaining <= 0) {
+            fineCell.innerHTML = `
+                <div class="fine-info">
+                    <span class="badge-fine badge-success">Paid: MK ${newPaid.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                    <br><small class="paid-info">Fine fully paid</small>
+                </div>
+            `;
+            if (actionsCell) {
+                // Remove Pay button
+                actionsCell.innerHTML = `
+                    <span class="returned-label">
+                        <i class="fas fa-check-circle me-1"></i> Returned
+                    </span>
+                `;
+            }
+        } else {
+            fineCell.innerHTML = `
+                <div class="fine-info">
+                    <span class="badge-fine badge-danger">MK ${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                    <br><small class="paid-info">Paid: MK ${newPaid.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</small>
+                    <br><small class="text-muted">Remaining: MK ${remaining.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</small>
+                </div>
+            `;
+        }
+    }
+
+    function attachAjaxHandlers(scope) {
+        const returnForms = (scope || document).querySelectorAll('form[action$="/librarian/return-book"]');
+        returnForms.forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const row = e.target.closest('tr');
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const json = await res.json();
+                    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to return');
+                    updateRowAfterReturn(row, json.data || {});
+                    showInlineAlert(json.message || 'Book returned');
+                    // Re-attach handler for newly injected Pay Fine form
+                    attachAjaxHandlers(row);
+                } catch (err) {
+                    showInlineAlert(err.message || 'Error returning book', 'error');
+                }
+            });
+        });
+
+        const payForms = (scope || document).querySelectorAll('form[action$="/librarian/pay-fine"]');
+        payForms.forEach(form => {
+            form.classList.add('js-pay-fine-form');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const row = e.target.closest('tr');
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const json = await res.json();
+                    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to pay fine');
+                    updateRowAfterPayment(row, json.data || {});
+                    showInlineAlert(json.message || 'Fine paid');
+                } catch (err) {
+                    showInlineAlert(err.message || 'Error paying fine', 'error');
+                }
+            });
+        });
+
+        const lostForms = (scope || document).querySelectorAll('form[action$="/librarian/mark-lost"]');
+        lostForms.forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const row = e.target.closest('tr');
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const json = await res.json();
+                    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to mark lost');
+                    // Visual cue: add a red badge in status cell
+                    const statusCell = findCell(row, 5);
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="badge-modern badge-overdue">Overdue (Lost)</span>';
+                    }
+                    showInlineAlert('Marked as lost');
+                } catch (err) {
+                    showInlineAlert(err.message || 'Error marking lost', 'error');
+                }
+            });
+        });
+    }
+
+    attachAjaxHandlers();
 });
 </script>
 
