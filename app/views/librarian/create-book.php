@@ -383,7 +383,15 @@ include '../app/views/shared/layout-header.php';
                                             <?= htmlspecialchars($category['category']) ?>
                                         </option>
                                     <?php endforeach; ?>
+                                    <option value="__new__">+ Add new...</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="col-12" id="category_new_wrapper" style="display:none;">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fas fa-plus"></i> New Category</label>
+                                <input type="text" class="form-control" name="category_new" placeholder="Enter new category">
+                                <div class="form-text">This will be saved as the book's category.</div>
                             </div>
                         </div>
                     </div>
@@ -446,5 +454,21 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const catSelect = document.getElementById('category');
+    const catNewWrapper = document.getElementById('category_new_wrapper');
+    if (catSelect) {
+        catSelect.addEventListener('change', function(){
+            if (this.value === '__new__') {
+                catNewWrapper.style.display = 'block';
+            } else {
+                catNewWrapper.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
 
 <?php include '../app/views/shared/footer.php'; ?>

@@ -598,7 +598,7 @@ include '../app/views/shared/layout-header.php';
                            placeholder="Book Title">
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-filter w-100">Filter</button>
+                    <button type="submit" class="btn btn-filter w-100 d-none">Filter</button>
                 </div>
             </div>
         </form>
@@ -698,8 +698,9 @@ include '../app/views/shared/layout-header.php';
                                             <i class="fas fa-check-circle"></i> Returned
                                         </span>
                                         <?php if ($fineRemaining > 0): ?>
-                                            <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline">
+                                            <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline js-pay-fine-form">
                                                 <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
+                                                <input type="number" name="amount" step="0.01" min="0.01" placeholder="Amount" style="max-width:120px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px;">
                                                 <button type="submit" class="btn-action btn-return" title="Pay Fine">
                                                     <i class="fas fa-money-bill-wave"></i> Pay Fine
                                                 </button>
@@ -1012,6 +1013,110 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     attachAjaxHandlers();
+});
+
+// Live filter via AJAX (no reload, no button click)
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.filter-card form');
+    const tbody = document.querySelector('#borrowsTable tbody');
+    const inputs = form.querySelectorAll('select, input');
+
+    let filterTimer;
+    inputs.forEach(inp => {
+        inp.addEventListener('input', queueFilter);
+        inp.addEventListener('change', queueFilter);
+    });
+
+    function queueFilter() {
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(applyFilter, 250);
+    }
+
+    async function applyFilter() {
+        const params = new URLSearchParams(new FormData(form));
+        const url = '<?= BASE_PATH ?>/librarian/borrows-data?' + params.toString();
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
+            const json = await res.json();
+            const rows = (json.borrows || []).map(renderRow).join('');
+            tbody.innerHTML = rows;
+            // Re-attach handlers for AJAX actions
+            (function(){ attachAjaxHandlers(); })();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    function renderRow(borrow) {
+        const returnedDate = borrow.returned_date ? new Date(borrow.returned_date) : null;
+        const dueDate = new Date(borrow.due_date);
+        const borrowedDate = new Date(borrow.borrowed_date);
+        const status = borrow.status;
+        const fine = Number(borrow.fine_amount || 0);
+        const paid = Number(borrow.paid_amount || 0);
+        const remaining = Math.max(0, fine - paid);
+        return `
+        <tr class="borrow-row">
+            <td class="student-info">
+                <strong>${escapeHtml(borrow.student_id)}</strong><br>
+                <small>${escapeHtml(borrow.student_name)} - Class ${escapeHtml(borrow.class || '')}</small>
+            </td>
+            <td class="book-info">
+                <strong>${escapeHtml(borrow.title)}</strong><br>
+                <small>by ${escapeHtml(borrow.author || '')}</small>
+            </td>
+            <td>${formatDate(borrowedDate)}</td>
+            <td>${formatDate(dueDate)}${(status==='borrowed' && (borrow.days_overdue_calc||0)>0) ? `<br><span class="badge-danger-small">Overdue ${borrow.days_overdue_calc} days</span>` : ''}</td>
+            <td>${returnedDate ? formatDate(returnedDate) : '<span class="text-muted">Not returned</span>'}</td>
+            <td><span class="badge-modern ${status==='borrowed' ? 'badge-borrowed' : (status==='overdue' ? 'badge-overdue' : 'badge-returned')}">${capitalize(status)}</span></td>
+            <td>${renderFine(fine, paid, remaining, status)}</td>
+            <td>${renderActions(borrow.id, status, remaining)}</td>
+        </tr>`;
+    }
+
+    function renderFine(fine, paid, remaining, status){
+        if (fine>0) {
+            if (status==='returned' && remaining<=0) {
+                return `<div class="fine-info"><span class="badge-fine badge-success">Paid: MK ${fmt(paid)}</span><br><small class="paid-info">Fine fully paid</small></div>`;
+            }
+            return `<div class="fine-info"><span class="badge-fine badge-danger">MK ${fmt(fine)}</span>${paid>0?`<br><small class="paid-info">Paid: MK ${fmt(paid)}</small>`:''}${status==='returned'?`<br><small class="text-muted">Remaining: MK ${fmt(remaining)}</small>`:''}</div>`;
+        }
+        return `<span class="badge-fine badge-success">MK 0.00</span>`;
+    }
+
+    function renderActions(id, status, remaining){
+        if (status!=='returned') {
+            return `<div class="action-buttons">
+                <form method="POST" action="<?= BASE_PATH ?>/librarian/return-book" class="d-inline">
+                    <input type="hidden" name="borrow_id" value="${id}">
+                    <button type="submit" class="btn-action btn-return" title="Return Book">
+                        <i class="fas fa-undo"></i> Return
+                    </button>
+                </form>
+                <form method="POST" action="<?= BASE_PATH ?>/librarian/mark-lost" class="d-inline">
+                    <input type="hidden" name="borrow_id" value="${id}">
+                    <button type="submit" class="btn-action btn-lost" title="Mark Lost">
+                        <i class="fas fa-book-dead"></i> Mark Lost
+                    </button>
+                </form>
+            </div>`;
+        }
+        return `<div class="action-buttons">
+            <span class="returned-label"><i class="fas fa-check-circle"></i> Returned</span>
+            ${remaining>0?`<form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline js-pay-fine-form">
+                <input type="hidden" name="borrow_id" value="${id}">
+                <input type="number" name="amount" step="0.01" min="0.01" placeholder="Amount" style="max-width:120px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px;">
+                <button type="submit" class="btn-action btn-return" title="Pay Fine">
+                    <i class="fas fa-money-bill-wave"></i> Pay Fine
+                </button>
+            </form>`:''}
+        </div>`;
+    }
+
+    function formatDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+    function fmt(n){ return Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function capitalize(s){ return (s||'').charAt(0).toUpperCase() + (s||'').slice(1); }
+    function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
 });
 </script>
 

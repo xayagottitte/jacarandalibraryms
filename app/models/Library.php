@@ -126,6 +126,27 @@ class Library extends Model {
         ]);
     }
 
+    public function canDelete($id) {
+        // Check users in library
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM users WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has assigned librarians.'];
+        // Check books in library
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM books WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has books.'];
+        // Check students
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM students WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has students.'];
+        return [true, ''];
+    }
+
+    public function deleteLibraryById($id) {
+        $stmt = $this->db->prepare("DELETE FROM libraries WHERE id = :id");
+        return $stmt->execute([':id' => $id]) && $stmt->rowCount() > 0;
+    }
+
     public function getLoanPeriod($libraryId) {
         $query = "SELECT loan_period_days FROM libraries WHERE id = ?";
         $stmt = $this->db->prepare($query);

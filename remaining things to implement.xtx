@@ -1,6 +1,6 @@
 1. test lost books
 2. categories should be a drop down and admin/librarian should be able to add new categories.
-3. enlarge users table inadmin dashboard
+3. enlarge users table ina dmin dashboard
 4. library delete button  not working
 5. library type (adding library, there only primary and secondary)
 6. generate new report (admin)
@@ -32,16 +32,12 @@ librarian dashboard students at risk has 0 unpaid fines
           B. filter should use ajax to avoid reloads
           C. deactivate and activate students(with reasons)
 17. borrow management
-          A. add lost book status (some copies can be lost)
-          B. filter should use ajax
           C. partial pay (student may not pay whole amount at once)
 18. report management 
           A. delete the saved reports.
           B. quick action 
                     i. overdue books
                     ii. monthly summary
-19. quick borrow
-          A. live search 
 20. profile management
           A. profile pic upload
           B profile detail edits

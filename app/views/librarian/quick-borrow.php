@@ -343,7 +343,8 @@ include '../app/views/shared/layout-header.php';
                         <div class="input-with-icon">
                             <i class="fas fa-id-card"></i>
                             <input type="text" class="form-control" id="student_id" name="student_id" 
-                                   placeholder="Enter Student ID (e.g., STU2024001001)" required>
+                                   placeholder="Type Student ID or Name" autocomplete="off" required>
+                            <div id="student_suggestions" class="list-group" style="position:absolute; z-index: 1000; width:100%; top: 110%; display:none;"></div>
                         </div>
                         <div class="form-text">Enter the student's unique ID</div>
                     </div>
@@ -356,7 +357,8 @@ include '../app/views/shared/layout-header.php';
                         <div class="input-with-icon">
                             <i class="fas fa-book"></i>
                             <input type="text" class="form-control" id="isbn" name="isbn" 
-                                   placeholder="Enter Book ISBN" required>
+                                   placeholder="Type ISBN or Title" autocomplete="off" required>
+                            <div id="book_suggestions" class="list-group" style="position:absolute; z-index: 1000; width:100%; top: 110%; display:none;"></div>
                         </div>
                         <div class="form-text">Enter the book's ISBN number</div>
                     </div>
@@ -429,6 +431,8 @@ include '../app/views/shared/layout-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     const studentIdInput = document.getElementById('student_id');
     const isbnInput = document.getElementById('isbn');
+    const studentSug = document.getElementById('student_suggestions');
+    const bookSug = document.getElementById('book_suggestions');
 
     // Focus on first input
     studentIdInput.focus();
@@ -436,6 +440,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-format ISBN (remove dashes and spaces)
     isbnInput.addEventListener('blur', function() {
         this.value = this.value.replace(/[-\s]/g, '');
+    });
+
+    let studentTimer, bookTimer;
+    studentIdInput.addEventListener('input', function() {
+        clearTimeout(studentTimer);
+        const q = this.value.trim();
+        if (!q) { studentSug.style.display='none'; studentSug.innerHTML=''; return; }
+        studentTimer = setTimeout(async () => {
+            const res = await fetch('<?= BASE_PATH ?>/librarian/search-students?q=' + encodeURIComponent(q));
+            const data = await res.json();
+            studentSug.innerHTML = data.map(s => `
+                <a href="#" class="list-group-item list-group-item-action" data-id="${s.student_id}">
+                    <div class="d-flex justify-content-between"><strong>${s.student_id}</strong><small>Class ${s.class}</small></div>
+                    <div>${s.full_name}</div>
+                </a>`).join('');
+            studentSug.style.display = data.length ? 'block' : 'none';
+            studentSug.querySelectorAll('a').forEach(a => a.addEventListener('click', (e) => {
+                e.preventDefault();
+                studentIdInput.value = a.getAttribute('data-id');
+                studentSug.style.display='none';
+            }));
+        }, 200);
+    });
+
+    isbnInput.addEventListener('input', function() {
+        clearTimeout(bookTimer);
+        const q = this.value.trim();
+        if (!q) { bookSug.style.display='none'; bookSug.innerHTML=''; return; }
+        bookTimer = setTimeout(async () => {
+            const res = await fetch('<?= BASE_PATH ?>/librarian/search-books?q=' + encodeURIComponent(q));
+            const data = await res.json();
+            bookSug.innerHTML = data.map(b => `
+                <a href="#" class="list-group-item list-group-item-action" data-isbn="${b.isbn || ''}">
+                    <div class="d-flex justify-content-between"><strong>${b.title}</strong><small>${b.available_copies} avail</small></div>
+                    <div>${b.author || ''} ${b.isbn ? ' • ISBN ' + b.isbn : ''}</div>
+                </a>`).join('');
+            bookSug.style.display = data.length ? 'block' : 'none';
+            bookSug.querySelectorAll('a').forEach(a => a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isbn = a.getAttribute('data-isbn');
+                if (isbn) {
+                    isbnInput.value = isbn;
+                } else {
+                    // fallback: keep title typed; borrow flow uses ISBN primarily
+                }
+                bookSug.style.display='none';
+            }));
+        }, 200);
     });
 });
 </script>

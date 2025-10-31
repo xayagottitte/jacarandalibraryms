@@ -374,25 +374,14 @@ class AdminController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             
-            // Check if library has users or books
-            $checkQuery = "SELECT COUNT(*) as count FROM users WHERE library_id = :id";
-            $stmt = $this->libraryModel->db->prepare($checkQuery);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result['count'] > 0) {
-                $_SESSION['error'] = "Cannot delete library. It has assigned librarians.";
+            if (!$id) { $_SESSION['error'] = 'Invalid library ID.'; $this->redirect('/admin/libraries'); return; }
+            list($ok, $reason) = $this->libraryModel->canDelete($id);
+            if (!$ok) {
+                $_SESSION['error'] = "Cannot delete library. " . $reason;
+            } else if ($this->libraryModel->deleteLibraryById($id)) {
+                $_SESSION['success'] = "Library deleted successfully!";
             } else {
-                $deleteQuery = "DELETE FROM libraries WHERE id = :id";
-                $deleteStmt = $this->libraryModel->db->prepare($deleteQuery);
-                $deleteStmt->bindParam(':id', $id);
-                
-                if ($deleteStmt->execute()) {
-                    $_SESSION['success'] = "Library deleted successfully!";
-                } else {
-                    $_SESSION['error'] = "Failed to delete library.";
-                }
+                $_SESSION['error'] = "Failed to delete library.";
             }
         }
         $this->redirect('/admin/libraries');

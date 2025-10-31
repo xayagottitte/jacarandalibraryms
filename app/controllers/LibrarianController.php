@@ -98,13 +98,15 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $category = $_POST['category'] ?? null;
+            if ($category === '__new__') { $category = trim($_POST['category_new'] ?? ''); }
             $data = [
                 'title' => $_POST['title'],
                 'author' => $_POST['author'],
                 'isbn' => $_POST['isbn'] ?? null,
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
-                'category' => $_POST['category'] ?? null,
+                'category' => $category ?: null,
                 'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1,
                 'available_copies' => $_POST['total_copies'] ?? 1,
@@ -649,6 +651,55 @@ class LibrarianController extends Controller {
         }
 
         $this->view('librarian/quick-borrow');
+    }
+
+    public function searchStudents() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $term = $_GET['q'] ?? '';
+        $studentModel = new Student();
+        $results = $studentModel->getStudentsByLibrary($_SESSION['library_id'], ['search' => $term]);
+        $results = array_slice($results, 0, 10);
+        header('Content-Type: application/json');
+        echo json_encode(array_map(function($s){
+            return [
+                'id' => $s['id'],
+                'student_id' => $s['student_id'],
+                'full_name' => $s['full_name'],
+                'class' => $s['class']
+            ];
+        }, $results));
+    }
+
+    public function searchBooks() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $term = $_GET['q'] ?? '';
+        $bookModel = new Book();
+        $results = $bookModel->getBooksByLibrary($_SESSION['library_id'], ['search' => $term]);
+        $results = array_slice($results, 0, 10);
+        header('Content-Type: application/json');
+        echo json_encode(array_map(function($b){
+            return [
+                'id' => $b['id'],
+                'isbn' => $b['isbn'],
+                'title' => $b['title'],
+                'author' => $b['author'],
+                'available_copies' => $b['available_copies']
+            ];
+        }, $results));
+    }
+
+    public function borrowsData() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $libraryId = $_SESSION['library_id'];
+        $filters = [
+            'status' => $_GET['status'] ?? '',
+            'student_id' => $_GET['student_id'] ?? '',
+            'book_title' => $_GET['book_title'] ?? ''
+        ];
+        $borrowModel = new Borrow();
+        $borrows = $borrowModel->getBorrowsByLibrary($libraryId, $filters);
+        header('Content-Type: application/json');
+        echo json_encode(['borrows' => $borrows]);
     }
 
     // Enhanced Reports Methods

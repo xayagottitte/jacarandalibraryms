@@ -161,15 +161,15 @@
         color: white;
         font-weight: 600;
         border: none;
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
+        padding: 1rem 1.25rem;
+        font-size: 0.95rem;
     }
-
+    
     .modern-table td {
-        padding: 0.75rem 1rem;
+        padding: 1rem 1.25rem;
         vertical-align: middle;
         border-bottom: 1px solid #f0f0f0;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
     }
 
     .modern-table tbody tr:hover {
