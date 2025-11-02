@@ -9,7 +9,7 @@ class LibrarianController extends Controller {
     public function __construct() {
         // Session is already started in index.php
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
-            $this->redirect('/login');
+            $this->redirect(BASE_PATH . '/login');
         }
         $this->userModel = new User();
         $this->bookModel = new Book();
@@ -72,14 +72,14 @@ class LibrarianController extends Controller {
         
         if (!$id) {
             $_SESSION['error'] = "Book ID is required.";
-            $this->redirect('/librarian/books');
+            $this->redirect(BASE_PATH . '/librarian/books');
             return;
         }
 
         $book = $this->bookModel->getBookWithLibrary($id);
         if (!$book || $book['library_id'] != $libraryId) {
             $_SESSION['error'] = "Book not found or access denied.";
-            $this->redirect('/librarian/books');
+            $this->redirect(BASE_PATH . '/librarian/books');
             return;
         }
 
@@ -114,14 +114,14 @@ class LibrarianController extends Controller {
             if (!empty($data['isbn'])) {
                 if ($this->bookModel->checkISBNExists($data['isbn'], $libraryId)) {
                     $_SESSION['error'] = "A book with this ISBN already exists in your library.";
-                    $this->redirect('/librarian/create-book');
+                    $this->redirect(BASE_PATH . '/librarian/create-book');
                     return;
                 }
             }
 
             if ($this->bookModel->create($data)) {
                 $_SESSION['success'] = "Book added successfully!";
-                $this->redirect('/librarian/books');
+                $this->redirect(BASE_PATH . '/librarian/books');
                 return;
             } else {
                 $_SESSION['error'] = "Failed to add book.";
@@ -168,7 +168,7 @@ class LibrarianController extends Controller {
                 $_SESSION['error'] = "Failed to update book.";
             }
             
-            $this->redirect('/librarian/books');
+            $this->redirect(BASE_PATH . '/librarian/books');
             return;
         }
 
@@ -176,7 +176,7 @@ class LibrarianController extends Controller {
         $book = $this->bookModel->getBookWithLibrary($id);
         if (!$book || $book['library_id'] != $libraryId) {
             $_SESSION['error'] = "Book not found or access denied.";
-            $this->redirect('/librarian/books');
+            $this->redirect(BASE_PATH . '/librarian/books');
             return;
         }
 
@@ -197,7 +197,7 @@ class LibrarianController extends Controller {
             
             if (!$id) {
                 $_SESSION['error'] = "Book ID is required for deletion.";
-                $this->redirect('/librarian/books');
+                $this->redirect(BASE_PATH . '/librarian/books');
                 return;
             }
             
@@ -206,7 +206,7 @@ class LibrarianController extends Controller {
             
             if (!$book || $book['library_id'] != $libraryId) {
                 $_SESSION['error'] = "Book not found or access denied.";
-                $this->redirect('/librarian/books');
+                $this->redirect(BASE_PATH . '/librarian/books');
                 return;
             }
             
@@ -228,7 +228,7 @@ class LibrarianController extends Controller {
             $_SESSION['error'] = "Invalid request method for book deletion.";
         }
         
-        $this->redirect('/librarian/books');
+    $this->redirect(BASE_PATH . '/librarian/books');
     }
 
     // Student Management Methods
@@ -267,7 +267,7 @@ class LibrarianController extends Controller {
                 $library = (new Library())->find($libraryId);
                 $validRange = $library['type'] === 'primary' ? '1-8' : '1-4';
                 $_SESSION['error'] = "Invalid class for {$library['type']} library. Valid classes: {$validRange}";
-                $this->redirect('/librarian/create-student');
+                $this->redirect(BASE_PATH . '/librarian/create-student');
                 return;
             }
 
@@ -285,7 +285,7 @@ class LibrarianController extends Controller {
 
             if ($studentModel->create($data)) {
                 $_SESSION['success'] = "Student added successfully! Student ID: " . $data['student_id'];
-                $this->redirect('/librarian/students');
+                $this->redirect(BASE_PATH . '/librarian/students');
                 return;
             } else {
                 $_SESSION['error'] = "Failed to add student.";
@@ -306,7 +306,7 @@ class LibrarianController extends Controller {
         
         if (!$id) {
             $_SESSION['error'] = "Student ID is required.";
-            $this->redirect('/librarian/students');
+            $this->redirect(BASE_PATH . '/librarian/students');
             return;
         }
         
@@ -314,7 +314,7 @@ class LibrarianController extends Controller {
         
         if (!$student || $student['library_id'] != $_SESSION['library_id']) {
             $_SESSION['error'] = "Student not found or access denied.";
-            $this->redirect('/librarian/students');
+            $this->redirect(BASE_PATH . '/librarian/students');
             return;
         }
 
@@ -343,7 +343,7 @@ class LibrarianController extends Controller {
                 $library = (new Library())->find($libraryId);
                 $validRange = $library['type'] === 'primary' ? '1-8' : '1-4';
                 $_SESSION['error'] = "Invalid class for {$library['type']} library. Valid classes: {$validRange}";
-                $this->redirect("/librarian/edit-student?id=$id");
+                $this->redirect(BASE_PATH . "/librarian/edit-student?id=$id");
                 return;
             }
 
@@ -362,21 +362,21 @@ class LibrarianController extends Controller {
                 $_SESSION['error'] = "Failed to update student.";
             }
             
-            $this->redirect('/librarian/students');
+            $this->redirect(BASE_PATH . '/librarian/students');
             return;
         }
 
         // GET request - show edit form
         if (!$id) {
             $_SESSION['error'] = "Student ID is required.";
-            $this->redirect('/librarian/students');
+            $this->redirect(BASE_PATH . '/librarian/students');
             return;
         }
         
         $student = $studentModel->find($id);
         if (!$student || $student['library_id'] != $libraryId) {
             $_SESSION['error'] = "Student not found or access denied.";
-            $this->redirect('/librarian/students');
+            $this->redirect(BASE_PATH . '/librarian/students');
             return;
         }
 
@@ -427,7 +427,7 @@ class LibrarianController extends Controller {
                 $_SESSION['error'] = $e->getMessage();
             }
             
-            $this->redirect('/librarian/borrows');
+            $this->redirect(BASE_PATH . '/librarian/borrows');
             return;
         }
 
@@ -461,7 +461,7 @@ class LibrarianController extends Controller {
                 $_SESSION['error'] = $e->getMessage();
             }
         }
-        $this->redirect('/librarian/borrows');
+    $this->redirect(BASE_PATH . '/librarian/borrows');
     }
 
     public function quickBorrow() {
@@ -479,7 +479,7 @@ class LibrarianController extends Controller {
 
             if (!$student) {
                 $_SESSION['error'] = "Student not found with ID: " . $studentIdInput;
-                $this->redirect('/librarian/quick-borrow');
+                $this->redirect(BASE_PATH . '/librarian/quick-borrow');
                 return;
             }
 
@@ -515,14 +515,16 @@ class LibrarianController extends Controller {
 
     // Enhanced Reports Methods
     public function reports() {
-        $libraryId = $_SESSION['library_id'];
-        $reportModel = new Report();
-        $bookModel = new Book();
-        $studentModel = new Student();
-        
+    $libraryId = $_SESSION['library_id'];
+    require_once '../app/models/Category.php';
+    $reportModel = new Report();
+    $bookModel = new Book();
+    $studentModel = new Student();
+    $categoryModel = new Category();
+
         $data = [
             'book_stats' => $bookModel->getDashboardStats($libraryId),
-            'categories' => $bookModel->getCategoriesByLibrary($libraryId),
+            'categories' => $categoryModel->getCategoriesByLibrary($libraryId),
             'classes' => $studentModel->getClassesByLibrary($libraryId),
             'saved_reports' => $reportModel->getUserReports($_SESSION['user_id']),
             'category_stats' => $bookModel->getCategoryBorrowStats($libraryId),
@@ -530,7 +532,7 @@ class LibrarianController extends Controller {
             'financial_stats' => $this->borrowModel->getFinancialStats($libraryId, 30),
             'utilization_stats' => $bookModel->getBookUtilizationStats($libraryId, 10)
         ];
-        
+
         $this->view('librarian/reports', $data);
     }
 

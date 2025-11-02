@@ -562,8 +562,8 @@ include '../app/views/shared/layout-header.php';
                                     <option value="">All Categories</option>
                                     <?php if (!empty($categories)): ?>
                                         <?php foreach ($categories as $category): ?>
-                                            <option value="<?= htmlspecialchars($category['category']) ?>">
-                                                <?= htmlspecialchars($category['category']) ?>
+                                            <option value="<?= htmlspecialchars($category['name']) ?>">
+                                                <?= htmlspecialchars($category['name']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>

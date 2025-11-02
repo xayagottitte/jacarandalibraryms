@@ -1,5 +1,21 @@
 <?php
 class Book extends Model {
+    public function create($data) {
+        $query = "INSERT INTO books (title, author, isbn, publisher, publication_year, category, class_level, total_copies, available_copies, library_id, created_by, created_at) VALUES (:title, :author, :isbn, :publisher, :publication_year, :category, :class_level, :total_copies, :available_copies, :library_id, :created_by, NOW())";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':title', $data['title']);
+        $stmt->bindParam(':author', $data['author']);
+        $stmt->bindParam(':isbn', $data['isbn']);
+        $stmt->bindParam(':publisher', $data['publisher']);
+        $stmt->bindParam(':publication_year', $data['publication_year']);
+        $stmt->bindParam(':category', $data['category']);
+        $stmt->bindParam(':class_level', $data['class_level']);
+        $stmt->bindParam(':total_copies', $data['total_copies']);
+        $stmt->bindParam(':available_copies', $data['available_copies']);
+        $stmt->bindParam(':library_id', $data['library_id']);
+        $stmt->bindParam(':created_by', $data['created_by']);
+        return $stmt->execute();
+    }
     protected $table = 'books';
 
     public function __construct() {

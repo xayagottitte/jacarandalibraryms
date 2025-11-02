@@ -354,6 +354,7 @@ include '../app/views/shared/layout-header.php';
             <div class="form-section">
                 <h3 class="form-section-title">
                     <i class="fas fa-tags"></i> Classification & Copies
+                    <a href="<?= BASE_PATH ?>/librarian/categories" class="btn btn-sm btn-outline-primary ms-3">Manage Categories</a>
                 </h3>
                 <div class="row g-4">
                     <div class="col-md-3">
@@ -379,8 +380,8 @@ include '../app/views/shared/layout-header.php';
                                 <select class="form-select" id="category" name="category">
                                     <option value="">Select Category</option>
                                     <?php foreach ($categories as $category): ?>
-                                        <option value="<?= htmlspecialchars($category['category']) ?>">
-                                            <?= htmlspecialchars($category['category']) ?>
+                                        <option value="<?= htmlspecialchars($category['name'] ?? $category['category']) ?>">
+                                            <?= htmlspecialchars($category['name'] ?? $category['category']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

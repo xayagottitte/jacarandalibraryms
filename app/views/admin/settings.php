@@ -200,21 +200,6 @@ function getSettingValue($settings, $key, $default = '') {
                                 </div>
                             </div>
 
-                            <!-- Reservation Period -->
-                            <div class="col-lg-6">
-                                <div class="form-group-modern">
-                                    <label class="form-label-modern">
-                                        <i class="fas fa-clock me-2"></i>Reservation Period (Days)
-                                    </label>
-                                    <input type="number" class="form-control-modern" 
-                                           name="settings[reservation_period]" 
-                                           value="<?= getSettingValue($settings, 'reservation_period', '7') ?>" 
-                                           min="1" max="30" required>
-                                    <div class="form-help">
-                                        Number of days a book reservation remains valid
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Quick Stats Card -->
@@ -233,10 +218,6 @@ function getSettingValue($settings, $key, $default = '') {
                                     <div class="col-md-3">
                                         <h3 class="mb-0">MK <?= getSettingValue($settings, 'fine_per_day', '500') ?></h3>
                                         <small>Fine Per Day</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h3 class="mb-0"><?= getSettingValue($settings, 'reservation_period', '7') ?></h3>
-                                        <small>Reservation Days</small>
                                     </div>
                                 </div>
                             </div>

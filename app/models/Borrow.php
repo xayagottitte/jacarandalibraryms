@@ -237,13 +237,15 @@ class Borrow extends Model {
         $query = "SELECT br.*, 
                          bk.title, bk.author,
                          s.full_name as student_name, s.student_id, s.class,
-                         DATEDIFF(CURDATE(), br.due_date) as days_overdue
-                  FROM borrows br
+                DATEDIFF(CURDATE(), br.due_date) as days_overdue
+            FROM borrows br
                   JOIN books bk ON br.book_id = bk.id
                   JOIN students s ON br.student_id = s.id
-                  WHERE bk.library_id = :library_id 
-                  AND br.status = 'borrowed' 
-                  AND br.due_date < CURDATE()
+            WHERE bk.library_id = :library_id 
+            AND (
+               br.status = 'overdue'
+               OR (br.status = 'borrowed' AND br.due_date < CURDATE())
+             )
                   ORDER BY br.due_date ASC";
         
         $stmt = $this->db->prepare($query);

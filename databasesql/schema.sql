@@ -158,7 +158,6 @@ INSERT INTO system_settings (setting_key, setting_value, description) VALUES
 ('fine_per_day', '5', 'Fine amount per day for overdue books'),
 ('library_name', 'Multi-Library System', 'System-wide library name'),
 ('system_email', 'admin@librarysystem.com', 'System email address'),
-('reservation_period', '7', 'Book reservation period in days');
 
 -- Reports table for storing generated reports
 CREATE TABLE reports (

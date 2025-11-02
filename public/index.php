@@ -78,6 +78,8 @@ $router->add('/librarian/view-book', 'LibrarianController', 'viewBook');
 $router->add('/librarian/create-book', 'LibrarianController', 'createBook');
 $router->add('/librarian/edit-book', 'LibrarianController', 'editBook');
 $router->add('/librarian/delete-book', 'LibrarianController', 'deleteBook');
+
+// Category management routes
 $router->add('/librarian/students', 'LibrarianController', 'students');
 $router->add('/librarian/create-student', 'LibrarianController', 'createStudent');
 $router->add('/librarian/view-student', 'LibrarianController', 'viewStudent');
