@@ -126,12 +126,16 @@ class Book extends Model {
                  WHERE id = ? AND library_id = ?";
 
         $stmt = $this->db->prepare($query);
-        return $stmt->execute([
+        $result = $stmt->execute([
             $data['title'], $data['author'], $data['isbn'],
             $data['publisher'], $data['publication_year'],
             $data['category'], $data['class_level'], $data['total_copies'],
             $data['available_copies'], $id, $libraryId
         ]);
+        if ($result) {
+            \Security::logActivity($data['updated_by'] ?? null, 'Updated book ID ' . $id);
+        }
+        return $result;
     }
 
     public function checkActiveBorrows($bookId) {
@@ -147,7 +151,11 @@ class Book extends Model {
             $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
             $stmt = $this->db->prepare($deleteQuery);
             $result = $stmt->execute([$id, $libraryId]);
-            return $result && $stmt->rowCount() > 0;
+            if ($result && $stmt->rowCount() > 0) {
+                \Security::logActivity($_SESSION['user_id'] ?? null, 'Deleted book ID ' . $id);
+                return true;
+            }
+            return false;
         } catch (Exception $e) {
             return false;
         }

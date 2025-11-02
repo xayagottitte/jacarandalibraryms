@@ -42,6 +42,7 @@ class LibrarianController extends Controller {
         $this->view('librarian/dashboard', $data);
     }
 
+                    // Removed stray Security::logActivity outside function
     // Book Management Methods
     public function books() {
         $libraryId = $_SESSION['library_id'];
@@ -57,6 +58,7 @@ class LibrarianController extends Controller {
 
         $data = [
             'books' => $this->bookModel->getBooksByLibrary($libraryId, $filters),
+                        // Removed stray Security::logActivity outside function
             'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
             'filters' => $filters
         ];

@@ -353,8 +353,8 @@ include '../app/views/shared/layout-header.php';
     <?php endif; ?>
 
     <!-- Statistics Cards -->
-    <div class="row row-cols-1 row-cols-lg-5 g-4 mb-4">
-        <div class="col">
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
             <div class="card stat-card-modern card-purple">
                 <div class="card-body">
                     <div class="stat-icon">
@@ -366,7 +366,7 @@ include '../app/views/shared/layout-header.php';
                 </div>
             </div>
         </div>
-        <div class="col">
+        <div class="col-md-3">
             <div class="card stat-card-modern card-success">
                 <div class="card-body">
                     <div class="stat-icon">
@@ -378,7 +378,7 @@ include '../app/views/shared/layout-header.php';
                 </div>
             </div>
         </div>
-        <div class="col">
+        <div class="col-md-3">
             <div class="card stat-card-modern card-warning">
                 <div class="card-body">
                     <div class="stat-icon">
@@ -390,7 +390,7 @@ include '../app/views/shared/layout-header.php';
                 </div>
             </div>
         </div>
-        <div class="col">
+        <div class="col-md-3">
             <div class="card stat-card-modern card-danger">
                 <div class="card-body">
                     <div class="stat-icon">
@@ -399,18 +399,6 @@ include '../app/views/shared/layout-header.php';
                     <h5>Overdue Books</h5>
                     <h2><?= $book_stats['overdue_books'] ?? 0 ?></h2>
                     <small>Need attention</small>
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card stat-card-modern card-danger">
-                <div class="card-body">
-                    <div class="stat-icon">
-                        <i class="fas fa-book-dead"></i>
-                    </div>
-                    <h5>Lost Books</h5>
-                    <h2><?= $lost_count ?? 0 ?></h2>
-                    <small>Overdue > 30 days</small>
                 </div>
             </div>
         </div>
@@ -502,47 +490,6 @@ include '../app/views/shared/layout-header.php';
                         <div class="text-center py-5">
                             <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                             <p class="text-success fw-bold">No overdue books</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lost Books (Overdue > 30 days) -->
-        <div class="col-lg-6">
-            <div class="card content-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5><i class="fas fa-book-dead me-2"></i>Lost Books (Overdue > 30 days)</h5>
-                    <span class="badge badge-modern badge-danger-modern"><?= $lost_count ?? 0 ?></span>
-                </div>
-                <div class="card-body">
-                    <?php if (!empty($lost_books)): ?>
-                        <div class="table-responsive">
-                            <table class="table table-modern">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Book</th>
-                                        <th>Days Overdue</th>
-                                        <th>Due Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($lost_books as $lost): ?>
-                                        <tr>
-                                            <td><strong><?= htmlspecialchars($lost['student_name']) ?></strong></td>
-                                            <td><?= htmlspecialchars($lost['title']) ?></td>
-                                            <td><span class="badge badge-modern badge-danger-modern"><?= (int)$lost['days_overdue'] ?> days</span></td>
-                                            <td><?= date('M j, Y', strtotime($lost['due_date'])) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-5">
-                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                            <p class="text-success fw-bold">No lost books detected</p>
                         </div>
                     <?php endif; ?>
                 </div>

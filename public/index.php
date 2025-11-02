@@ -95,6 +95,11 @@ $router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 
+// Librarian reservation routes
+$router->add('/librarian/reservations-dashboard', 'ReservationController', 'dashboard');
+$router->add('/librarian/pending-reservations', 'ReservationController', 'pending');
+$router->add('/librarian/reservation-requests', 'ReservationController', 'requests');
+
 // Profile routes
 $router->add('/profile', 'ProfileController', 'index');
 $router->add('/profile/update', 'ProfileController', 'update');

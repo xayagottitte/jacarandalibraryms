@@ -487,6 +487,7 @@ class AdminController extends Controller {
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'data' => $data]);
             exit;
+                        \Security::logActivity($_SESSION['user_id'] ?? null, 'Updated reservation period to ' . $period);
         }
     }
 
