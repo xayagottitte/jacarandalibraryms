@@ -307,12 +307,12 @@ class User extends Model {
         $params = [];
 
         foreach ($data as $field => $value) {
-            if (in_array($field, $allowedFields) && $value !== null && $value !== '') {
+            if (in_array($field, $allowedFields)) {
                 $setClause[] = "$field = ?";
                 $params[] = $value;
                 error_log("User::updateProfile() - Added field: $field = $value");
             } else {
-                error_log("User::updateProfile() - Skipped field: $field (not allowed or empty)");
+                error_log("User::updateProfile() - Skipped field: $field (not allowed)");
             }
         }
 
@@ -323,20 +323,20 @@ class User extends Model {
 
         $params[] = $userId;
         $query = "UPDATE users SET " . implode(', ', $setClause) . ", updated_at = NOW() WHERE id = ?";
-        
+
         error_log("User::updateProfile() - Query: " . $query);
         error_log("User::updateProfile() - Params: " . print_r($params, true));
-        
+
         $stmt = $this->db->prepare($query);
         $result = $stmt->execute($params);
-        
+
         error_log("User::updateProfile() - Execute result: " . ($result ? 'success' : 'failed'));
         error_log("User::updateProfile() - Affected rows: " . $stmt->rowCount());
-        
+
         if (!$result) {
             error_log("User::updateProfile() - Error info: " . print_r($stmt->errorInfo(), true));
         }
-        
+
         return $result;
     }
 

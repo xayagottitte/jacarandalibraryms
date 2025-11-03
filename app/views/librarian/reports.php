@@ -467,8 +467,6 @@ include '../app/views/shared/layout-header.php';
             <div class="chart-card">
                 <div class="chart-header">
                     <h6><i class="fas fa-chart-pie"></i>Category Popularity</h6>
-                <div class="chart-header">
-                    <h6><i class="fas fa-chart-pie"></i>Category Popularity</h6>
                 </div>
                 <div class="chart-body">
                     <canvas id="categoryPopularityChart"></canvas>
@@ -617,37 +615,7 @@ include '../app/views/shared/layout-header.php';
         </div>
 
         <div class="col-lg-4">
-            <div class="reports-list-card">
-                <div class="chart-header mb-4">
-                    <h6><i class="fas fa-save"></i>Saved Reports</h6>
-                </div>
-                <div>
-                    <?php if (!empty($saved_reports)): ?>
-                        <?php foreach ($saved_reports as $report): ?>
-                            <div class="report-item">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6><?= htmlspecialchars($report['title']) ?></h6>
-                                    <small class="text-muted"><?= date('M j, Y', strtotime($report['created_at'])) ?></small>
-                                </div>
-                                <p><?= ucfirst($report['type']) ?> Report</p>
-                                <div>
-                                    <button type="button" class="btn-view" onclick="viewReport(<?= $report['id'] ?>)">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button type="button" class="btn-download" onclick="downloadReport(<?= $report['id'] ?>)">
-                                        <i class="fas fa-download"></i> Download
-                                    </button>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-folder-open"></i>
-                            <p>No saved reports yet. Generate your first report above!</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
+
 
             <!-- Quick Actions -->
             <div class="reports-list-card">
@@ -706,22 +674,34 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function exportReport(format) {
-    // Get current form data
     const form = document.getElementById('reportForm');
     const formData = new FormData(form);
     formData.append('export_format', format);
-    
-    // Create download link
-    const params = new URLSearchParams(formData);
-    const url = `<?= BASE_PATH ?>/librarian/export-report?${params.toString()}`;
-    
-    // Trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `library-report-${Date.now()}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    // AJAX check for empty report before download
+    fetch('<?= BASE_PATH ?>/librarian/generate-report', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            alert('No data available for this report. Please adjust your filters or date range.');
+        } else {
+            // Proceed with download
+            const params = new URLSearchParams(formData);
+            const url = `<?= BASE_PATH ?>/librarian/export-report?${params.toString()}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `library-report-${Date.now()}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    })
+    .catch(() => {
+        alert('Failed to generate report. Please try again.');
+    });
 }
 
 function resetForm() {

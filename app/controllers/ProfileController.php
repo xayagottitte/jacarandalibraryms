@@ -58,20 +58,21 @@ class ProfileController extends Controller {
     }
 
     public function update() {
+    error_log("[ProfileController] update() method called at top");
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            error_log("[ProfileController] update() called");
             // Verify CSRF token
             if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                error_log("[ProfileController] Invalid CSRF token: " . ($_POST['csrf_token'] ?? 'missing'));
                 $_SESSION['error'] = "Invalid security token. Please try again.";
                 $this->redirect('/profile');
                 return;
             }
-            
+
             $userId = $_SESSION['user_id'];
-            
-            // Debug: Log the incoming data
-            error_log("Profile update attempt for user ID: $userId");
-            error_log("POST data: " . json_encode($_POST));
-            
+            error_log("[ProfileController] User ID: $userId");
+            error_log("[ProfileController] Raw POST data: " . json_encode($_POST));
+
             // Sanitize all inputs
             $updateData = [
                 'full_name' => Security::sanitizeInput($_POST['full_name'] ?? ''),
@@ -82,77 +83,78 @@ class ProfileController extends Controller {
                 'email' => Security::sanitizeInput($_POST['email'] ?? ''),
                 'address' => Security::sanitizeInput($_POST['address'] ?? '')
             ];
-            
+            error_log("[ProfileController] Sanitized updateData: " . json_encode($updateData));
+
             // Validate email if provided
             if (!empty($updateData['email']) && !Security::validateEmail($updateData['email'])) {
+                error_log("[ProfileController] Invalid email: " . $updateData['email']);
                 $_SESSION['error'] = "Please enter a valid email address.";
                 $this->redirect('/profile');
                 return;
             }
-            
+
             // Validate phone if provided
             if (!empty($updateData['phone']) && !Security::validatePhone($updateData['phone'])) {
+                error_log("[ProfileController] Invalid phone: " . $updateData['phone']);
                 $_SESSION['error'] = "Please enter a valid phone number.";
                 $this->redirect('/profile');
                 return;
             }
-            
+
             // Validate date of birth if provided
             if (!empty($updateData['date_of_birth'])) {
                 $date = DateTime::createFromFormat('Y-m-d', $updateData['date_of_birth']);
                 if (!$date || $date->format('Y-m-d') !== $updateData['date_of_birth']) {
+                    error_log("[ProfileController] Invalid date_of_birth: " . $updateData['date_of_birth']);
                     $_SESSION['error'] = "Please enter a valid date of birth.";
                     $this->redirect('/profile');
                     return;
                 }
             }
-            
+
             // Validate gender if provided
             if (!empty($updateData['gender']) && !in_array($updateData['gender'], ['male', 'female', 'other'])) {
+                error_log("[ProfileController] Invalid gender: " . $updateData['gender']);
                 $_SESSION['error'] = "Invalid gender selection.";
                 $this->redirect('/profile');
                 return;
             }
 
-            // Remove empty values
-            $updateData = array_filter($updateData, function($value) {
-                return $value !== '' && $value !== null;
-            });
-            
-            error_log("Filtered update data: " . json_encode($updateData));
+            error_log("[ProfileController] updateData to model: " . json_encode($updateData));
 
             $success = false;
             if (method_exists($this->userModel, 'updateProfile')) {
-                error_log("Using updateProfile method");
+                error_log("[ProfileController] Using updateProfile method");
                 $success = $this->userModel->updateProfile($userId, $updateData);
             } else {
                 // Fallback to basic update method if it exists
                 if (method_exists($this->userModel, 'update')) {
-                    error_log("Using fallback update method");
+                    error_log("[ProfileController] Using fallback update method");
                     $success = $this->userModel->update($userId, $updateData);
                 } else {
-                    error_log("No update method available");
+                    error_log("[ProfileController] No update method available");
                 }
             }
-            
-            error_log("Update result: " . ($success ? 'SUCCESS' : 'FAILED'));
+
+            error_log("[ProfileController] Update result: " . ($success ? 'SUCCESS' : 'FAILED'));
 
             if ($success) {
                 // Log profile update
                 $changedFields = array_keys($updateData);
+                error_log("[ProfileController] Logging profile update for fields: " . implode(', ', $changedFields));
                 Security::logProfile(
                     $userId,
                     'profile_updated',
                     "User updated profile fields: " . implode(', ', $changedFields),
                     ['fields' => $changedFields]
                 );
-                
                 $_SESSION['success'] = "Profile updated successfully!";
             } else {
+                error_log("[ProfileController] Failed to update profile for user $userId");
                 $_SESSION['error'] = "Failed to update profile.";
             }
         }
-        
+        error_log("[ProfileController] Redirecting to /profile");
         $this->redirect('/profile');
     }
 
