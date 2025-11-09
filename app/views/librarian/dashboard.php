@@ -34,10 +34,10 @@ include '../app/views/shared/layout-header.php';
 
 .dashboard-header {
     background: linear-gradient(135deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+    border-radius: 16px;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
     color: white;
 }
 
@@ -66,7 +66,8 @@ include '../app/views/shared/layout-header.php';
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    height: 100%;
+    min-height: 80px;
+    height: auto;
     position: relative;
 }
 
@@ -76,7 +77,7 @@ include '../app/views/shared/layout-header.php';
 }
 
 .stat-card-modern .card-body {
-    padding: 2rem;
+    padding: 0.5rem 0.75rem;
     position: relative;
     z-index: 2;
 }

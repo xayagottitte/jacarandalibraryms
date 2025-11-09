@@ -299,6 +299,7 @@ class User extends Model {
     }
 
     public function updateProfile($userId, $data) {
+        $this->ensureProfileColumns();
         error_log("User::updateProfile() - User ID: " . $userId);
         error_log("User::updateProfile() - Input data: " . print_r($data, true));
         
@@ -341,6 +342,7 @@ class User extends Model {
     }
 
     public function updateProfilePhoto($userId, $photoPath) {
+        $this->ensureProfileColumns();
         error_log("User::updateProfilePhoto() - User ID: " . $userId);
         error_log("User::updateProfilePhoto() - Photo path: " . $photoPath);
         
@@ -359,6 +361,28 @@ class User extends Model {
         }
         
         return $result;
+    }
+
+    private function ensureProfileColumns() {
+        try {
+            $needed = [
+                'employee_id' => "ALTER TABLE users ADD COLUMN employee_id VARCHAR(50) DEFAULT NULL",
+                'date_of_birth' => "ALTER TABLE users ADD COLUMN date_of_birth DATE DEFAULT NULL",
+                'gender' => "ALTER TABLE users ADD COLUMN gender ENUM('male','female','other') DEFAULT NULL",
+                'address' => "ALTER TABLE users ADD COLUMN address TEXT DEFAULT NULL",
+                'profile_photo' => "ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) DEFAULT NULL",
+                'supervisor' => "ALTER TABLE users ADD COLUMN supervisor VARCHAR(255) DEFAULT NULL"
+            ];
+            foreach ($needed as $col => $ddl) {
+                $check = $this->db->prepare("SHOW COLUMNS FROM users LIKE :c");
+                $check->execute([':c' => $col]);
+                if (!$check->fetch(PDO::FETCH_ASSOC)) {
+                    $this->db->exec($ddl);
+                }
+            }
+        } catch (Exception $e) {
+            // Fail silently; profile updates may still work for existing cols
+        }
     }
 
     public function getUserStatistics($userId) {

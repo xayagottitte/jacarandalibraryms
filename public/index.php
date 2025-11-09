@@ -91,6 +91,12 @@ $router->add('/librarian/borrows', 'LibrarianController', 'borrows');
 $router->add('/librarian/borrow-book', 'LibrarianController', 'borrowBook');
 $router->add('/librarian/return-book', 'LibrarianController', 'returnBook');
 $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
+$router->add('/librarian/search-students', 'LibrarianController', 'searchStudents');
+$router->add('/librarian/search-books', 'LibrarianController', 'searchBooks');
+$router->add('/librarian/borrows-data', 'LibrarianController', 'borrowsData');
+$router->add('/librarian/pay-fine', 'LibrarianController', 'payFine');
+$router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
+$router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 $router->add('/librarian/api/add-category', 'LibrarianController', 'addCategory');
@@ -99,6 +105,11 @@ $router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
 $router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
 $router->add('/librarian/api/students', 'LibrarianController', 'apiStudents');
 $router->add('/librarian/api/books', 'LibrarianController', 'apiBooks');
+
+// Librarian reservation routes
+$router->add('/librarian/reservations-dashboard', 'ReservationController', 'dashboard');
+$router->add('/librarian/pending-reservations', 'ReservationController', 'pending');
+$router->add('/librarian/reservation-requests', 'ReservationController', 'requests');
 
 // Profile routes
 $router->add('/profile', 'ProfileController', 'index');

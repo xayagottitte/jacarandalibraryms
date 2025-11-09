@@ -7,16 +7,17 @@ class Library extends Model {
     }
 
     public function getAllWithStats($filters = []) {
-        $query = "SELECT l.*, 
-                         COUNT(DISTINCT u.id) as total_librarians,
-                         COUNT(DISTINCT b.id) as total_books,
-                         COALESCE(SUM(b.total_copies), 0) as total_copies,
-                         COUNT(DISTINCT s.id) as total_students
-                  FROM libraries l
-                  LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
-                  LEFT JOIN books b ON l.id = b.library_id
-                  LEFT JOIN students s ON l.id = s.library_id
-                  WHERE 1=1";
+     $query = "SELECT l.*, 
+                COUNT(DISTINCT u.id) as total_librarians,
+                COUNT(DISTINCT b.id) as total_books,
+                COALESCE(SUM(b.total_copies), 0) as total_copies,
+                COALESCE(SUM(b.available_copies), 0) as available_copies,
+                COUNT(DISTINCT s.id) as total_students
+            FROM libraries l
+            LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
+            LEFT JOIN books b ON l.id = b.library_id
+            LEFT JOIN students s ON l.id = s.library_id
+            WHERE 1=1";
         
         $params = [];
 
@@ -123,6 +124,27 @@ class Library extends Model {
             $data['loan_period_days'] ?? 5,
             $id
         ]);
+    }
+
+    public function canDelete($id) {
+        // Check users in library
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM users WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has assigned librarians.'];
+        // Check books in library
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM books WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has books.'];
+        // Check students
+        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM students WHERE library_id = :id");
+        $stmt->execute([':id' => $id]);
+        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has students.'];
+        return [true, ''];
+    }
+
+    public function deleteLibraryById($id) {
+        $stmt = $this->db->prepare("DELETE FROM libraries WHERE id = :id");
+        return $stmt->execute([':id' => $id]) && $stmt->rowCount() > 0;
     }
 
     public function getLoanPeriod($libraryId) {

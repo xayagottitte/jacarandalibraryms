@@ -234,24 +234,42 @@ class Borrow extends Model {
     }
 
     public function getOverdueBorrows($libraryId) {
+        // Calculate fine per day from system settings for computed fine
+        $settingsQuery = "SELECT setting_value FROM system_settings WHERE setting_key = 'fine_per_day'";
+        $settingsStmt = $this->db->prepare($settingsQuery);
+        $settingsStmt->execute();
+        $finePerDay = $settingsStmt->fetchColumn() ?: 5; // Default to 5 if not set
+
+        // Include borrows that are already marked overdue or those still marked borrowed but past due date
         $query = "SELECT br.*, 
-                         bk.title, bk.author,
-                         s.full_name as student_name, s.student_id, s.class,
-                DATEDIFF(CURDATE(), br.due_date) as days_overdue
-            FROM borrows br
-                  JOIN books bk ON br.book_id = bk.id
-                  JOIN students s ON br.student_id = s.id
-            WHERE bk.library_id = :library_id 
-            AND (
-               br.status = 'overdue'
-               OR (br.status = 'borrowed' AND br.due_date < CURDATE())
-             )
-                  ORDER BY br.due_date ASC";
-        
+                                         bk.title, bk.author,
+                                         s.full_name as student_name, s.student_id, s.class,
+                                         DATEDIFF(CURDATE(), br.due_date) as days_overdue,
+                                         CASE
+                                             WHEN br.status = 'returned' AND br.returned_date > br.due_date
+                                                 THEN DATEDIFF(br.returned_date, br.due_date) * {$finePerDay}
+                                             WHEN br.status IN ('borrowed', 'overdue') AND CURDATE() > br.due_date
+                                                 THEN DATEDIFF(CURDATE(), br.due_date) * {$finePerDay}
+                                             ELSE br.fine_amount
+                                         END as calculated_fine
+                            FROM borrows br
+                            JOIN books bk ON br.book_id = bk.id
+                            JOIN students s ON br.student_id = s.id
+                            WHERE bk.library_id = :library_id 
+                            AND ((br.status = 'overdue') OR (br.status = 'borrowed' AND br.due_date < CURDATE()))
+                            ORDER BY br.due_date ASC";
+
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $borrows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Ensure fine_amount field reflects calculated fine for display
+        foreach ($borrows as &$b) {
+                $b['fine_amount'] = $b['calculated_fine'] ?? ($b['fine_amount'] ?? 0);
+        }
+
+        return $borrows;
     }
 
     public function updateOverdueStatus() {
@@ -300,26 +318,29 @@ class Borrow extends Model {
         ];
 
         try {
-            // Books issued by this librarian
-            $query = "SELECT COUNT(*) as count FROM borrows WHERE borrowed_by = ?";
+            // Books issued by this librarian (created_by)
+            $query = "SELECT COUNT(*) as count FROM borrows WHERE created_by = :uid";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$userId]);
+            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stats['books_issued'] = $result['count'] ?? 0;
+            $stats['books_issued'] = (int)($result['count'] ?? 0);
 
-            // Books returned (processed by this librarian)
-            $query = "SELECT COUNT(*) as count FROM borrows WHERE returned_by = ? AND status = 'returned'";
+            // Books returned (we don't have returned_by column; approximate by borrows created_by)
+            $query = "SELECT COUNT(*) as count FROM borrows WHERE status = 'returned' AND created_by = :uid";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$userId]);
+            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stats['books_returned'] = $result['count'] ?? 0;
+            $stats['books_returned'] = (int)($result['count'] ?? 0);
 
-            // Fines collected by this librarian
-            $query = "SELECT SUM(paid_amount) as total FROM borrows WHERE returned_by = ? AND paid_amount > 0";
+            // Fines collected (sum of paid_amount on those borrows)
+            $query = "SELECT SUM(paid_amount) as total FROM borrows WHERE created_by = :uid AND paid_amount > 0";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$userId]);
+            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stats['fines_collected'] = $result['total'] ?? 0;
+            $stats['fines_collected'] = (float)($result['total'] ?? 0);
 
         } catch (Exception $e) {
             error_log("Error getting librarian stats: " . $e->getMessage());
@@ -332,33 +353,38 @@ class Borrow extends Model {
         $activities = [];
 
         try {
-            $query = "SELECT 
-                        'Book Borrow' as activity,
-                        CONCAT('Issued \"', b.title, '\" to ', s.full_name) as details,
-                        'success' as status,
-                        br.borrowed_date as created_at
-                      FROM borrows br
-                      JOIN books b ON br.book_id = b.id
-                      JOIN students s ON br.student_id = s.id
-                      WHERE br.borrowed_by = ?
-                      
-                      UNION ALL
-                      
-                      SELECT 
-                        'Book Return' as activity,
-                        CONCAT('Returned \"', b.title, '\" from ', s.full_name) as details,
-                        'success' as status,
-                        br.returned_date as created_at
-                      FROM borrows br
-                      JOIN books b ON br.book_id = b.id
-                      JOIN students s ON br.student_id = s.id
-                      WHERE br.returned_by = ? AND br.status = 'returned'
-                      
-                      ORDER BY created_at DESC
-                      LIMIT ?";
-            
+            // Use created_by as the librarian responsible (schema does not have borrowed_by/returned_by)
+            $query = "
+                SELECT 
+                    'Book Borrow' as activity,
+                    CONCAT('Issued \"', b.title, '\" to ', s.full_name) as details,
+                    'success' as status,
+                    br.borrowed_date as created_at
+                FROM borrows br
+                JOIN books b ON br.book_id = b.id
+                JOIN students s ON br.student_id = s.id
+                WHERE br.created_by = :uid
+
+                UNION ALL
+
+                SELECT 
+                    'Book Return' as activity,
+                    CONCAT('Returned \"', b.title, '\" from ', s.full_name) as details,
+                    'success' as status,
+                    br.returned_date as created_at
+                FROM borrows br
+                JOIN books b ON br.book_id = b.id
+                JOIN students s ON br.student_id = s.id
+                WHERE br.status = 'returned' AND br.created_by = :uid
+
+                ORDER BY created_at DESC
+                LIMIT :lim
+            ";
+
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$userId, $userId, $limit]);
+            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $stmt->bindParam(':lim', $limit, PDO::PARAM_INT);
+            $stmt->execute();
             $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (Exception $e) {
@@ -429,6 +455,164 @@ class Borrow extends Model {
         $stmt->bindParam(':days', $days, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getLostCounts($libraryId = null, $lostAfterDays = 30) {
+        $this->ensureLostColumns();
+        $where = " br.status IN ('borrowed','overdue') AND DATEDIFF(CURDATE(), br.due_date) > :days ";
+        $where = " (br.is_lost = 1 OR (" . $where . ")) ";
+        $params = [':days' => $lostAfterDays];
+        if ($libraryId !== null) {
+            $where .= " AND bk.library_id = :lib ";
+            $params[':lib'] = $libraryId;
+        }
+        $sql = "SELECT COUNT(*) AS lost_count
+                FROM borrows br
+                JOIN books bk ON br.book_id = bk.id
+                WHERE $where";
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['lost_count'] ?? 0);
+    }
+
+    public function getLostBooks($libraryId = null, $limit = 10, $lostAfterDays = 30) {
+        $this->ensureLostColumns();
+        $whereCore = " br.status IN ('borrowed','overdue') AND DATEDIFF(CURDATE(), br.due_date) > :days ";
+        $where = " (br.is_lost = 1 OR (" . $whereCore . ")) ";
+        $params = [':days' => $lostAfterDays, ':limit' => (int)$limit];
+        if ($libraryId !== null) {
+            $where .= " AND bk.library_id = :lib ";
+            $params[':lib'] = $libraryId;
+        }
+        $sql = "SELECT br.id as borrow_id, br.student_id, br.book_id, br.due_date,
+                        DATEDIFF(CURDATE(), br.due_date) AS days_overdue,
+                        br.is_lost,
+                        bk.title, bk.author, bk.isbn,
+                        s.full_name as student_name, s.student_id as student_code,
+                        l.id as library_id, l.name as library_name
+                FROM borrows br
+                JOIN books bk ON br.book_id = bk.id
+                JOIN students s ON br.student_id = s.id
+                JOIN libraries l ON bk.library_id = l.id
+                WHERE $where
+                ORDER BY days_overdue DESC, br.due_date ASC
+                LIMIT :limit";
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function ensureLostColumns() {
+        try {
+            $check = $this->db->query("SHOW COLUMNS FROM borrows LIKE 'is_lost'");
+            $exists = $check && $check->fetch(PDO::FETCH_ASSOC);
+            if (!$exists) {
+                $this->db->exec("ALTER TABLE borrows ADD COLUMN is_lost TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+            }
+            $check2 = $this->db->query("SHOW COLUMNS FROM borrows LIKE 'lost_marked_at'");
+            if (!$check2 || !$check2->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE borrows ADD COLUMN lost_marked_at DATETIME NULL AFTER is_lost");
+            }
+            $check3 = $this->db->query("SHOW COLUMNS FROM borrows LIKE 'lost_marked_by'");
+            if (!$check3 || !$check3->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE borrows ADD COLUMN lost_marked_by INT NULL AFTER lost_marked_at");
+            }
+        } catch (Exception $e) {
+            // Silent fail; views will still use 30-day heuristic
+        }
+    }
+
+    public function markLost($borrowId, $userId) {
+        $this->ensureLostColumns();
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->prepare("SELECT id, status FROM borrows WHERE id = :id FOR UPDATE");
+            $q->bindParam(':id', $borrowId, PDO::PARAM_INT);
+            $q->execute();
+            $row = $q->fetch(PDO::FETCH_ASSOC);
+            if (!$row) throw new Exception('Borrow record not found.');
+            if ($row['status'] === 'returned') throw new Exception('Cannot mark lost: already returned.');
+
+            $u = $this->db->prepare("UPDATE borrows SET is_lost = 1, lost_marked_at = NOW(), lost_marked_by = :uid WHERE id = :id");
+            $u->bindParam(':uid', $userId, PDO::PARAM_INT);
+            $u->bindParam(':id', $borrowId, PDO::PARAM_INT);
+            $u->execute();
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function markFound($borrowId, $userId) {
+        $this->ensureLostColumns();
+        $u = $this->db->prepare("UPDATE borrows SET is_lost = 0 WHERE id = :id");
+        $u->bindParam(':id', $borrowId, PDO::PARAM_INT);
+        return $u->execute();
+    }
+
+    public function recordFinePayment($borrowId, $amount) {
+        $this->db->beginTransaction();
+
+        try {
+            $stmt = $this->db->prepare("SELECT id, status, fine_amount, paid_amount FROM borrows WHERE id = :id FOR UPDATE");
+            $stmt->bindParam(':id', $borrowId, PDO::PARAM_INT);
+            $stmt->execute();
+            $borrow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$borrow) {
+                throw new Exception('Borrow record not found.');
+            }
+
+            if ($borrow['status'] !== 'returned') {
+                throw new Exception('Fine payment is only allowed after the book is returned.');
+            }
+
+            $fineAmount = (float)($borrow['fine_amount'] ?? 0);
+            $paidAmount = (float)($borrow['paid_amount'] ?? 0);
+            $remaining = max(0.0, $fineAmount - $paidAmount);
+
+            if ($fineAmount <= 0) {
+                throw new Exception('There is no fine to pay for this borrow.');
+            }
+
+            if ($remaining <= 0) {
+                throw new Exception('This fine is already fully paid.');
+            }
+
+            $pay = (float)$amount;
+            if ($pay <= 0) {
+                throw new Exception('Payment amount must be greater than zero.');
+            }
+
+            if ($pay > $remaining) {
+                $pay = $remaining;
+            }
+
+            $u = $this->db->prepare("UPDATE borrows SET paid_amount = paid_amount + :pay, updated_at = NOW() WHERE id = :id");
+            $u->bindParam(':pay', $pay);
+            $u->bindParam(':id', $borrowId, PDO::PARAM_INT);
+            $u->execute();
+
+            $this->db->commit();
+            return [
+                'success' => true,
+                'paid_now' => $pay,
+                'remaining' => $remaining - $pay
+            ];
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 }
 ?>

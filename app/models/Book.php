@@ -64,7 +64,7 @@ class Book extends Model {
     }
 
     public function getBookWithLibrary($bookId) {
-        $query = "SELECT b.*, l.name as library_name 
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
                   FROM books b 
                   JOIN libraries l ON b.library_id = l.id 
                   WHERE b.id = :book_id";
@@ -99,7 +99,7 @@ class Book extends Model {
                   SUM(available_copies) as available_copies,
                   (SELECT COUNT(*) FROM borrows b 
                    JOIN books bk ON b.book_id = bk.id 
-                   WHERE bk.library_id = ? AND b.status = 'borrowed') as borrowed_books,
+                   WHERE bk.library_id = ? AND b.status IN ('borrowed','overdue')) as borrowed_books,
                   (SELECT COUNT(*) FROM borrows b 
                    JOIN books bk ON b.book_id = bk.id 
                    WHERE bk.library_id = ? AND b.status = 'overdue') as overdue_books
@@ -142,12 +142,16 @@ class Book extends Model {
                  WHERE id = ? AND library_id = ?";
 
         $stmt = $this->db->prepare($query);
-        return $stmt->execute([
+        $result = $stmt->execute([
             $data['title'], $data['author'], $data['isbn'],
             $data['publisher'], $data['publication_year'],
             $data['category'], $data['class_level'], $data['total_copies'],
             $data['available_copies'], $id, $libraryId
         ]);
+        if ($result) {
+            \Security::logActivity($data['updated_by'] ?? null, 'Updated book ID ' . $id);
+        }
+        return $result;
     }
 
     public function checkActiveBorrows($bookId) {
@@ -163,7 +167,11 @@ class Book extends Model {
             $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
             $stmt = $this->db->prepare($deleteQuery);
             $result = $stmt->execute([$id, $libraryId]);
-            return $result && $stmt->rowCount() > 0;
+            if ($result && $stmt->rowCount() > 0) {
+                \Security::logActivity($_SESSION['user_id'] ?? null, 'Deleted book ID ' . $id);
+                return true;
+            }
+            return false;
         } catch (Exception $e) {
             return false;
         }

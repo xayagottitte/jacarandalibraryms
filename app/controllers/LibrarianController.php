@@ -37,12 +37,15 @@ class LibrarianController extends Controller {
             'underutilized_books' => $this->bookModel->getUnderutilizedBooks($libraryId, 5),
             'class_borrow_stats' => $this->studentModel->getClassBorrowStats($libraryId),
             'borrowing_trends' => $this->borrowModel->getBorrowingTrends($libraryId, 30),
-            'at_risk_students' => $this->studentModel->getAtRiskStudents($libraryId)
+            'at_risk_students' => $this->studentModel->getAtRiskStudents($libraryId),
+            'lost_count' => $this->borrowModel->getLostCounts($libraryId, 30),
+            'lost_books' => $this->borrowModel->getLostBooks($libraryId, 5, 30)
         ];
         
         $this->view('librarian/dashboard', $data);
     }
 
+                    // Removed stray Security::logActivity outside function
     // Book Management Methods
     public function books() {
         $libraryId = $_SESSION['library_id'];
@@ -99,13 +102,15 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $category = $_POST['category'] ?? null;
+            if ($category === '__new__') { $category = trim($_POST['category_new'] ?? ''); }
             $data = [
                 'title' => $_POST['title'],
                 'author' => $_POST['author'],
                 'isbn' => $_POST['isbn'] ?? null,
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
-                'category' => $_POST['category'] ?? null,
+                'category' => $category ?: null,
                 'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1,
                 'available_copies' => $_POST['total_copies'] ?? 1,
@@ -455,16 +460,152 @@ class LibrarianController extends Controller {
             try {
                 $result = $borrowModel->returnBook($borrowId, $_SESSION['user_id']);
                 
+                // AJAX: return JSON without redirect
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => true,
+                        'message' => ($result['fine_amount'] > 0)
+                            ? "Book '{$result['book_title']}' returned successfully! Fine amount: MK " . number_format($result['fine_amount'])
+                            : "Book '{$result['book_title']}' returned successfully!",
+                        'data' => [
+                            'fine_amount' => (float)$result['fine_amount'],
+                            'book_title' => $result['book_title'],
+                            'student_name' => $result['student_name'],
+                            'returned_date' => date('Y-m-d'),
+                            'status' => 'returned'
+                        ]
+                    ]);
+                    return;
+                }
+
                 if ($result['fine_amount'] > 0) {
                     $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully! Fine amount: MK " . number_format($result['fine_amount']);
                 } else {
                     $_SESSION['success'] = "Book '{$result['book_title']}' returned successfully!";
                 }
             } catch (Exception $e) {
+                // AJAX error
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                    http_response_code(400);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                    return;
+                }
                 $_SESSION['error'] = $e->getMessage();
             }
         }
     $this->redirect(BASE_PATH . '/librarian/borrows');
+    }
+
+    public function payFine() {
+        // Allow POST to process payment; redirect GET back to borrows
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+
+        $borrowId = $_POST['borrow_id'] ?? null;
+        // Optional: amount; if not provided, take full remaining
+        $amount = isset($_POST['amount']) && $_POST['amount'] !== '' ? (float)$_POST['amount'] : null;
+
+        if (!$borrowId) {
+            $_SESSION['error'] = 'Borrow ID is required.';
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+
+        try {
+            $result = $this->borrowModel->recordFinePayment($borrowId, $amount ?? PHP_FLOAT_MAX);
+            $paidNow = (float)$result['paid_now'];
+            $remainingRaw = (float)$result['remaining'];
+            $paidNowFmt = number_format($paidNow, 2);
+            $remainingFmt = number_format($remainingRaw, 2);
+
+            // AJAX: return JSON without redirect
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => ($remainingRaw <= 0)
+                        ? "Fine payment recorded: MK {$paidNowFmt}. Fine fully paid."
+                        : "Fine payment recorded: MK {$paidNowFmt}. Remaining: MK {$remainingFmt}.",
+                    'data' => [
+                        'paid_now' => $paidNow,
+                        'remaining' => $remainingRaw
+                    ]
+                ]);
+                return;
+            }
+
+            if ($remainingRaw <= 0) {
+                $_SESSION['success'] = "Fine payment recorded: MK {$paidNowFmt}. Fine fully paid.";
+            } else {
+                $_SESSION['success'] = "Fine payment recorded: MK {$paidNowFmt}. Remaining: MK {$remainingFmt}.";
+            }
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
+        }
+
+        $this->redirect('/librarian/borrows');
+    }
+
+    public function markLost() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+        $borrowId = $_POST['borrow_id'] ?? null;
+        try {
+            $ok = $this->borrowModel->markLost($borrowId, $_SESSION['user_id']);
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Marked as lost']);
+                return;
+            }
+            $_SESSION['success'] = 'Marked as lost';
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
+        }
+        $this->redirect('/librarian/borrows');
+    }
+
+    public function markFound() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/librarian/borrows');
+            return;
+        }
+        $borrowId = $_POST['borrow_id'] ?? null;
+        try {
+            $ok = $this->borrowModel->markFound($borrowId, $_SESSION['user_id']);
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Marked as found']);
+                return;
+            }
+            $_SESSION['success'] = 'Marked as found';
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+            $_SESSION['error'] = $e->getMessage();
+        }
+        $this->redirect('/librarian/borrows');
     }
 
     public function quickBorrow() {
@@ -514,6 +655,55 @@ class LibrarianController extends Controller {
         }
 
         $this->view('librarian/quick-borrow');
+    }
+
+    public function searchStudents() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $term = $_GET['q'] ?? '';
+        $studentModel = new Student();
+        $results = $studentModel->getStudentsByLibrary($_SESSION['library_id'], ['search' => $term]);
+        $results = array_slice($results, 0, 10);
+        header('Content-Type: application/json');
+        echo json_encode(array_map(function($s){
+            return [
+                'id' => $s['id'],
+                'student_id' => $s['student_id'],
+                'full_name' => $s['full_name'],
+                'class' => $s['class']
+            ];
+        }, $results));
+    }
+
+    public function searchBooks() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $term = $_GET['q'] ?? '';
+        $bookModel = new Book();
+        $results = $bookModel->getBooksByLibrary($_SESSION['library_id'], ['search' => $term]);
+        $results = array_slice($results, 0, 10);
+        header('Content-Type: application/json');
+        echo json_encode(array_map(function($b){
+            return [
+                'id' => $b['id'],
+                'isbn' => $b['isbn'],
+                'title' => $b['title'],
+                'author' => $b['author'],
+                'available_copies' => $b['available_copies']
+            ];
+        }, $results));
+    }
+
+    public function borrowsData() {
+        if (!isset($_SESSION['library_id'])) { http_response_code(401); exit; }
+        $libraryId = $_SESSION['library_id'];
+        $filters = [
+            'status' => $_GET['status'] ?? '',
+            'student_id' => $_GET['student_id'] ?? '',
+            'book_title' => $_GET['book_title'] ?? ''
+        ];
+        $borrowModel = new Borrow();
+        $borrows = $borrowModel->getBorrowsByLibrary($libraryId, $filters);
+        header('Content-Type: application/json');
+        echo json_encode(['borrows' => $borrows]);
     }
 
     // Enhanced Reports Methods

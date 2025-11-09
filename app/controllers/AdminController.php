@@ -37,12 +37,16 @@ class AdminController extends Controller {
             $data['underutilized_books'] = $this->bookModel->getUnderutilizedBooks($selectedLibraryId, 5);
             $data['class_borrow_stats'] = $this->studentModel->getClassBorrowStats($selectedLibraryId);
             $data['borrowing_trends'] = $this->borrowModel->getBorrowingTrends($selectedLibraryId, 30);
+            $data['lost_count'] = $this->borrowModel->getLostCounts($selectedLibraryId, 30);
+            $data['lost_books'] = $this->borrowModel->getLostBooks($selectedLibraryId, 10, 30);
         } else {
             // For "All Libraries", we'll use aggregated data
             $data['popular_books'] = [];
             $data['underutilized_books'] = [];
             $data['class_borrow_stats'] = [];
             $data['borrowing_trends'] = [];
+            $data['lost_count'] = $this->borrowModel->getLostCounts(null, 30);
+            $data['lost_books'] = $this->borrowModel->getLostBooks(null, 10, 30);
         }
         
         $this->view('admin/dashboard', $data);
@@ -276,10 +280,38 @@ class AdminController extends Controller {
             'sort_by' => $_GET['sort_by'] ?? 'name'
         ];
 
+        $libraries = $this->libraryModel->getAllWithStats($filters);
+        
+        // Calculate summary statistics from the library data
+        $totalLibraries = count($libraries);
+        $totalBooks = 0;
+        $totalCopies = 0;
+        $primaryLibraries = 0;
+        $secondaryLibraries = 0;
+        $totalLibrarians = 0;
+        
+        foreach ($libraries as $library) {
+            $totalBooks += (int)$library['total_books'];
+            $totalCopies += (int)$library['total_copies'];
+            $totalLibrarians += (int)$library['total_librarians'];
+            
+            if ($library['type'] === 'primary') {
+                $primaryLibraries++;
+            } else if ($library['type'] === 'secondary') {
+                $secondaryLibraries++;
+            }
+        }
+
         $data = [
-            'libraries' => $this->libraryModel->getAllWithStats($filters),
+            'libraries' => $libraries,
             'available_librarians' => $this->libraryModel->getAvailableLibrarians(),
-            'filters' => $filters
+            'filters' => $filters,
+            'totalLibraries' => $totalLibraries,
+            'totalBooks' => $totalBooks,
+            'totalCopies' => $totalCopies,
+            'primaryLibraries' => $primaryLibraries,
+            'secondaryLibraries' => $secondaryLibraries,
+            'totalLibrarians' => $totalLibrarians
         ];
         $this->view('admin/libraries', $data);
     }
@@ -342,25 +374,14 @@ class AdminController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             
-            // Check if library has users or books
-            $checkQuery = "SELECT COUNT(*) as count FROM users WHERE library_id = :id";
-            $stmt = $this->libraryModel->db->prepare($checkQuery);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($result['count'] > 0) {
-                $_SESSION['error'] = "Cannot delete library. It has assigned librarians.";
+            if (!$id) { $_SESSION['error'] = 'Invalid library ID.'; $this->redirect('/admin/libraries'); return; }
+            list($ok, $reason) = $this->libraryModel->canDelete($id);
+            if (!$ok) {
+                $_SESSION['error'] = "Cannot delete library. " . $reason;
+            } else if ($this->libraryModel->deleteLibraryById($id)) {
+                $_SESSION['success'] = "Library deleted successfully!";
             } else {
-                $deleteQuery = "DELETE FROM libraries WHERE id = :id";
-                $deleteStmt = $this->libraryModel->db->prepare($deleteQuery);
-                $deleteStmt->bindParam(':id', $id);
-                
-                if ($deleteStmt->execute()) {
-                    $_SESSION['success'] = "Library deleted successfully!";
-                } else {
-                    $_SESSION['error'] = "Failed to delete library.";
-                }
+                $_SESSION['error'] = "Failed to delete library.";
             }
         }
         $this->redirect('/admin/libraries');
@@ -466,6 +487,7 @@ class AdminController extends Controller {
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'data' => $data]);
             exit;
+                        \Security::logActivity($_SESSION['user_id'] ?? null, 'Updated reservation period to ' . $period);
         }
     }
 

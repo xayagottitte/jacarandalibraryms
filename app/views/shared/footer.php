@@ -16,6 +16,14 @@
             function confirmDelete(message = 'Are you sure you want to delete this item?') {
                 return confirm(message);
             }
+
+            // Fallback: Initialize all dropdowns (in case markup/CSS interferes)
+            document.addEventListener('DOMContentLoaded', function() {
+                var dropdownElements = document.querySelectorAll('.dropdown-toggle');
+                dropdownElements.forEach(function(el) {
+                    new bootstrap.Dropdown(el);
+                });
+            });
         </script>
     </body>
 </html>

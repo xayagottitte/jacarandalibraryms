@@ -18,7 +18,7 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1030;
+    z-index: 9999;
 }
 
 .modern-navbar .navbar-brand {
@@ -99,6 +99,7 @@
     margin-top: 0.75rem;
     padding: 0.75rem;
     min-width: 240px;
+    z-index: 10000;
 }
 
 .modern-navbar .dropdown-item-text {
@@ -386,6 +387,11 @@ body {
                                 <li>
                                     <a class="dropdown-item" href="<?= BASE_PATH ?>/system/preferences">
                                         <i class="fas fa-user-cog"></i> Preferences
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="<?= BASE_PATH ?>/admin/reservation-settings">
+                                        <i class="fas fa-calendar-alt"></i> Reservation Settings
                                     </a>
                                 </li>
                             <?php endif; ?>

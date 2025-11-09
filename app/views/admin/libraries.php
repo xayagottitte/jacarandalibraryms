@@ -142,8 +142,21 @@
             $primaryLibraries = count(array_filter($libraries, function($l) { return $l['type'] === 'primary'; }));
             $secondaryLibraries = count(array_filter($libraries, function($l) { return $l['type'] === 'secondary'; }));
             $totalBooks = array_sum(array_column($libraries, 'total_books'));
-            $totalCopies = array_sum(array_column($libraries, 'total_copies'));
             $totalLibrarians = array_sum(array_column($libraries, 'total_librarians'));
+
+            $primaryCopies = 0;
+            $primaryAvailableCopies = 0;
+            $secondaryCopies = 0;
+            $secondaryAvailableCopies = 0;
+            foreach ($libraries as $lib) {
+                if ($lib['type'] === 'primary') {
+                    $primaryCopies += (int)$lib['total_copies'];
+                    $primaryAvailableCopies += (int)$lib['available_copies'];
+                } elseif ($lib['type'] === 'secondary') {
+                    $secondaryCopies += (int)$lib['total_copies'];
+                    $secondaryAvailableCopies += (int)$lib['available_copies'];
+                }
+            }
             ?>
             
             <div class="col-xl-2 col-md-4 mb-4">
@@ -179,8 +192,11 @@
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Copies</div>
-                                <div class="h5 mb-0 font-weight-bold"><?php echo $totalCopies; ?></div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Primary Copies</div>
+                                <div class="h6 mb-0 font-weight-bold">
+                                    <span class="badge bg-primary">Total: <?php echo $primaryCopies; ?></span><br>
+                                    <span class="badge bg-success mt-1">Available: <?php echo $primaryAvailableCopies; ?></span>
+                                </div>
                             </div>
                         </div>
                         <i class="fas fa-layer-group icon-bg"></i>
@@ -193,8 +209,11 @@
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Primary</div>
-                                <div class="h5 mb-0 font-weight-bold"><?php echo $primaryLibraries; ?></div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="opacity: 0.9;">Secondary Copies</div>
+                                <div class="h6 mb-0 font-weight-bold">
+                                    <span class="badge bg-primary">Total: <?php echo $secondaryCopies; ?></span><br>
+                                    <span class="badge bg-success mt-1">Available: <?php echo $secondaryAvailableCopies; ?></span>
+                                </div>
                             </div>
                         </div>
                         <i class="fas fa-school icon-bg"></i>
@@ -335,7 +354,10 @@
                                         </span>
                                     </td>
                                     <td><?php echo $library['total_books']; ?></td>
-                                    <td><?php echo $library['total_copies']; ?></td>
+                                    <td>
+                                        <span class="badge bg-primary">Total: <?php echo $library['total_copies']; ?></span><br>
+                                        <span class="badge bg-success mt-1">Available: <?php echo $library['available_copies']; ?></span>
+                                    </td>
                                     <td><?php echo $library['total_students']; ?></td>
                                     <td><?php echo date('M j, Y', strtotime($library['created_at'])); ?></td>
                                     <td>

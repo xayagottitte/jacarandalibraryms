@@ -2,19 +2,112 @@
 <?php include '../app/views/shared/navbar.php'; ?>
 <?php include '../app/views/shared/layout-header.php'; ?>
 
+<style>
+    :root {
+        --jacaranda-primary: #663399;
+        --jacaranda-secondary: #8a4baf;
+    }
+    .page-header-modern {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border-left: 5px solid var(--jacaranda-primary);
+    }
+    .page-header-modern h1 {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 600;
+        margin: 0;
+    }
+    .modern-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    .modern-card:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    .modern-card .card-header {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%) !important;
+        color: white;
+        border-radius: 15px 15px 0 0 !important;
+        border: none;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    .form-control, .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--jacaranda-primary);
+        box-shadow: 0 0 0 3px rgba(102, 51, 153, 0.1);
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);
+        border: none;
+        padding: 0.65rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 51, 153, 0.3);
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 51, 153, 0.4);
+    }
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #4a5568;
+        padding: 0.65rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-secondary:hover {
+        border-color: var(--jacaranda-primary);
+        color: var(--jacaranda-primary);
+        background: #f7fafc;
+    }
+    .btn-danger {
+        border-radius: 10px;
+        padding: 0.65rem 1.5rem;
+        font-weight: 600;
+    }
+    .alert {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .text-primary {
+        color: var(--jacaranda-primary) !important;
+    }
+</style>
+
 <div class="main-content">
     <div class="container-fluid px-4" style="max-width: 900px;">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h3 mb-0 text-gray-800">
-                    <i class="fas fa-user-edit me-2"></i>Edit User
-                </h1>
-                <p class="mb-0 text-muted">Update user information and permissions</p>
+        <div class="page-header-modern">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Edit User
+                    </h1>
+                    <p class="mb-0 text-muted">Update user information and permissions</p>
+                </div>
+                <a href="<?= BASE_PATH ?>/admin/users" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Users
+                </a>
             </div>
-            <a href="<?= BASE_PATH ?>/admin/users" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Users
-            </a>
         </div>
 
         <!-- Flash Messages -->
@@ -33,8 +126,8 @@
         <?php endif; ?>
 
         <!-- Edit User Form -->
-        <div class="card shadow">
-            <div class="card-header py-3" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white;">
+        <div class="card modern-card shadow">
+            <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold">
                     <i class="fas fa-user me-2"></i>User Information
                 </h6>
