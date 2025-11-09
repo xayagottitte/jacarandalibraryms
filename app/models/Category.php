@@ -22,15 +22,18 @@ class Category extends Model {
         return $stmt->fetchColumn() > 0;
     }
 
-    public function addCategory($libraryId, $name) {
+    public function addCategory($libraryId, $name, $createdBy = null) {
         if ($this->categoryExists($libraryId, $name)) {
             return false;
+        }
+        if ($createdBy === null && isset($_SESSION['user_id'])) {
+            $createdBy = $_SESSION['user_id'];
         }
         $query = "INSERT INTO categories (library_id, name, created_by) VALUES (:library_id, :name, :created_by)";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId);
         $stmt->bindParam(':name', $name);
-        $stmt->bindParam(':created_by', $_SESSION['user_id']);
+        $stmt->bindParam(':created_by', $createdBy);
         return $stmt->execute();
     }
 

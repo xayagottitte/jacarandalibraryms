@@ -1,6 +1,9 @@
 <?php
 // Front Controller - Handle all requests
 
+// Load Composer autoloader first (for third-party packages like Google API Client)
+require_once '../vendor/autoload.php';
+
 // Load configuration first (before starting session)
 require_once '../config/config.php';
 require_once '../config/database.php';
@@ -90,6 +93,12 @@ $router->add('/librarian/return-book', 'LibrarianController', 'returnBook');
 $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
+$router->add('/librarian/api/add-category', 'LibrarianController', 'addCategory');
+$router->add('/librarian/pay-fine', 'LibrarianController', 'payFine');
+$router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
+$router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
+$router->add('/librarian/api/students', 'LibrarianController', 'apiStudents');
+$router->add('/librarian/api/books', 'LibrarianController', 'apiBooks');
 
 // Profile routes
 $router->add('/profile', 'ProfileController', 'index');

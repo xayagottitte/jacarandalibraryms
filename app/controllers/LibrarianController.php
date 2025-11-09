@@ -5,6 +5,7 @@ class LibrarianController extends Controller {
     private $studentModel;
     private $borrowModel;
     private $libraryModel;
+    private $categoryModel;
 
     public function __construct() {
         // Session is already started in index.php
@@ -16,6 +17,8 @@ class LibrarianController extends Controller {
         $this->studentModel = new Student();
         $this->borrowModel = new Borrow();
         $this->libraryModel = new Library();
+        require_once __DIR__ . '/../models/Category.php';
+        $this->categoryModel = new Category();
     }
 
     public function dashboard() {
@@ -55,7 +58,7 @@ class LibrarianController extends Controller {
 
         $data = [
             'books' => $this->bookModel->getBooksByLibrary($libraryId, $filters),
-            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
+            'categories' => $this->categoryModel->getCategoriesByLibrary($libraryId),
             'filters' => $filters
         ];
         
@@ -130,7 +133,7 @@ class LibrarianController extends Controller {
 
         $library = $this->libraryModel->find($libraryId);
         $data = [
-            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
+            'categories' => $this->categoryModel->getCategoriesByLibrary($libraryId),
             'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
             'library' => $library
         ];
@@ -183,7 +186,7 @@ class LibrarianController extends Controller {
         $library = $this->libraryModel->find($libraryId);
         $data = [
             'book' => $book,
-            'categories' => $this->bookModel->getCategoriesByLibrary($libraryId),
+            'categories' => $this->categoryModel->getCategoriesByLibrary($libraryId),
             'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
             'library' => $library
         ];
@@ -581,6 +584,31 @@ class LibrarianController extends Controller {
             ]);
             exit;
         }
+    }
+
+    public function addCategory() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            exit;
+        }
+
+        $libraryId = $_SESSION['library_id'];
+        $categoryName = trim($_POST['name'] ?? '');
+
+        if (empty($categoryName)) {
+            echo json_encode(['success' => false, 'message' => 'Category name is required']);
+            exit;
+        }
+
+        $createdBy = $_SESSION['user_id'] ?? null;
+        if ($this->categoryModel->addCategory($libraryId, $categoryName, $createdBy)) {
+            echo json_encode(['success' => true, 'message' => 'Category added successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Category already exists or failed to add']);
+        }
+        exit;
     }
 }
 ?>

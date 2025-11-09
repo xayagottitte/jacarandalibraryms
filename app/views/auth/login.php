@@ -158,27 +158,6 @@
             transform: translateY(-1px);
         }
         
-        .btn-google {
-            width: 100%;
-            background: white;
-            color: #333;
-            border: 1px solid #e1e5e9;
-            padding: 0.65rem;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.85rem;
-            margin-bottom: 1.25rem;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .btn-google:hover {
-            background: #f8f9fa;
-            border-color: #ccc;
-        }
-        
         .signup-link {
             color: var(--jacaranda-primary);
             text-decoration: none;
@@ -357,12 +336,7 @@
                 </button>
             </form>
             
-            <button class="btn-google">
-                <i class="fab fa-google me-2" style="color: #4285f4;"></i>
-                Sign in with google
-            </button>
-            
-            <div style="text-align: center; color: #666; font-size: 0.9rem;">
+            <div style="text-align: center; color: #666; font-size: 0.9rem; margin-top: 1rem;">
                 Don't have an account? <a href="register" class="signup-link">Sign up</a>
             </div>
         </div>

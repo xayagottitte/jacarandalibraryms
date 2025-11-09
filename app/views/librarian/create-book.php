@@ -289,7 +289,7 @@ include '../app/views/shared/layout-header.php';
     <?php endif; ?>
 
     <div class="form-card">
-        <form method="POST" action="/librarian/create-book">
+        <form method="POST" action="<?= BASE_PATH ?>/librarian/create-book">
             <!-- Basic Information Section -->
             <div class="form-section">
                 <h3 class="form-section-title">
@@ -354,7 +354,6 @@ include '../app/views/shared/layout-header.php';
             <div class="form-section">
                 <h3 class="form-section-title">
                     <i class="fas fa-tags"></i> Classification & Copies
-                    <a href="<?= BASE_PATH ?>/librarian/categories" class="btn btn-sm btn-outline-primary ms-3">Manage Categories</a>
                 </h3>
                 <div class="row g-4">
                     <div class="col-md-3">
@@ -375,16 +374,23 @@ include '../app/views/shared/layout-header.php';
                             <label for="category" class="form-label">
                                 <i class="fas fa-list"></i> Category
                             </label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-folder"></i>
-                                <select class="form-select" id="category" name="category">
-                                    <option value="">Select Category</option>
-                                    <?php foreach ($categories as $category): ?>
-                                        <option value="<?= htmlspecialchars($category['name'] ?? $category['category']) ?>">
-                                            <?= htmlspecialchars($category['name'] ?? $category['category']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <div class="d-flex gap-2">
+                                <div class="input-with-icon flex-grow-1">
+                                    <i class="fas fa-folder"></i>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">Select Category</option>
+                                        <?php if (isset($categories) && is_array($categories)): ?>
+                                            <?php foreach ($categories as $category): ?>
+                                                <option value="<?= htmlspecialchars($category['name'] ?? $category['category'] ?? '') ?>">
+                                                    <?= htmlspecialchars($category['name'] ?? $category['category'] ?? '') ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Add New Category" style="flex-shrink: 0;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -436,7 +442,7 @@ include '../app/views/shared/layout-header.php';
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3 justify-content-end mt-4">
-                <a href="/librarian/books" class="btn-cancel">
+                <a href="<?= BASE_PATH ?>/librarian/books" class="btn-cancel">
                     <i class="fas fa-times"></i> Cancel
                 </a>
                 <button type="submit" class="btn-submit">
@@ -445,7 +451,102 @@ include '../app/views/shared/layout-header.php';
             </div>
             </form>
         </div>
+
+        <!-- Add Category Modal -->
+        <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCategoryModalLabel">
+                            <i class="fas fa-plus-circle me-2"></i>Add New Category
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addCategoryForm">
+                            <div class="mb-3">
+                                <label for="newCategoryName" class="form-label">Category Name</label>
+                                <input type="text" class="form-control" id="newCategoryName" name="name" placeholder="Enter category name" required>
+                                <div class="form-text">This category will be available for all books in your library.</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveCategoryBtn">
+                            <i class="fas fa-save me-2"></i>Add Category
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const saveCategoryBtn = document.getElementById('saveCategoryBtn');
+    const newCategoryName = document.getElementById('newCategoryName');
+    const categorySelect = document.getElementById('category');
+    const addCategoryForm = document.getElementById('addCategoryForm');
+    const addCategoryModal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+
+    saveCategoryBtn.addEventListener('click', function() {
+        const categoryName = newCategoryName.value.trim();
+        
+        if (!categoryName) {
+            alert('Please enter a category name');
+            return;
+        }
+
+        // Disable button during request
+        saveCategoryBtn.disabled = true;
+        saveCategoryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+
+        // Send AJAX request
+        fetch('<?= BASE_PATH ?>/librarian/api/add-category', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'name=' + encodeURIComponent(categoryName)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add new category to dropdown
+                const option = document.createElement('option');
+                option.value = categoryName;
+                option.textContent = categoryName;
+                option.selected = true;
+                categorySelect.appendChild(option);
+
+                // Reset form and close modal
+                addCategoryForm.reset();
+                addCategoryModal.hide();
+
+                // Show success message
+                alert('Category added successfully!');
+            } else {
+                alert(data.message || 'Failed to add category');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the category');
+        })
+        .finally(() => {
+            // Re-enable button
+            saveCategoryBtn.disabled = false;
+            saveCategoryBtn.innerHTML = '<i class="fas fa-save me-2"></i>Add Category';
+        });
+    });
+
+    // Reset form when modal is closed
+    document.getElementById('addCategoryModal').addEventListener('hidden.bs.modal', function() {
+        addCategoryForm.reset();
+    });
+});
+</script>
 
 <?php include '../app/views/shared/footer.php'; ?>
