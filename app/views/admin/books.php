@@ -97,6 +97,16 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
     }
+
+    /* Fix dropdown visibility - prevent overflow clipping */
+    .card-body {
+        overflow: visible !important;
+    }
+    
+    .form-select {
+        position: relative;
+        z-index: 10;
+    }
 </style>
 
 <div class="main-content modern-dashboard">
@@ -147,7 +157,7 @@
                             <option value="">All Categories</option>
                             <?php 
                             // Get all unique categories from all books
-                            $allCategories = array_unique(array_filter(array_column($all_books, 'category')));
+                            $allCategories = array_unique(array_filter(array_column($all_books, 'category_name')));
                             foreach ($allCategories as $category): ?>
                                 <option value="<?php echo htmlspecialchars($category); ?>">
                                     <?php echo htmlspecialchars($category); ?>
@@ -300,6 +310,7 @@
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
                         <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
                             <tr>
+                                <th width="60">Cover</th>
                                 <th>Title</th>
                                 <th>Author</th>
                                 <th>Category</th>
@@ -318,14 +329,23 @@
                                     data-title="<?php echo strtolower(htmlspecialchars($book['title'])); ?>"
                                     data-author="<?php echo strtolower(htmlspecialchars($book['author'])); ?>"
                                     data-isbn="<?php echo strtolower(htmlspecialchars($book['isbn'] ?? '')); ?>"
-                                    data-category="<?php echo strtolower(htmlspecialchars($book['category'] ?? '')); ?>"
+                                    data-category="<?php echo strtolower(htmlspecialchars($book['category_name'] ?? '')); ?>"
                                     data-library-id="<?php echo $book['library_id']; ?>"
                                     data-available="<?php echo $book['available_copies'] > 0 ? 'yes' : 'no'; ?>">
+                                    <td class="text-center">
+                                        <?php 
+                                        $bookModel = new Book();
+                                        $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($book['cover_image'] ?? null);
+                                        ?>
+                                        <img src="<?= $coverUrl ?>" alt="Book Cover" 
+                                             style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                             title="<?= htmlspecialchars($book['title']) ?>">
+                                    </td>
                                     <td><strong><?php echo htmlspecialchars($book['title']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($book['author']); ?></td>
                                     <td>
-                                        <?php if ($book['category']): ?>
-                                            <span class="badge bg-info"><?php echo htmlspecialchars($book['category']); ?></span>
+                                        <?php if (!empty($book['category_name'])): ?>
+                                            <span class="badge bg-info"><?php echo htmlspecialchars($book['category_name']); ?></span>
                                         <?php else: ?>
                                             <span class="text-muted">Uncategorized</span>
                                         <?php endif; ?>
@@ -373,7 +393,7 @@
                                 <?php endforeach; ?>
                             <?php else: ?>
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
+                                <td colspan="10" class="text-center text-muted py-4">
                                     <i class="fas fa-book fa-3x mb-3 text-gray-300"></i>
                                     <?php if ($selected_library_id): ?>
                                         <p>No books found in the selected library matching your criteria.</p>

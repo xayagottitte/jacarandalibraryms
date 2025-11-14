@@ -190,5 +190,57 @@ class Student extends Model {
                 $stmt->execute();
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getTotalCount($libraryId = null) {
+        $query = "SELECT COUNT(*) as count FROM students";
+        
+        if ($libraryId) {
+            $query .= " WHERE library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    public function getActiveCount($libraryId = null) {
+        $query = "SELECT COUNT(DISTINCT s.id) as count 
+                  FROM students s
+                  INNER JOIN borrows b ON s.id = b.student_id
+                  WHERE b.status IN ('borrowed', 'overdue')";
+        
+        if ($libraryId) {
+            $query .= " AND s.library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    public function getUniqueClassLevels($libraryId = null) {
+        $query = "SELECT DISTINCT class FROM students WHERE class IS NOT NULL AND class != ''";
+        
+        if ($libraryId) {
+            $query .= " AND library_id = :library_id";
+        }
+        
+        $query .= " ORDER BY class";
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
 }
 ?>

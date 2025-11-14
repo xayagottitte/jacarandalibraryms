@@ -195,5 +195,180 @@ class AuthController extends Controller {
         $this->authModel->logout();
         $this->redirect('/login');
     }
+
+    public function googleAuth() {
+        require_once '../vendor/autoload.php';
+        
+        $client = new Google_Client();
+        $client->setClientId(getenv('GOOGLE_CLIENT_ID') ?: 'your-google-client-id');
+        $client->setClientSecret(getenv('GOOGLE_CLIENT_SECRET') ?: 'your-google-client-secret');
+        $client->setRedirectUri(getenv('BASE_URL') ? getenv('BASE_URL') . '/google-callback' : 'http://localhost/jacarandalibraryms/google-callback');
+        $client->addScope('email');
+        $client->addScope('profile');
+        
+        $authUrl = $client->createAuthUrl();
+        header('Location: ' . $authUrl);
+        exit();
+    }
+
+    public function googleCallback() {
+        require_once '../vendor/autoload.php';
+        
+        if (!isset($_GET['code'])) {
+            $_SESSION['error'] = "Google authentication failed. No authorization code received.";
+            $this->redirect('/login');
+            return;
+        }
+        
+        $client = new Google_Client();
+        $client->setClientId(getenv('GOOGLE_CLIENT_ID') ?: 'your-google-client-id');
+        $client->setClientSecret(getenv('GOOGLE_CLIENT_SECRET') ?: 'your-google-client-secret');
+        $client->setRedirectUri(getenv('BASE_URL') ? getenv('BASE_URL') . '/google-callback' : 'http://localhost/jacarandalibraryms/google-callback');
+        
+        try {
+            $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+            
+            if (isset($token['error'])) {
+                $_SESSION['error'] = "Google authentication failed: " . $token['error_description'];
+                $this->redirect('/login');
+                return;
+            }
+            
+            $client->setAccessToken($token);
+            
+            // Get user info from Google
+            $oauth2 = new Google_Service_Oauth2($client);
+            $userInfo = $oauth2->userinfo->get();
+            
+            $email = $userInfo->email;
+            $name = $userInfo->name;
+            $googleId = $userInfo->id;
+            $picture = $userInfo->picture;
+            
+            // Check if user exists
+            $userModel = new User();
+            $existingUser = $userModel->findByEmail($email);
+            
+            if ($existingUser) {
+                // Update Google ID and profile photo if not set
+                if (empty($existingUser['google_id'])) {
+                    $this->updateUserGoogleInfo($existingUser['id'], $googleId, $picture);
+                }
+                
+                // Log the user in
+                $_SESSION['user_id'] = $existingUser['id'];
+                $_SESSION['username'] = $existingUser['username'];
+                $_SESSION['role'] = $existingUser['role'];
+                $_SESSION['library_id'] = $existingUser['library_id'];
+                $_SESSION['success'] = "Welcome back, " . $existingUser['full_name'] . "!";
+                
+                // Redirect based on role
+                if ($existingUser['role'] === 'super_admin') {
+                    $this->redirect('/admin/dashboard');
+                } else {
+                    $this->redirect('/librarian/dashboard');
+                }
+            } else {
+                // Create new user account
+                $username = $this->generateUniqueUsername($email, $name);
+                
+                $userData = [
+                    'username' => $username,
+                    'full_name' => $name,
+                    'email' => $email,
+                    'password' => password_hash(uniqid(), PASSWORD_DEFAULT), // Random password
+                    'role' => 'librarian', // Default role
+                    'status' => 'pending', // Requires admin approval
+                    'google_id' => $googleId,
+                    'profile_photo' => $this->downloadGoogleProfileImage($picture, $googleId)
+                ];
+                
+                if ($this->authModel->register($userData)) {
+                    $_SESSION['success'] = "Account created with Google! Please wait for admin approval before you can access the system.";
+                } else {
+                    $_SESSION['error'] = "Failed to create account. Please try again.";
+                }
+                
+                $this->redirect('/login');
+            }
+            
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Google authentication failed: " . $e->getMessage();
+            $this->redirect('/login');
+        }
+    }
+
+    private function updateUserGoogleInfo($userId, $googleId, $picture) {
+        try {
+            $db = new Database();
+            $conn = $db->connect();
+            
+            $profilePhoto = $this->downloadGoogleProfileImage($picture, $googleId);
+            
+            $query = "UPDATE users SET google_id = ?, profile_photo = ?, updated_at = NOW() WHERE id = ?";
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$googleId, $profilePhoto, $userId]);
+        } catch (Exception $e) {
+            // Silently fail - not critical
+            error_log("Failed to update Google info: " . $e->getMessage());
+        }
+    }
+
+    private function generateUniqueUsername($email, $name) {
+        $userModel = new User();
+        
+        // Try email prefix first
+        $baseUsername = strtolower(explode('@', $email)[0]);
+        $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
+        
+        if (strlen($baseUsername) < 3) {
+            // Use name if email prefix is too short
+            $baseUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $name));
+        }
+        
+        $username = $baseUsername;
+        $counter = 1;
+        
+        // Keep trying until we find a unique username
+        while ($userModel->findByUsername($username)) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+        
+        return $username;
+    }
+
+    private function downloadGoogleProfileImage($pictureUrl, $googleId) {
+        if (empty($pictureUrl)) {
+            return null;
+        }
+        
+        try {
+            // Create directory if it doesn't exist
+            $uploadDir = '../public/assets/img/profiles/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            
+            // Download image
+            $imageContent = file_get_contents($pictureUrl);
+            if ($imageContent === false) {
+                return null;
+            }
+            
+            // Save with unique filename
+            $filename = 'google_' . $googleId . '_' . time() . '.jpg';
+            $filePath = $uploadDir . $filename;
+            
+            if (file_put_contents($filePath, $imageContent)) {
+                return '/assets/img/profiles/' . $filename;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Failed to download Google profile image: " . $e->getMessage());
+        }
+        
+        return null;
+    }
 }
 ?>

@@ -12,11 +12,13 @@ class Library extends Model {
                 COUNT(DISTINCT b.id) as total_books,
                 COALESCE(SUM(b.total_copies), 0) as total_copies,
                 COALESCE(SUM(b.available_copies), 0) as available_copies,
-                COUNT(DISTINCT s.id) as total_students
+                COUNT(DISTINCT s.id) as total_students,
+                COUNT(DISTINCT CASE WHEN br.status IN ('borrowed', 'overdue') THEN br.id END) as active_borrows
             FROM libraries l
             LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
             LEFT JOIN books b ON l.id = b.library_id
             LEFT JOIN students s ON l.id = s.library_id
+            LEFT JOIN borrows br ON b.id = br.book_id
             WHERE 1=1";
         
         $params = [];

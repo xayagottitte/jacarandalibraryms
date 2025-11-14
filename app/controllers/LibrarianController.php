@@ -102,15 +102,16 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $category = $_POST['category'] ?? null;
-            if ($category === '__new__') { $category = trim($_POST['category_new'] ?? ''); }
+            $categoryId = $_POST['category_id'] ?? null;
+            
             $data = [
                 'title' => $_POST['title'],
                 'author' => $_POST['author'],
                 'isbn' => $_POST['isbn'] ?? null,
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
-                'category' => $category ?: null,
+                'category_id' => !empty($_POST['category_id']) ? $_POST['category_id'] : null,
+                'cover_image' => null, // Will be updated after insert if file uploaded
                 'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1,
                 'available_copies' => $_POST['total_copies'] ?? 1,
@@ -127,7 +128,16 @@ class LibrarianController extends Controller {
                 }
             }
 
-            if ($this->bookModel->create($data)) {
+            $bookId = $this->bookModel->create($data);
+            if ($bookId) {
+                // Handle cover image upload
+                if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
+                    $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $bookId);
+                    if (!$uploadResult['success']) {
+                        $_SESSION['warning'] = "Book added successfully, but cover image upload failed: " . $uploadResult['message'];
+                    }
+                }
+                
                 $_SESSION['success'] = "Book added successfully!";
                 $this->redirect(BASE_PATH . '/librarian/books');
                 return;
@@ -138,7 +148,7 @@ class LibrarianController extends Controller {
 
         $library = $this->libraryModel->find($libraryId);
         $data = [
-            'categories' => $this->categoryModel->getCategoriesByLibrary($libraryId),
+            'categories' => $this->categoryModel->getAllCategories(),
             'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
             'library' => $library
         ];
@@ -155,13 +165,29 @@ class LibrarianController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
+            
+            // Get current book data to preserve cover image if not updating
+            $currentBook = $this->bookModel->find($id);
+            $coverImage = $currentBook['cover_image'] ?? null;
+            
+            // Handle cover image upload
+            if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
+                $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $id);
+                if ($uploadResult['success']) {
+                    $coverImage = $uploadResult['filename'];
+                } else {
+                    $_SESSION['warning'] = "Failed to upload cover image: " . $uploadResult['message'];
+                }
+            }
+            
             $data = [
                 'title' => $_POST['title'],
                 'author' => $_POST['author'],
                 'isbn' => $_POST['isbn'] ?? null,
                 'publisher' => $_POST['publisher'] ?? null,
                 'publication_year' => $_POST['publication_year'] ?? null,
-                'category' => $_POST['category'] ?? null,
+                'category_id' => !empty($_POST['category_id']) ? $_POST['category_id'] : null,
+                'cover_image' => $coverImage,
                 'class_level' => $_POST['class_level'] ?? null,
                 'total_copies' => $_POST['total_copies'] ?? 1
             ];
@@ -191,7 +217,7 @@ class LibrarianController extends Controller {
         $library = $this->libraryModel->find($libraryId);
         $data = [
             'book' => $book,
-            'categories' => $this->categoryModel->getCategoriesByLibrary($libraryId),
+            'categories' => $this->categoryModel->getAllCategories(),
             'class_levels' => $this->bookModel->getClassLevelsForLibrary($libraryId),
             'library' => $library
         ];
@@ -199,44 +225,67 @@ class LibrarianController extends Controller {
     }
 
     public function deleteBook() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $libraryId = $_SESSION['library_id'];
-            
-            if (!$id) {
-                $_SESSION['error'] = "Book ID is required for deletion.";
-                $this->redirect(BASE_PATH . '/librarian/books');
-                return;
-            }
-            
-            // Verify the book belongs to this library
-            $book = $this->bookModel->getBookWithLibrary($id);
-            
-            if (!$book || $book['library_id'] != $libraryId) {
-                $_SESSION['error'] = "Book not found or access denied.";
-                $this->redirect(BASE_PATH . '/librarian/books');
-                return;
-            }
-            
-            // Check if book has active borrows
-            $result = $this->bookModel->checkActiveBorrows($id);
-
-            if ($result['count'] > 0) {
-                $_SESSION['error'] = "Cannot delete book '{$book['title']}'. It has {$result['count']} active borrow(s).";
-            } else {
-                $deleteResult = $this->bookModel->deleteBook($id, $libraryId);
-                
-                if ($deleteResult) {
-                    $_SESSION['success'] = "Book '{$book['title']}' deleted successfully!";
-                } else {
-                    $_SESSION['error'] = "Failed to delete book '{$book['title']}'. Database error occurred.";
-                }
-            }
-        } else {
-            $_SESSION['error'] = "Invalid request method for book deletion.";
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Invalid request method.";
+            $this->redirect(BASE_PATH . '/librarian/books');
+            return;
         }
+
+        $bookId = $_POST['id'] ?? null;
+        $libraryId = $_SESSION['library_id'] ?? null;
         
-    $this->redirect(BASE_PATH . '/librarian/books');
+        if (!$bookId) {
+            $_SESSION['error'] = "Book ID is required.";
+            $this->redirect(BASE_PATH . '/librarian/books');
+            return;
+        }
+
+        if (!$libraryId) {
+            $_SESSION['error'] = "Library ID not found in session.";
+            $this->redirect(BASE_PATH . '/librarian/books');
+            return;
+        }
+
+        try {
+            // Get book details
+            $book = $this->bookModel->find($bookId);
+            
+            if (!$book) {
+                $_SESSION['error'] = "Book not found.";
+                $this->redirect(BASE_PATH . '/librarian/books');
+                return;
+            }
+
+            // Verify library ownership
+            if ($book['library_id'] != $libraryId) {
+                $_SESSION['error'] = "Access denied. This book belongs to another library.";
+                $this->redirect(BASE_PATH . '/librarian/books');
+                return;
+            }
+
+            // Check for active borrows
+            $activeBorrows = $this->bookModel->checkActiveBorrows($bookId);
+            
+            if ($activeBorrows['count'] > 0) {
+                $_SESSION['error'] = "Cannot delete '{$book['title']}'. It has {$activeBorrows['count']} active borrow(s).";
+                $this->redirect(BASE_PATH . '/librarian/books');
+                return;
+            }
+
+            // Delete the book
+            $deleted = $this->bookModel->deleteBook($bookId, $libraryId);
+            
+            if ($deleted) {
+                $_SESSION['success'] = "Book '{$book['title']}' has been deleted successfully.";
+            } else {
+                $_SESSION['error'] = "Failed to delete the book. Please try again.";
+            }
+            
+        } catch (Exception $e) {
+            $_SESSION['error'] = "An error occurred: " . $e->getMessage();
+        }
+
+        $this->redirect(BASE_PATH . '/librarian/books');
     }
 
     // Student Management Methods
@@ -558,7 +607,7 @@ class LibrarianController extends Controller {
 
     public function markLost() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('/librarian/borrows');
+            $this->redirect(BASE_PATH . '/librarian/borrows');
             return;
         }
         $borrowId = $_POST['borrow_id'] ?? null;
@@ -579,7 +628,7 @@ class LibrarianController extends Controller {
             }
             $_SESSION['error'] = $e->getMessage();
         }
-        $this->redirect('/librarian/borrows');
+        $this->redirect(BASE_PATH . '/librarian/borrows');
     }
 
     public function markFound() {
@@ -793,7 +842,7 @@ class LibrarianController extends Controller {
         }
 
         $createdBy = $_SESSION['user_id'] ?? null;
-        if ($this->categoryModel->addCategory($libraryId, $categoryName, $createdBy)) {
+        if ($this->categoryModel->addCategory($categoryName, $createdBy)) {
             echo json_encode(['success' => true, 'message' => 'Category added successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Category already exists or failed to add']);

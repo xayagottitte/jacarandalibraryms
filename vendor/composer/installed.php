@@ -3,7 +3,7 @@
         'name' => 'jacaranda/library-ms',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'ed1332acac2419dc5b3de8e8b7b2c31a0b30f9aa',
+        'reference' => '7f1efe8f16010abedcaec2680e84655234013d17',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -76,7 +76,7 @@
         'jacaranda/library-ms' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'ed1332acac2419dc5b3de8e8b7b2c31a0b30f9aa',
+            'reference' => '7f1efe8f16010abedcaec2680e84655234013d17',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

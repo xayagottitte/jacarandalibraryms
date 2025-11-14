@@ -37,17 +37,14 @@
     transform: translateY(-2px);
 }
 
-.modern-navbar .navbar-brand i {
-    font-size: 1.5rem;
-    background: rgba(255,255,255,0.25);
-    padding: 0.5rem;
-    border-radius: 12px;
+.modern-navbar .navbar-brand img {
     transition: all 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
-.modern-navbar .navbar-brand:hover i {
-    background: rgba(255,255,255,0.35);
-    transform: rotate(5deg);
+.modern-navbar .navbar-brand:hover img {
+    transform: scale(1.05);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
 }
 
 .modern-navbar .nav-link {
@@ -266,7 +263,7 @@ body {
         }
         ?>
         <a class="navbar-brand" href="<?= $dashboardLink ?>">
-            <i class="fas fa-book"></i> 
+            <img src="<?= BASE_PATH ?>/public/assets/img/logo.png" alt="<?= htmlspecialchars($system_name ?? 'Multi-Library System') ?>" style="height: 40px; width: 40px; margin-right: 8px; border-radius: 50%; object-fit: cover;">
             <?= htmlspecialchars($system_name ?? 'Multi-Library System') ?>
         </a>
         
@@ -382,16 +379,6 @@ body {
                                 <li>
                                     <a class="dropdown-item" href="<?= BASE_PATH ?>/admin/settings">
                                         <i class="fas fa-cog"></i> System Settings
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= BASE_PATH ?>/system/preferences">
-                                        <i class="fas fa-user-cog"></i> Preferences
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="<?= BASE_PATH ?>/admin/reservation-settings">
-                                        <i class="fas fa-calendar-alt"></i> Reservation Settings
                                     </a>
                                 </li>
                             <?php endif; ?>

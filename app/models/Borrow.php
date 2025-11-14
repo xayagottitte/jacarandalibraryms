@@ -215,7 +215,7 @@ class Borrow extends Model {
     }
 
     public function getActiveBorrowsByStudent($studentId) {
-        $query = "SELECT br.*, bk.title, bk.author, bk.isbn,
+        $query = "SELECT br.*, bk.title, bk.author, bk.isbn, bk.cover_image,
                          DATEDIFF(br.due_date, CURDATE()) as days_remaining,
                          CASE 
                            WHEN CURDATE() > br.due_date THEN DATEDIFF(CURDATE(), br.due_date)
@@ -397,18 +397,19 @@ class Borrow extends Model {
     public function getOverdueBookStats($libraryId) {
         $query = "SELECT 
                     b.title,
-                    b.category,
+                    c.name as category_name,
                     COUNT(br.id) as overdue_count,
                     AVG(DATEDIFF(COALESCE(br.returned_date, CURDATE()), br.due_date)) as avg_days_overdue
                   FROM borrows br
                   JOIN books b ON br.book_id = b.id
+                  LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
                   AND (
                     (br.status IN ('borrowed', 'overdue') AND br.due_date < CURDATE())
                     OR 
                     (br.status = 'returned' AND br.returned_date > br.due_date)
                   )
-                  GROUP BY b.id, b.title, b.category
+                  GROUP BY b.id, b.title, c.name
                   ORDER BY overdue_count DESC
                   LIMIT 10";
         
@@ -613,6 +614,62 @@ class Borrow extends Model {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    public function getOverdueCount($libraryId = null) {
+        $query = "SELECT COUNT(*) as count FROM borrows b
+                  INNER JOIN books bk ON b.book_id = bk.id
+                  WHERE b.status = 'overdue'";
+        
+        if ($libraryId) {
+            $query .= " AND bk.library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    public function getTotalBorrowsCount($libraryId = null) {
+        $query = "SELECT COUNT(*) as count FROM borrows b";
+        
+        if ($libraryId) {
+            $query .= " INNER JOIN books bk ON b.book_id = bk.id
+                       WHERE bk.library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    public function getPeakBorrowDay($libraryId = null) {
+        $query = "SELECT DAYNAME(b.borrow_date) as day_name, COUNT(*) as count
+                  FROM borrows b";
+        
+        if ($libraryId) {
+            $query .= " INNER JOIN books bk ON b.book_id = bk.id
+                       WHERE bk.library_id = :library_id";
+        }
+        
+        $query .= " GROUP BY DAYOFWEEK(b.borrow_date), DAYNAME(b.borrow_date)
+                   ORDER BY count DESC LIMIT 1";
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['day_name'] : null;
     }
 }
 ?>

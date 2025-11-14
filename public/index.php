@@ -1,9 +1,6 @@
 <?php
 // Front Controller - Handle all requests
 
-// Load Composer autoloader first (for third-party packages like Google API Client)
-require_once '../vendor/autoload.php';
-
 // Load configuration first (before starting session)
 require_once '../config/config.php';
 require_once '../config/database.php';
@@ -40,6 +37,8 @@ $router->add('/', 'AuthController', 'login');
 $router->add('/login', 'AuthController', 'login');
 $router->add('/register', 'AuthController', 'register');
 $router->add('/logout', 'AuthController', 'logout');
+$router->add('/google-auth', 'AuthController', 'googleAuth');
+$router->add('/google-callback', 'AuthController', 'googleCallback');
 
 // Password recovery routes (specific routes MUST come before general ones)
 $router->add('/forgot-password/send', 'ForgotPasswordController', 'sendResetLink');
@@ -83,33 +82,27 @@ $router->add('/librarian/edit-book', 'LibrarianController', 'editBook');
 $router->add('/librarian/delete-book', 'LibrarianController', 'deleteBook');
 
 // Category management routes
+$router->add('/librarian/categories', 'CategoryController', 'index');
+$router->add('/librarian/add-category', 'CategoryController', 'add');
+$router->add('/librarian/delete-category', 'CategoryController', 'delete');
+$router->add('/librarian/api/add-category', 'CategoryController', 'apiAdd');
+
+// Student management routes
 $router->add('/librarian/students', 'LibrarianController', 'students');
 $router->add('/librarian/create-student', 'LibrarianController', 'createStudent');
 $router->add('/librarian/view-student', 'LibrarianController', 'viewStudent');
 $router->add('/librarian/edit-student', 'LibrarianController', 'editStudent');
+
+// Borrow management routes
 $router->add('/librarian/borrows', 'LibrarianController', 'borrows');
 $router->add('/librarian/borrow-book', 'LibrarianController', 'borrowBook');
 $router->add('/librarian/return-book', 'LibrarianController', 'returnBook');
 $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
-$router->add('/librarian/search-students', 'LibrarianController', 'searchStudents');
-$router->add('/librarian/search-books', 'LibrarianController', 'searchBooks');
-$router->add('/librarian/borrows-data', 'LibrarianController', 'borrowsData');
-$router->add('/librarian/pay-fine', 'LibrarianController', 'payFine');
 $router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
-$router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
+
+// Librarian reports
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
-$router->add('/librarian/api/add-category', 'LibrarianController', 'addCategory');
-$router->add('/librarian/pay-fine', 'LibrarianController', 'payFine');
-$router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
-$router->add('/librarian/mark-found', 'LibrarianController', 'markFound');
-$router->add('/librarian/api/students', 'LibrarianController', 'apiStudents');
-$router->add('/librarian/api/books', 'LibrarianController', 'apiBooks');
-
-// Librarian reservation routes
-$router->add('/librarian/reservations-dashboard', 'ReservationController', 'dashboard');
-$router->add('/librarian/pending-reservations', 'ReservationController', 'pending');
-$router->add('/librarian/reservation-requests', 'ReservationController', 'requests');
 
 // Profile routes
 $router->add('/profile', 'ProfileController', 'index');
@@ -118,15 +111,14 @@ $router->add('/profile/upload-photo', 'ProfileController', 'uploadPhoto');
 
 // Report routes
 $router->add('/report', 'ReportController', 'index');
-$router->add('/report/generate-advanced', 'ReportController', 'generateAdvancedReport');
 $router->add('/report/view', 'ReportController', 'viewSavedReport');
 $router->add('/report/delete', 'ReportController', 'deleteReport');
 $router->add('/report/export', 'ReportController', 'exportReport');
+$router->add('/report/cleanup', 'ReportController', 'cleanupOldReports');
 
 // System routes
 $router->add('/system/maintenance', 'SystemController', 'maintenance');
 $router->add('/system/backup', 'SystemController', 'backup');
-$router->add('/system/preferences', 'SystemController', 'userPreferences');
 
 // Get requested URL
 $request_url = $_SERVER['REQUEST_URI'];

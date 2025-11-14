@@ -393,7 +393,7 @@ include '../app/views/shared/layout-header.php';
                     </tr>
                     <tr>
                         <th><i class="fas fa-tag me-2" style="color: var(--primary-purple);"></i>Category</th>
-                        <td><span class="badge-info badge-custom"><?= htmlspecialchars($book['category'] ?? 'N/A') ?></span></td>
+                        <td><span class="badge-info badge-custom"><?= htmlspecialchars($book['category_name'] ?? 'Uncategorized') ?></span></td>
                     </tr>
                     <tr>
                         <th><i class="fas fa-layer-group me-2" style="color: var(--primary-purple);"></i>Class Level</th>
@@ -429,6 +429,24 @@ include '../app/views/shared/layout-header.php';
 
         <!-- Statistics Sidebar -->
         <div class="col-lg-4">
+            <!-- Book Cover Card -->
+            <div class="info-card mb-3">
+                <div class="card-header-custom">
+                    <i class="fas fa-image"></i>
+                    <h5>Book Cover</h5>
+                </div>
+                <div class="text-center p-4">
+                    <?php 
+                    $bookModel = new Book();
+                    $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($book['cover_image'] ?? null);
+                    ?>
+                    <img src="<?= $coverUrl ?>" alt="<?= htmlspecialchars($book['title']) ?>" 
+                         style="max-width: 100%; max-height: 300px; border-radius: 12px; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);"
+                         class="img-fluid">
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
             <div class="info-card">
                 <div class="card-header-custom">
                     <i class="fas fa-chart-pie"></i>

@@ -120,7 +120,18 @@ class ReportController extends Controller {
         return $summary;
     }
 
-    public function viewSavedReport($reportId) {
+    public function viewSavedReport($reportId = null) {
+        // Support both URL parameter and query string
+        if ($reportId === null) {
+            $reportId = $_GET['id'] ?? null;
+        }
+        
+        if (!$reportId) {
+            $_SESSION['error'] = "Report ID is required.";
+            $this->redirect('/report');
+            return;
+        }
+        
         $report = $this->reportModel->getReportWithData($reportId);
         
         if (!$report) {
@@ -321,6 +332,27 @@ class ReportController extends Controller {
         $html .= '</body></html>';
         echo $html;
         exit;
+    }
+
+    public function cleanupOldReports() {
+        // Only super_admin can cleanup old reports
+        if ($_SESSION['role'] !== 'super_admin') {
+            $_SESSION['error'] = "Access denied.";
+            $this->redirect('/report');
+            return;
+        }
+
+        $query = "DELETE FROM reports WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)";
+        $stmt = $this->reportModel->db->prepare($query);
+        
+        if ($stmt->execute()) {
+            $deletedCount = $stmt->rowCount();
+            $_SESSION['success'] = "Successfully deleted $deletedCount old reports (older than 90 days).";
+        } else {
+            $_SESSION['error'] = "Failed to cleanup old reports.";
+        }
+        
+        $this->redirect('/admin/reports');
     }
 }
 ?>

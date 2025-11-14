@@ -109,7 +109,7 @@
                         </h6>
                     </div>
                     <div class="card-body">
-                        <form method="POST" id="createBookForm">
+                        <form method="POST" id="createBookForm" enctype="multipart/form-data">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="library_id" class="form-label">Library *</label>
@@ -155,8 +155,17 @@
 
                             <div class="row mb-3">
                                 <div class="col-md-4">
-                                    <label for="category" class="form-label">Category</label>
-                                    <input type="text" name="category" id="category" class="form-control" placeholder="e.g., Fiction, Science, History">
+                                    <label for="category_id" class="form-label">Category</label>
+                                    <select class="form-select" id="category_id" name="category_id">
+                                        <option value="">Select Category</option>
+                                        <?php if (isset($categories) && is_array($categories)): ?>
+                                            <?php foreach ($categories as $category): ?>
+                                                <option value="<?= $category['id'] ?>">
+                                                    <?= htmlspecialchars($category['name']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="publication_year" class="form-label">Publication Year</label>
@@ -167,6 +176,24 @@
                                     <label for="total_copies" class="form-label">Total Copies *</label>
                                     <input type="number" name="total_copies" id="total_copies" class="form-control" 
                                            min="1" value="1" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="cover_image" class="form-label">Book Cover Image</label>
+                                    <input type="file" name="cover_image" id="cover_image" class="form-control" 
+                                           accept="image/jpeg,image/png,image/gif,image/webp">
+                                    <div class="form-text">Upload a cover image (JPEG, PNG, GIF, WebP - max 2MB). Optional.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Cover Preview</label>
+                                    <div id="coverPreview" style="border: 2px dashed #e0e0e0; border-radius: 8px; padding: 20px; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
+                                        <div class="text-muted">
+                                            <i class="fas fa-image fa-2x mb-2"></i>
+                                            <p class="mb-0">Cover preview will appear here</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -274,6 +301,45 @@ document.getElementById('createBookForm').addEventListener('submit', function(e)
         alert('Please enter a valid number of copies (at least 1).');
         e.preventDefault();
         return;
+    }
+});
+
+// Book cover preview functionality
+document.getElementById('cover_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('coverPreview');
+    
+    if (file) {
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            e.target.value = '';
+            return;
+        }
+        
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Cover Preview" 
+                     style="max-width: 100%; max-height: 120px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = `
+            <div class="text-muted">
+                <i class="fas fa-image fa-2x mb-2"></i>
+                <p class="mb-0">Cover preview will appear here</p>
+            </div>
+        `;
     }
 });
 </script>

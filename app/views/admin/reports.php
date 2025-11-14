@@ -104,82 +104,232 @@ include '../app/views/shared/layout-header.php';
 
 <div class="main-content modern-dashboard">
     <div class="container-fluid px-4">
-        <div class="page-header">
-            <h1 class="h3 mb-2">Advanced Reports & Analytics</h1>
-            <p class="mb-0 text-muted"><i class="fas fa-chart-bar me-2" style="color: var(--jacaranda-primary);"></i>Generate comprehensive reports and view library insights</p>
-        </div>
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-2">Multi-Library Analytics & Reporting</h1>
+                <p class="mb-0 text-muted"><i class="fas fa-chart-line me-2" style="color: var(--jacaranda-primary);"></i>Comprehensive insights across <?= $stats['libraries_count'] ?> libraries for strategic decision-making</p>
+            </div>
+            <div>
+                <select id="libraryFilterMain" class="form-select" style="min-width: 200px;">
+                    <option value="">All Libraries</option>
+                    <?php foreach ($libraries as $lib): ?>
+                        <option value="<?= $lib['id'] ?>"><?= htmlspecialchars($lib['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
 
-        <!-- Quick Stats -->
+        <!-- Key Performance Indicators for Administrative Decision Making -->
+        <div class="row mb-4 g-3">
+            <!-- Total Collection Size -->
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card stat-card-gradient primary shadow h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Total Collection</div>
+                                <div class="h4 mb-0 font-weight-bold"><?= number_format($stats['total_books']) ?></div>
+                                <div class="text-xs mt-1">Books across all libraries</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book-open icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collection Utilization -->
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card stat-card-gradient success shadow h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Utilization Rate</div>
+                                <div class="h4 mb-0 font-weight-bold"><?= $stats['utilization_rate'] ?>%</div>
+                                <div class="text-xs mt-1">Books currently in circulation</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-pie icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Reach -->
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card stat-card-gradient info shadow h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Student Reach</div>
+                                <div class="h4 mb-0 font-weight-bold"><?= number_format($stats['total_students']) ?></div>
+                                <div class="text-xs mt-1"><?= $stats['student_engagement'] ?>% actively engaged</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Metric -->
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="card stat-card-gradient warning shadow h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Total Transactions</div>
+                                <div class="h4 mb-0 font-weight-bold"><?= number_format($stats['total_borrows']) ?></div>
+                                <div class="text-xs mt-1">Lifetime borrowing activity</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exchange-alt icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational Health Metrics -->
         <div class="row mb-4 g-3">
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="card border-left-info shadow h-100 py-2">
+                <div class="card shadow h-100" style="border-left: 4px solid #dc3545;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Reports</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count($saved_reports) ?></div>
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Overdue Items</div>
+                                <div class="h4 mb-0 font-weight-bold text-dark"><?= number_format($stats['overdue_books']) ?></div>
+                                <div class="text-xs mt-1 text-muted">Require follow-up action</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="card border-left-success shadow h-100 py-2">
+                <div class="card shadow h-100" style="border-left: 4px solid #28a745;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">This Month</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count(array_filter($saved_reports, function($r) {
-                                    return date('Y-m') === date('Y-m', strtotime($r['created_at']));
-                                })) ?></div>
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Available Stock</div>
+                                <div class="h4 mb-0 font-weight-bold text-dark"><?= number_format($stats['total_available']) ?></div>
+                                <div class="text-xs mt-1 text-muted">Ready for borrowing</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card shadow h-100" style="border-left: 4px solid #17a2b8;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Most Active Type</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    <?php
-                                    $types = array_count_values(array_column($saved_reports, 'type'));
-                                    arsort($types);
-                                    echo ucfirst(key($types) ?: 'N/A');
-                                    ?>
-                                </div>
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Active Borrowers</div>
+                                <div class="h4 mb-0 font-weight-bold text-dark"><?= number_format($stats['active_students']) ?></div>
+                                <div class="text-xs mt-1 text-muted">Current library users</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-star fa-2x text-gray-300"></i>
+                                <i class="fas fa-user-check fa-2x text-info"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-xl-3 col-lg-6 col-md-6">
-                <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card shadow h-100" style="border-left: 4px solid #6f42c1;">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Your Reports</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= count(array_filter($saved_reports, function($r) {
-                                    return $r['generated_by'] == $_SESSION['user_id'];
-                                })) ?></div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #6f42c1;">Network Size</div>
+                                <div class="h4 mb-0 font-weight-bold text-dark"><?= $stats['libraries_count'] ?></div>
+                                <div class="text-xs mt-1 text-muted">Libraries managed</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-user fa-2x text-gray-300"></i>
+                                <i class="fas fa-building fa-2x" style="color: #6f42c1;"></i>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Performance Comparison -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%);">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-building me-2"></i>Library Performance Overview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead style="background-color: #f8f9fc;">
+                            <tr>
+                                <th>Library</th>
+                                <th class="text-center">Books</th>
+                                <th class="text-center">Students</th>
+                                <th class="text-center">Active Borrows</th>
+                                <th class="text-center">Utilization</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($libraries as $library): 
+                                $lib_utilization = $library['total_books'] > 0 
+                                    ? round((($library['total_copies'] - $library['available_copies']) / $library['total_copies']) * 100, 1) 
+                                    : 0;
+                            ?>
+                            <tr class="library-performance-row" data-library-id="<?= $library['id'] ?>">
+                                <td>
+                                    <strong><?= htmlspecialchars($library['name']) ?></strong>
+                                    <br><small class="text-muted"><?= htmlspecialchars($library['type']) ?></small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary"><?= number_format($library['total_books'] ?? 0) ?></span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info"><?= number_format($library['total_students'] ?? 0) ?></span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning text-dark"><?= number_format($library['active_borrows'] ?? 0) ?></span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 20px; min-width: 100px;">
+                                        <div class="progress-bar <?= $lib_utilization > 70 ? 'bg-success' : ($lib_utilization > 40 ? 'bg-warning' : 'bg-danger') ?>" 
+                                             role="progressbar" 
+                                             style="width: <?= $lib_utilization ?>%"
+                                             aria-valuenow="<?= $lib_utilization ?>" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            <?= $lib_utilization ?>%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <?php if ($lib_utilization > 70): ?>
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Excellent</span>
+                                    <?php elseif ($lib_utilization > 40): ?>
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-chart-line"></i> Moderate</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger"><i class="fas fa-exclamation-circle"></i> Needs Attention</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -247,84 +397,6 @@ include '../app/views/shared/layout-header.php';
             </div>
         </div>
 
-        <!-- Report Generator -->
-        <div class="card mb-4 shadow">
-            <div class="card-header bg-gradient-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Generate New Report</h5>
-            </div>
-            <div class="card-body">
-                <form id="advancedReportForm">
-                    <div class="row g-3">
-                        <div class="col-lg-3 col-md-6">
-                            <label for="report_type" class="form-label">Report Type</label>
-                            <select class="form-select" id="report_type" name="report_type" required>
-                                <option value="">Select Type</option>
-                                <option value="comprehensive">Comprehensive Library Report</option>
-                                <option value="analytics">Library Analytics</option>
-                                <option value="performance">Performance Trends</option>
-                                <option value="borrowing">Borrowing Statistics</option>
-                                <option value="inventory">Inventory Status</option>
-                                <option value="student">Student Activity</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <label for="library_id" class="form-label">Library</label>
-                            <select class="form-select" id="library_id" name="library_id">
-                                <option value="">All Libraries</option>
-                                <?php foreach ($libraries as $library): ?>
-                                    <option value="<?= $library['id'] ?>"><?= htmlspecialchars($library['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-lg-4 col-md-8">
-                            <label for="report_title" class="form-label">Report Title</label>
-                            <input type="text" class="form-control" id="report_title" name="report_title" 
-                                   placeholder="Enter custom report title" required>
-                        </div>
-                        <div class="col-lg-2 col-md-4">
-                            <label class="form-label">&nbsp;</label>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-chart-bar me-1"></i> Generate
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Filters -->
-                    <div id="advancedFilters" class="row g-3 mt-2" style="display: none;">
-                        <!-- Filters will be loaded here based on report type -->
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Advanced Report Results -->
-        <div class="card mb-4 shadow" id="advancedReportResults" style="display: none;">
-            <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0" id="resultsTitle">Report Results</h5>
-                <div>
-                    <button class="btn btn-sm btn-light" id="exportCSVAdvanced">
-                        <i class="fas fa-file-csv"></i> CSV
-                    </button>
-                    <button class="btn btn-sm btn-light" id="exportPDFAdvanced">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
-                    <button class="btn btn-sm btn-light" id="exportExcelAdvanced">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Summary Section -->
-                <div id="resultsSummary" class="mb-4"></div>
-                
-                <!-- Charts Section -->
-                <div id="resultsCharts" class="row mb-4"></div>
-                
-                <!-- Data Tables -->
-                <div id="resultsData"></div>
-            </div>
-        </div>
-
     <!-- Saved Reports -->
     <div class="card shadow">
         <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
@@ -353,7 +425,6 @@ include '../app/views/shared/layout-header.php';
                                 <th>Library</th>
                                 <th>Generated By</th>
                                 <th>Date</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="reportsTableBody">
@@ -389,24 +460,6 @@ include '../app/views/shared/layout-header.php';
                                             <?= date('M j, Y', strtotime($report['created_at'])) ?>
                                         </small>
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="/report/view/<?= $report['id'] ?>" 
-                                               class="btn btn-outline-primary btn-sm"
-                                               title="View Report"
-                                               target="_blank">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button type="button" 
-                                                    class="btn btn-outline-danger btn-sm btn-delete-report"
-                                                    data-report-id="<?= $report['id'] ?>"
-                                                    data-report-title="<?= htmlspecialchars($report['title']) ?>"
-                                                    title="Delete Report">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -429,37 +482,28 @@ include '../app/views/shared/layout-header.php';
 </div>
 </div>
 
-<!-- Delete Report Modal -->
-<div class="modal fade" id="deleteReportModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this report?</p>
-                <p class="mb-0"><strong id="deleteReportTitle"></strong></p>
-                <small class="text-muted">This action cannot be undone.</small>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="/report/delete" id="deleteReportForm">
-                    <input type="hidden" name="report_id" id="deleteReportId">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i> Delete Report
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ========== LIBRARY FILTER ==========
+    const libraryFilter = document.getElementById('libraryFilterMain');
+    if (libraryFilter) {
+        libraryFilter.addEventListener('change', function() {
+            const selectedLibrary = this.value;
+            const libraryRows = document.querySelectorAll('.library-performance-row');
+            
+            libraryRows.forEach(row => {
+                if (!selectedLibrary || row.dataset.libraryId === selectedLibrary) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
     
     // Prepare reports data for charts
     const reportsData = <?= json_encode($saved_reports) ?>;
@@ -667,245 +711,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ========== DELETE REPORT ==========
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteReportModal'));
-    const deleteButtons = document.querySelectorAll('.btn-delete-report');
-    
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const reportId = this.dataset.reportId;
-            const reportTitle = this.dataset.reportTitle;
-            
-            document.getElementById('deleteReportId').value = reportId;
-            document.getElementById('deleteReportTitle').textContent = reportTitle;
-            
-            deleteModal.show();
-        });
-    });
-    
     // ========== CLEANUP OLD REPORTS ==========
     const cleanupBtn = document.getElementById('cleanupReports');
     if (cleanupBtn) {
         cleanupBtn.addEventListener('click', function() {
             if (confirm('This will delete all reports older than 90 days. Continue?')) {
-                window.location.href = '/report/cleanup';
+                window.location.href = '<?= BASE_PATH ?>/report/cleanup';
             }
         });
     }
-    
-    // ========== ADVANCED REPORT FORM ==========
-    const reportType = document.getElementById('report_type');
-    const filtersDiv = document.getElementById('advancedFilters');
-    const reportForm = document.getElementById('advancedReportForm');
-    const reportResults = document.getElementById('advancedReportResults');
-    
-    // Load filters based on report type
-    if (reportType) {
-        reportType.addEventListener('change', function() {
-            const type = this.value;
-            if (!type) {
-                filtersDiv.style.display = 'none';
-                return;
-            }
 
-            let filtersHTML = '';
-            switch(type) {
-                case 'comprehensive':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Date Range</label>
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <input type="date" class="form-control" name="filters[start_date]" placeholder="Start Date">
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="date" class="form-control" name="filters[end_date]" placeholder="End Date">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Book Category</label>
-                            <input type="text" class="form-control" name="filters[category]" placeholder="Filter by category">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Student Class</label>
-                            <input type="text" class="form-control" name="filters[class]" placeholder="Filter by class">
-                        </div>
-                    `;
-                    break;
-                case 'analytics':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Analysis Period</label>
-                            <select class="form-select" name="filters[period]">
-                                <option value="7">Last 7 Days</option>
-                                <option value="30" selected>Last 30 Days</option>
-                                <option value="90">Last 90 Days</option>
-                                <option value="365">Last Year</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Top Items Limit</label>
-                            <input type="number" class="form-control" name="filters[limit]" value="10" min="5" max="50">
-                        </div>
-                    `;
-                    break;
-                case 'performance':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Trend Period (Days)</label>
-                            <input type="number" class="form-control" name="filters[trend_days]" value="90" min="30" max="365">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Year</label>
-                            <select class="form-select" name="filters[year]">
-                                <option value="2024">2024</option>
-                                <option value="2023">2023</option>
-                            </select>
-                        </div>
-                    `;
-                    break;
-                case 'borrowing':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" name="filters[status]">
-                                <option value="">All Statuses</option>
-                                <option value="active">Active</option>
-                                <option value="overdue">Overdue</option>
-                                <option value="returned">Returned</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date Range</label>
-                            <input type="date" class="form-control" name="filters[date_from]">
-                        </div>
-                    `;
-                    break;
-                case 'inventory':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Availability</label>
-                            <select class="form-select" name="filters[availability]">
-                                <option value="">All Books</option>
-                                <option value="available">Available Only</option>
-                                <option value="borrowed">Borrowed Only</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Minimum Copies</label>
-                            <input type="number" class="form-control" name="filters[min_copies]" value="1" min="0">
-                        </div>
-                    `;
-                    break;
-                case 'student':
-                    filtersHTML = `
-                        <div class="col-md-6">
-                            <label class="form-label">Activity Type</label>
-                            <select class="form-select" name="filters[activity]">
-                                <option value="all">All Activity</option>
-                                <option value="borrowing">Borrowing History</option>
-                                <option value="returns">Returns Only</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Class Filter</label>
-                            <input type="text" class="form-control" name="filters[class]" placeholder="e.g., Grade 10">
-                        </div>
-                    `;
-                    break;
-            }
-
-            filtersDiv.innerHTML = filtersHTML;
-            filtersDiv.style.display = 'block';
-        });
-    }
-    
-    // Generate advanced report
-    if (reportForm) {
-        reportForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating...';
-            
-            fetch('/admin/generateReport', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show results
-                    document.getElementById('resultsTitle').textContent = data.title;
-                    document.getElementById('resultsSummary').innerHTML = data.summary;
-                    document.getElementById('resultsCharts').innerHTML = data.charts || '';
-                    document.getElementById('resultsData').innerHTML = data.data;
-                    reportResults.style.display = 'block';
-                    
-                    // Scroll to results
-                    reportResults.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
-                    
-                    // Reload page to show new report in saved reports
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    alert('Error generating report: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to generate report. Please try again.');
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            });
-        });
-    }
-    
-    // ========== EXPORT FUNCTIONS ==========
-    function exportReport(format) {
-        const reportData = document.getElementById('resultsData').innerHTML;
-        const reportTitle = document.getElementById('resultsTitle').textContent;
-        
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/report/export';
-        
-        const formatInput = document.createElement('input');
-        formatInput.type = 'hidden';
-        formatInput.name = 'format';
-        formatInput.value = format;
-        
-        const dataInput = document.createElement('input');
-        dataInput.type = 'hidden';
-        dataInput.name = 'data';
-        dataInput.value = reportData;
-        
-        const titleInput = document.createElement('input');
-        titleInput.type = 'hidden';
-        titleInput.name = 'title';
-        titleInput.value = reportTitle;
-        
-        form.appendChild(formatInput);
-        form.appendChild(dataInput);
-        form.appendChild(titleInput);
-        
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-    }
-    
-    document.getElementById('exportCSVAdvanced')?.addEventListener('click', () => exportReport('csv'));
-    document.getElementById('exportPDFAdvanced')?.addEventListener('click', () => exportReport('pdf'));
-    document.getElementById('exportExcelAdvanced')?.addEventListener('click', () => exportReport('excel'));
     
     // ========== AUTO-DISMISS ALERTS ==========
     setTimeout(function() {

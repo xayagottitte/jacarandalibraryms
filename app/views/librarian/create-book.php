@@ -289,7 +289,7 @@ include '../app/views/shared/layout-header.php';
     <?php endif; ?>
 
     <div class="form-card">
-        <form method="POST" action="<?= BASE_PATH ?>/librarian/create-book">
+        <form method="POST" action="<?= BASE_PATH ?>/librarian/create-book" enctype="multipart/form-data">
             <!-- Basic Information Section -->
             <div class="form-section">
                 <h3 class="form-section-title">
@@ -377,12 +377,12 @@ include '../app/views/shared/layout-header.php';
                             <div class="d-flex gap-2">
                                 <div class="input-with-icon flex-grow-1">
                                     <i class="fas fa-folder"></i>
-                                    <select class="form-select" id="category" name="category">
+                                    <select class="form-select" id="category_id" name="category_id">
                                         <option value="">Select Category</option>
                                         <?php if (isset($categories) && is_array($categories)): ?>
                                             <?php foreach ($categories as $category): ?>
-                                                <option value="<?= htmlspecialchars($category['name'] ?? $category['category'] ?? '') ?>">
-                                                    <?= htmlspecialchars($category['name'] ?? $category['category'] ?? '') ?>
+                                                <option value="<?= htmlspecialchars($category['id']) ?>">
+                                                    <?= htmlspecialchars($category['name']) ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
@@ -424,6 +424,34 @@ include '../app/views/shared/layout-header.php';
                                 <i class="fas fa-sort-numeric-up"></i>
                                 <input type="number" class="form-control" id="total_copies" name="total_copies" 
                                        value="1" min="1" placeholder="1" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Book Cover Section -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-image"></i> Book Cover Image
+                </h3>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="cover_image" class="form-label">
+                                <i class="fas fa-upload"></i> Upload Cover Image <small class="text-muted">(Optional)</small>
+                            </label>
+                            <input type="file" class="form-control" id="cover_image" name="cover_image" 
+                                   accept="image/jpeg,image/png,image/gif,image/webp">
+                            <div class="form-text">Upload a cover image (JPEG, PNG, GIF, WebP - max 2MB)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cover Preview</label>
+                        <div id="coverPreview" style="border: 2px dashed #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
+                            <div class="text-muted">
+                                <i class="fas fa-image fa-3x mb-2" style="color: var(--primary-purple); opacity: 0.3;"></i>
+                                <p class="mb-0">Cover preview will appear here</p>
                             </div>
                         </div>
                     </div>
@@ -545,6 +573,45 @@ document.addEventListener('DOMContentLoaded', function() {
     // Reset form when modal is closed
     document.getElementById('addCategoryModal').addEventListener('hidden.bs.modal', function() {
         addCategoryForm.reset();
+    });
+
+    // Book cover preview functionality
+    document.getElementById('cover_image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('coverPreview');
+        
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+                e.target.value = '';
+                return;
+            }
+            
+            // Validate file size (2MB max)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB');
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Cover Preview" 
+                         style="max-width: 100%; max-height: 140px; border-radius: 8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);">
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = `
+                <div class="text-muted">
+                    <i class="fas fa-image fa-3x mb-2" style="color: var(--primary-purple); opacity: 0.3;"></i>
+                    <p class="mb-0">Cover preview will appear here</p>
+                </div>
+            `;
+        }
     });
 });
 </script>

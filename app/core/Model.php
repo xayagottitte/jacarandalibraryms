@@ -31,5 +31,9 @@ class Model {
         
         return $stmt->execute($data);
     }
+    
+    public function getLastInsertId() {
+        return $this->db->lastInsertId();
+    }
 }
 ?>

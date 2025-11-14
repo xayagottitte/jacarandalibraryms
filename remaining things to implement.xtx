@@ -1,4 +1,4 @@
-1. test lost books
+
 2. categories should be a drop down and admin/librarian should be able to add new categories.
 3. enlarge users table ina dmin dashboard
 4. library delete button  not working
@@ -42,3 +42,5 @@ librarian dashboard students at risk has 0 unpaid fines
           A. profile pic upload
           B profile detail edits
 
+history of a student borrowing
+mobile notifications

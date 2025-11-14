@@ -9,8 +9,15 @@ class Database {
 
     public function __construct() {
         // Load configuration based on environment
-        if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1') {
-            // Development environment
+        // Check if it's local development (localhost, 127.0.0.1, or local IP)
+        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $isLocal = in_array($serverName, ['localhost', '127.0.0.1']) || 
+                   preg_match('/^192\.168\.\d+\.\d+$/', $serverName) ||
+                   preg_match('/^10\.\d+\.\d+\.\d+$/', $serverName) ||
+                   preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/', $serverName);
+        
+        if ($isLocal) {
+            // Development/Local environment
             $this->host = 'localhost';
             $this->db_name = 'multi_library_system';
             $this->username = 'root';
@@ -40,8 +47,15 @@ class Database {
             );
         } catch(PDOException $e) {
             error_log("Database Connection Error: " . $e->getMessage());
+            // Check if local environment
+            $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
+            $isLocal = in_array($serverName, ['localhost', '127.0.0.1']) || 
+                       preg_match('/^192\.168\.\d+\.\d+$/', $serverName) ||
+                       preg_match('/^10\.\d+\.\d+\.\d+$/', $serverName) ||
+                       preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/', $serverName);
+            
             // Don't display detailed errors in production
-            if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1') {
+            if ($isLocal) {
                 die("Connection Error: " . $e->getMessage());
             } else {
                 die("Database connection failed. Please try again later.");

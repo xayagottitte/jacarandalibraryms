@@ -352,6 +352,7 @@ include '../app/views/shared/layout-header.php';
             <table class="modern-table">
                     <thead>
                         <tr class="table-header">
+                            <th width="60px">COVER</th>
                             <th>TITLE</th>
                             <th>AUTHOR</th>
                             <th>ISBN</th>
@@ -366,10 +367,19 @@ include '../app/views/shared/layout-header.php';
                     <tbody>
                         <?php foreach ($books as $book): ?>
                             <tr class="table-row">
+                                <td class="text-center">
+                                    <?php 
+                                    $bookModel = new Book();
+                                    $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($book['cover_image'] ?? null);
+                                    ?>
+                                    <img src="<?= $coverUrl ?>" alt="Book Cover" 
+                                         style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                         title="<?= htmlspecialchars($book['title']) ?>">
+                                </td>
                                 <td class="book-title"><?= htmlspecialchars($book['title']) ?></td>
                                 <td><?= htmlspecialchars($book['author']) ?></td>
                                 <td><span class="isbn-code"><?= htmlspecialchars($book['isbn'] ?? '') ?></span></td>
-                                <td><?= htmlspecialchars($book['category'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($book['category_name'] ?? 'Uncategorized') ?></td>
                                 <td class="text-center">
                                     <?php if (!empty($book['class_level'])): ?>
                                         <span class="class-badge"><?= htmlspecialchars($book['class_level']) ?></span>
@@ -730,7 +740,7 @@ function confirmDelete(message, bookId) {
         // Create a form to submit the delete request
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '/jacarandalibraryms/librarian/delete-book';
+        form.action = '<?= BASE_PATH ?>/librarian/delete-book';
         
         const input = document.createElement('input');
         input.type = 'hidden';

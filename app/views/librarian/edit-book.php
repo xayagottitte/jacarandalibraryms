@@ -287,7 +287,7 @@ textarea.form-control-custom {
             </div>
 
             <div class="form-card">
-                <form method="POST" action="<?php echo BASE_PATH; ?>/librarian/edit-book">
+                <form method="POST" action="<?php echo BASE_PATH; ?>/librarian/edit-book" enctype="multipart/form-data">
                     <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
                     
                     <!-- Basic Information Section -->
@@ -373,22 +373,20 @@ textarea.form-control-custom {
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group-custom">
-                                <label for="category" class="form-label-custom">
+                                <label for="category_id" class="form-label-custom">
                                     <i class="fas fa-tag"></i>
                                     Category<span class="required">*</span>
                                 </label>
-                                <select class="form-select form-select-custom" id="category" name="category" required>
+                                <select class="form-select form-select-custom" id="category_id" name="category_id" required>
                                     <option value="">Select Category</option>
-                                    <option value="Fiction" <?php echo ($book['category'] == 'Fiction') ? 'selected' : ''; ?>>Fiction</option>
-                                    <option value="Non-Fiction" <?php echo ($book['category'] == 'Non-Fiction') ? 'selected' : ''; ?>>Non-Fiction</option>
-                                    <option value="Science" <?php echo ($book['category'] == 'Science') ? 'selected' : ''; ?>>Science</option>
-                                    <option value="Mathematics" <?php echo ($book['category'] == 'Mathematics') ? 'selected' : ''; ?>>Mathematics</option>
-                                    <option value="History" <?php echo ($book['category'] == 'History') ? 'selected' : ''; ?>>History</option>
-                                    <option value="Literature" <?php echo ($book['category'] == 'Literature') ? 'selected' : ''; ?>>Literature</option>
-                                    <option value="Reference" <?php echo ($book['category'] == 'Reference') ? 'selected' : ''; ?>>Reference</option>
-                                    <option value="Children" <?php echo ($book['category'] == 'Children') ? 'selected' : ''; ?>>Children</option>
-                                    <option value="Educational" <?php echo ($book['category'] == 'Educational') ? 'selected' : ''; ?>>Educational</option>
-                                    <option value="Other" <?php echo ($book['category'] == 'Other') ? 'selected' : ''; ?>>Other</option>
+                                    <?php if (isset($categories) && is_array($categories)): ?>
+                                        <?php foreach ($categories as $category): ?>
+                                            <option value="<?= htmlspecialchars($category['id']) ?>" 
+                                                <?= ($book['category_id'] == $category['id']) ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($category['name']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                             </div>
                         </div>
@@ -417,6 +415,33 @@ textarea.form-control-custom {
                         </div>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label for="cover_image" class="form-label-custom">
+                                    <i class="fas fa-image"></i>
+                                    Book Cover Image
+                                </label>
+                                <input type="file" class="form-control form-control-custom" id="cover_image" name="cover_image" 
+                                       accept="image/jpeg,image/png,image/gif,image/webp">
+                                <small class="text-muted">Upload new cover (JPEG, PNG, GIF, WebP - max 2MB). Leave empty to keep current.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-custom">Current/New Cover</label>
+                                <div id="coverPreview" style="border: 2px dashed #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
+                                    <?php 
+                                    $bookModel = new Book();
+                                    $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($book['cover_image'] ?? null);
+                                    ?>
+                                    <img src="<?= $coverUrl ?>" alt="Current Cover" 
+                                         style="max-width: 100%; max-height: 140px; border-radius: 8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group-custom">
                         <label for="description" class="form-label-custom">
                             <i class="fas fa-align-left"></i>
@@ -441,5 +466,39 @@ textarea.form-control-custom {
         </div>
     </div>
 </div>
+
+<script>
+// Book cover preview functionality
+document.getElementById('cover_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('coverPreview');
+    
+    if (file) {
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            e.target.value = '';
+            return;
+        }
+        
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="New Cover Preview" 
+                     style="max-width: 100%; max-height: 140px; border-radius: 8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);">
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 
 <?php include __DIR__ . '/../shared/footer.php'; ?>

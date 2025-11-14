@@ -463,6 +463,7 @@ include '../app/views/shared/layout-header.php';
                         <table class="borrow-table">
                             <thead>
                                 <tr>
+                                    <th width="60"><i class="fas fa-image me-2"></i>Cover</th>
                                     <th><i class="fas fa-book me-2"></i>Book Title</th>
                                     <th><i class="fas fa-user-edit me-2"></i>Author</th>
                                     <th><i class="fas fa-calendar-check me-2"></i>Borrowed</th>
@@ -475,6 +476,15 @@ include '../app/views/shared/layout-header.php';
                             <tbody>
                                 <?php foreach ($active_borrows as $borrow): ?>
                                     <tr>
+                                        <td class="text-center">
+                                            <?php 
+                                            $bookModel = new Book();
+                                            $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($borrow['cover_image'] ?? null);
+                                            ?>
+                                            <img src="<?= $coverUrl ?>" alt="Book Cover" 
+                                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                                 title="<?= htmlspecialchars($borrow['title']) ?>">
+                                        </td>
                                         <td><strong><?= htmlspecialchars($borrow['title']) ?></strong></td>
                                         <td><?= htmlspecialchars($borrow['author']) ?></td>
                                         <td><?= date('M j, Y', strtotime($borrow['borrowed_date'])) ?></td>

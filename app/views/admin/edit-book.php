@@ -114,7 +114,7 @@
                         </h6>
                     </div>
                     <div class="card-body">
-                        <form method="POST" id="editBookForm">
+                        <form method="POST" id="editBookForm" enctype="multipart/form-data">
                             <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
                             <input type="hidden" name="library_id" value="<?php echo $book['library_id']; ?>">
                             
@@ -172,10 +172,18 @@
 
                             <div class="row mb-3">
                                 <div class="col-md-4">
-                                    <label for="category" class="form-label">Category</label>
-                                    <input type="text" name="category" id="category" class="form-control" 
-                                           value="<?php echo htmlspecialchars($book['category'] ?? ''); ?>"
-                                           placeholder="e.g., Fiction, Science, History">
+                                    <label for="category_id" class="form-label">Category</label>
+                                    <select class="form-select" id="category_id" name="category_id">
+                                        <option value="">Select Category</option>
+                                        <?php if (isset($categories) && is_array($categories)): ?>
+                                            <?php foreach ($categories as $category): ?>
+                                                <option value="<?= $category['id'] ?>" 
+                                                    <?= ($book['category_id'] == $category['id']) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($category['name']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="publication_year" class="form-label">Publication Year</label>
@@ -188,6 +196,26 @@
                                     <input type="number" name="total_copies" id="total_copies" class="form-control" 
                                            value="<?php echo $book['total_copies']; ?>" min="1" required>
                                     <div class="form-text">Available copies will be calculated automatically</div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="cover_image" class="form-label">Book Cover Image</label>
+                                    <input type="file" name="cover_image" id="cover_image" class="form-control" 
+                                           accept="image/jpeg,image/png,image/gif,image/webp">
+                                    <div class="form-text">Upload a new cover image (JPEG, PNG, GIF, WebP - max 2MB). Leave empty to keep current.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Current/New Cover</label>
+                                    <div id="coverPreview" style="border: 2px dashed #e0e0e0; border-radius: 8px; padding: 20px; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
+                                        <?php 
+                                        $bookModel = new Book();
+                                        $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($book['cover_image'] ?? null);
+                                        ?>
+                                        <img src="<?= $coverUrl ?>" alt="Current Cover" 
+                                             style="max-width: 100%; max-height: 120px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    </div>
                                 </div>
                             </div>
 
@@ -316,6 +344,38 @@ document.getElementById('total_copies').addEventListener('input', function() {
         this.setCustomValidity(`Total copies must be at least ${currentlyBorrowed} (currently borrowed copies)`);
     } else {
         this.setCustomValidity('');
+    }
+});
+
+// Book cover preview functionality
+document.getElementById('cover_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('coverPreview');
+    
+    if (file) {
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            e.target.value = '';
+            return;
+        }
+        
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="New Cover Preview" 
+                     style="max-width: 100%; max-height: 120px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            `;
+        };
+        reader.readAsDataURL(file);
     }
 });
 </script>

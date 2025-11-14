@@ -1,20 +1,25 @@
 <?php
 class Book extends Model {
     public function create($data) {
-        $query = "INSERT INTO books (title, author, isbn, publisher, publication_year, category, class_level, total_copies, available_copies, library_id, created_by, created_at) VALUES (:title, :author, :isbn, :publisher, :publication_year, :category, :class_level, :total_copies, :available_copies, :library_id, :created_by, NOW())";
+        $query = "INSERT INTO books (title, author, isbn, publisher, publication_year, category_id, cover_image, class_level, total_copies, available_copies, library_id, created_by, created_at) VALUES (:title, :author, :isbn, :publisher, :publication_year, :category_id, :cover_image, :class_level, :total_copies, :available_copies, :library_id, :created_by, NOW())";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':title', $data['title']);
         $stmt->bindParam(':author', $data['author']);
         $stmt->bindParam(':isbn', $data['isbn']);
         $stmt->bindParam(':publisher', $data['publisher']);
         $stmt->bindParam(':publication_year', $data['publication_year']);
-        $stmt->bindParam(':category', $data['category']);
+        $stmt->bindParam(':category_id', $data['category_id']);
+        $stmt->bindParam(':cover_image', $data['cover_image']);
         $stmt->bindParam(':class_level', $data['class_level']);
         $stmt->bindParam(':total_copies', $data['total_copies']);
         $stmt->bindParam(':available_copies', $data['available_copies']);
         $stmt->bindParam(':library_id', $data['library_id']);
         $stmt->bindParam(':created_by', $data['created_by']);
-        return $stmt->execute();
+        
+        if ($stmt->execute()) {
+            return $this->db->lastInsertId();
+        }
+        return false;
     }
     protected $table = 'books';
 
@@ -23,9 +28,10 @@ class Book extends Model {
     }
 
     public function getBooksByLibrary($libraryId, $filters = []) {
-        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type, c.name as category_name 
                   FROM books b 
                   LEFT JOIN libraries l ON b.library_id = l.id 
+                  LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = ?";
         
         $params = [$libraryId];
@@ -39,7 +45,7 @@ class Book extends Model {
         }
 
         if (!empty($filters['category'])) {
-            $query .= " AND b.category = ?";
+            $query .= " AND b.category_id = ?";
             $params[] = $filters['category'];
         }
 
@@ -83,9 +89,12 @@ class Book extends Model {
     }
 
     public function getCategoriesByLibrary($libraryId) {
-        $query = "SELECT DISTINCT category FROM books 
-                  WHERE library_id = :library_id AND category IS NOT NULL 
-                  ORDER BY category";
+        $query = "SELECT c.id, c.name, COUNT(b.id) as book_count 
+                  FROM categories c
+                  LEFT JOIN books b ON c.id = b.category_id AND b.library_id = c.library_id
+                  WHERE c.library_id = :library_id 
+                  GROUP BY c.id, c.name
+                  ORDER BY c.name";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId);
         $stmt->execute();
@@ -137,7 +146,7 @@ class Book extends Model {
         $query = "UPDATE books SET 
                  title = ?, author = ?, isbn = ?, 
                  publisher = ?, publication_year = ?,
-                 category = ?, class_level = ?, total_copies = ?, 
+                 category_id = ?, cover_image = ?, class_level = ?, total_copies = ?, 
                  available_copies = ? 
                  WHERE id = ? AND library_id = ?";
 
@@ -145,11 +154,11 @@ class Book extends Model {
         $result = $stmt->execute([
             $data['title'], $data['author'], $data['isbn'],
             $data['publisher'], $data['publication_year'],
-            $data['category'], $data['class_level'], $data['total_copies'],
+            $data['category_id'], $data['cover_image'], $data['class_level'], $data['total_copies'],
             $data['available_copies'], $id, $libraryId
         ]);
         if ($result) {
-            \Security::logActivity($data['updated_by'] ?? null, 'Updated book ID ' . $id);
+            \Security::logActivity($data['updated_by'] ?? null, 'book_update', 'data', 'Updated book ID ' . $id);
         }
         return $result;
     }
@@ -164,15 +173,33 @@ class Book extends Model {
 
     public function deleteBook($id, $libraryId) {
         try {
-            $deleteQuery = "DELETE FROM books WHERE id = ? AND library_id = ?";
-            $stmt = $this->db->prepare($deleteQuery);
+            // Since there's a foreign key constraint, we need to handle borrows first
+            // Option 1: Delete all borrow records for this book (if no active borrows exist)
+            // The controller already checks for active borrows, so this should be safe
+            
+            // Delete all borrow records for this book
+            $deleteBorrowsQuery = "DELETE FROM borrows WHERE book_id = ?";
+            $stmt = $this->db->prepare($deleteBorrowsQuery);
+            $stmt->execute([$id]);
+            
+            // Now delete the book
+            $query = "DELETE FROM books WHERE id = ? AND library_id = ?";
+            $stmt = $this->db->prepare($query);
             $result = $stmt->execute([$id, $libraryId]);
-            if ($result && $stmt->rowCount() > 0) {
-                \Security::logActivity($_SESSION['user_id'] ?? null, 'Deleted book ID ' . $id);
-                return true;
+            
+            if ($result) {
+                $rowsDeleted = $stmt->rowCount();
+                if ($rowsDeleted > 0) {
+                    // Log the deletion
+                    $userId = $_SESSION['user_id'] ?? 0;
+                    \Security::logActivity($userId, 'book_delete', 'data', "Deleted book ID {$id} from library {$libraryId}");
+                    return true;
+                }
             }
+            
             return false;
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
+            error_log("Book deletion error: " . $e->getMessage());
             return false;
         }
     }
@@ -217,7 +244,7 @@ class Book extends Model {
         }
 
         if (!empty($filters['category'])) {
-            $query .= " AND b.category = ?";
+            $query .= " AND b.category_id = ?";
             $params[] = $filters['category'];
         }
 
@@ -258,7 +285,7 @@ class Book extends Model {
         }
 
         if (!empty($filters['category'])) {
-            $query .= " AND b.category = ?";
+            $query .= " AND b.category_id = ?";
             $params[] = $filters['category'];
         }
 
@@ -304,14 +331,15 @@ class Book extends Model {
 
     public function getCategoryStatistics($libraryId = null) {
         $query = "SELECT 
-                    b.category,
+                    c.name as category,
                     COUNT(*) as book_count,
                     SUM(b.total_copies) as total_copies,
                     SUM(b.available_copies) as available_copies,
                     l.name as library_name
                   FROM books b 
                   LEFT JOIN libraries l ON b.library_id = l.id 
-                  WHERE b.category IS NOT NULL AND b.category != ''";
+                  LEFT JOIN categories c ON b.category_id = c.id
+                  WHERE b.category_id IS NOT NULL";
         
         $params = [];
         if ($libraryId) {
@@ -319,8 +347,8 @@ class Book extends Model {
             $params[] = $libraryId;
         }
         
-        $query .= " GROUP BY b.category, b.library_id, l.name
-                  ORDER BY b.category, l.name";
+        $query .= " GROUP BY c.id, c.name, b.library_id, l.name
+                  ORDER BY c.name, l.name";
         
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -348,18 +376,17 @@ class Book extends Model {
 
     public function getUnderutilizedBooks($libraryId, $limit = 5) {
         $query = "SELECT 
-                    b.title, 
+                    b.title,
                     b.class_level,
                     COALESCE(COUNT(br.id), 0) as borrow_count
                   FROM books b
                   LEFT JOIN borrows br ON br.book_id = b.id
+                  LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
-                  AND (b.category = 'Educational' OR b.category = 'education')
+                  AND (c.name = 'Educational' OR c.name = 'education')
                   GROUP BY b.id, b.title, b.class_level
                   ORDER BY borrow_count ASC, b.created_at DESC
-                  LIMIT :limit";
-        
-        $stmt = $this->db->prepare($query);
+                  LIMIT :limit";        $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -368,14 +395,14 @@ class Book extends Model {
 
     public function getCategoryBorrowStats($libraryId) {
         $query = "SELECT 
-                    b.category,
+                    c.name as category,
                     COUNT(DISTINCT br.id) as borrow_count
                   FROM books b
                   LEFT JOIN borrows br ON br.book_id = b.id
+                  LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
-                  AND b.category IS NOT NULL 
-                  AND b.category != ''
-                  GROUP BY b.category
+                  AND b.category_id IS NOT NULL 
+                  GROUP BY c.id, c.name
                   ORDER BY borrow_count DESC";
         
         $stmt = $this->db->prepare($query);
@@ -406,6 +433,118 @@ class Book extends Model {
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function uploadBookCover($file, $bookId) {
+        try {
+            $uploadDir = __DIR__ . '/../../public/assets/img/books/';
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $maxFileSize = 2 * 1024 * 1024; // 2MB
+            
+            // Validate file
+            if (!in_array($file['type'], $allowedTypes)) {
+                throw new Exception('Invalid file type. Please upload JPEG, PNG, GIF, or WebP images only.');
+            }
+            
+            if ($file['size'] > $maxFileSize) {
+                throw new Exception('File size too large. Maximum size is 2MB.');
+            }
+            
+            // Generate unique filename
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = 'book_' . $bookId . '_' . time() . '.' . $extension;
+            $filepath = $uploadDir . $filename;
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+            
+            // Move uploaded file
+            if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                // Update book record with new cover image
+                $query = "UPDATE books SET cover_image = ? WHERE id = ?";
+                $stmt = $this->db->prepare($query);
+                $result = $stmt->execute([$filename, $bookId]);
+                
+                if ($result) {
+                    return [
+                        'success' => true,
+                        'filename' => $filename,
+                        'message' => 'Book cover uploaded successfully'
+                    ];
+                } else {
+                    // Remove file if database update failed
+                    unlink($filepath);
+                    throw new Exception('Failed to update book record');
+                }
+            } else {
+                throw new Exception('Failed to upload file');
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function getBookCoverUrl($coverImage) {
+        if (!empty($coverImage)) {
+            $filePath = __DIR__ . '/../../public/assets/img/books/' . $coverImage;
+            if (file_exists($filePath)) {
+                return '/public/assets/img/books/' . $coverImage;
+            }
+        }
+        return '/public/assets/img/books/default-cover.svg';
+    }
+
+    public function getTotalBooksCount($libraryId = null) {
+        $query = "SELECT COUNT(*) as count FROM books";
+        
+        if ($libraryId) {
+            $query .= " WHERE library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    public function getAvailableBooksCount($libraryId = null) {
+        $query = "SELECT SUM(available_copies) as count FROM books";
+        
+        if ($libraryId) {
+            $query .= " WHERE library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
+    }
+
+    public function getTotalCopiesCount($libraryId = null) {
+        $query = "SELECT SUM(total_copies) as count FROM books";
+        
+        if ($libraryId) {
+            $query .= " WHERE library_id = :library_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        if ($libraryId) {
+            $stmt->bindParam(':library_id', $libraryId);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
     }
 }
 ?>
