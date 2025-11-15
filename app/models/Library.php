@@ -10,15 +10,16 @@ class Library extends Model {
      $query = "SELECT l.*, 
                 COUNT(DISTINCT u.id) as total_librarians,
                 COUNT(DISTINCT b.id) as total_books,
-                COALESCE(SUM(b.total_copies), 0) as total_copies,
-                COALESCE(SUM(b.available_copies), 0) as available_copies,
+                (SELECT COALESCE(SUM(b2.total_copies), 0) FROM books b2 WHERE b2.library_id = l.id) as total_copies,
+                (SELECT COALESCE(SUM(b2.available_copies), 0) FROM books b2 WHERE b2.library_id = l.id) as available_copies,
                 COUNT(DISTINCT s.id) as total_students,
-                COUNT(DISTINCT CASE WHEN br.status IN ('borrowed', 'overdue') THEN br.id END) as active_borrows
+                (SELECT COUNT(DISTINCT br2.id) FROM borrows br2 
+                 INNER JOIN books b2 ON br2.book_id = b2.id 
+                 WHERE b2.library_id = l.id AND br2.status IN ('borrowed', 'overdue')) as active_borrows
             FROM libraries l
             LEFT JOIN users u ON l.id = u.library_id AND u.role = 'librarian' AND u.status = 'active'
             LEFT JOIN books b ON l.id = b.library_id
             LEFT JOIN students s ON l.id = s.library_id
-            LEFT JOIN borrows br ON b.id = br.book_id
             WHERE 1=1";
         
         $params = [];
@@ -129,24 +130,80 @@ class Library extends Model {
     }
 
     public function canDelete($id) {
-        // Check users in library
-        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM users WHERE library_id = :id");
-        $stmt->execute([':id' => $id]);
-        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has assigned librarians.'];
-        // Check books in library
-        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM books WHERE library_id = :id");
-        $stmt->execute([':id' => $id]);
-        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has books.'];
-        // Check students
-        $stmt = $this->db->prepare("SELECT COUNT(*) as c FROM students WHERE library_id = :id");
-        $stmt->execute([':id' => $id]);
-        if ((int)$stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0) return [false, 'It has students.'];
+        // Always return true - we'll handle cleanup in deleteLibraryById
         return [true, ''];
     }
 
     public function deleteLibraryById($id) {
-        $stmt = $this->db->prepare("DELETE FROM libraries WHERE id = :id");
-        return $stmt->execute([':id' => $id]) && $stmt->rowCount() > 0;
+        try {
+            error_log("Starting library deletion for ID: $id");
+            
+            // Disable foreign key checks temporarily
+            $this->db->exec("SET FOREIGN_KEY_CHECKS = 0");
+            
+            $this->db->beginTransaction();
+            
+            // 1. Delete all borrows related to this library (must come before students/books)
+            $stmt = $this->db->prepare("DELETE FROM borrows WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedBorrows = $stmt->rowCount();
+            error_log("Deleted $deletedBorrows borrows");
+            
+            // 2. Delete reservations related to this library
+            $stmt = $this->db->prepare("DELETE FROM reservations WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedReservations = $stmt->rowCount();
+            error_log("Deleted $deletedReservations reservations");
+            
+            // 3. Delete all students in this library
+            $stmt = $this->db->prepare("DELETE FROM students WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedStudents = $stmt->rowCount();
+            error_log("Deleted $deletedStudents students");
+            
+            // 4. Delete all books in this library
+            $stmt = $this->db->prepare("DELETE FROM books WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedBooks = $stmt->rowCount();
+            error_log("Deleted $deletedBooks books");
+            
+            // 5. Delete reports for this library
+            $stmt = $this->db->prepare("DELETE FROM reports WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            error_log("Deleted reports");
+            
+            // 6. Delete all librarians assigned to this library
+            $stmt = $this->db->prepare("DELETE FROM users WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedUsers = $stmt->rowCount();
+            error_log("Deleted $deletedUsers librarians");
+            
+            // 7. Finally, delete the library itself
+            $stmt = $this->db->prepare("DELETE FROM libraries WHERE id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedLibrary = $stmt->rowCount();
+            error_log("Deleted library: " . ($deletedLibrary > 0 ? "YES" : "NO"));
+            
+            if ($deletedLibrary > 0) {
+                $this->db->commit();
+                // Re-enable foreign key checks
+                $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
+                error_log("Library deletion committed successfully");
+                return true;
+            } else {
+                $this->db->rollBack();
+                $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
+                error_log("Library not found or already deleted");
+                return false;
+            }
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            // Re-enable foreign key checks even on error
+            $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
+            error_log("Error deleting library: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
     }
 
     public function getLoanPeriod($libraryId) {

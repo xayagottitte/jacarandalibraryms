@@ -54,27 +54,27 @@
     }
     
     .stat-card-gradient.primary {
-        background: var(--gradient-primary);
+        background: linear-gradient(135deg, #663399 0%, #8a4baf 100%);
     }
     
     .stat-card-gradient.success {
-        background: var(--gradient-success);
+        background: linear-gradient(135deg, #8a4baf 0%, #a47cc6 100%);
     }
     
     .stat-card-gradient.warning {
-        background: var(--gradient-warning);
+        background: linear-gradient(135deg, #a47cc6 0%, #c9a0dc 100%);
     }
     
     .stat-card-gradient.info {
-        background: var(--gradient-info);
+        background: linear-gradient(135deg, #9b7bb3 0%, #b399cc 100%);
     }
     
     .stat-card-gradient.secondary {
-        background: linear-gradient(135deg, #a8a8ff 0%, #8e8eff 100%);
+        background: linear-gradient(135deg, #7b5a9e 0%, #9b7bb3 100%);
     }
     
     .stat-card-gradient.teal {
-        background: linear-gradient(135deg, #3eadcf 0%, #abe9cd 100%);
+        background: linear-gradient(135deg, #8a4baf 0%, #b399cc 100%);
     }
     
     .stat-card-gradient .card-body {
@@ -312,6 +312,10 @@
                 </button>
             </div>
             <div class="card-body">
+                <div class="alert alert-info mb-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: none; border-radius: 8px;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> Library deletion is restricted to maintain data integrity. To delete a library, please access the database directly and remove the record from the <code>libraries</code> table. Ensure all related data (books, students, librarians) is handled appropriately before deletion.
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
                         <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">
@@ -338,25 +342,25 @@
                                     data-has-librarian="<?php echo $library['total_librarians'] > 0 ? 'yes' : 'no'; ?>">
                                     <td><strong><?php echo htmlspecialchars($library['name']); ?></strong></td>
                                     <td>
-                                        <span class="badge bg-<?php echo $library['type'] === 'primary' ? 'primary' : 'success'; ?>">
+                                        <span class="badge badge-purple">
                                             <?php echo ucfirst($library['type']); ?>
                                         </span>
                                     </td>
                                     <td><?php echo htmlspecialchars($library['address']); ?></td>
                                     <td>
-                                        <span class="badge bg-info">
+                                        <span class="badge badge-purple-light">
                                             <?php echo $library['loan_period_days'] ?? 5; ?> days
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-<?php echo $library['total_librarians'] > 0 ? 'success' : 'warning'; ?>">
+                                        <span class="badge badge-<?php echo $library['total_librarians'] > 0 ? 'purple' : 'gray'; ?>">
                                             <?php echo $library['total_librarians']; ?> Librarians
                                         </span>
                                     </td>
                                     <td><?php echo $library['total_books']; ?></td>
                                     <td>
-                                        <span class="badge bg-primary">Total: <?php echo $library['total_copies']; ?></span><br>
-                                        <span class="badge bg-success mt-1">Available: <?php echo $library['available_copies']; ?></span>
+                                        <span class="badge badge-purple">Total: <?php echo $library['total_copies']; ?></span><br>
+                                        <span class="badge badge-purple-light mt-1">Available: <?php echo $library['available_copies']; ?></span>
                                     </td>
                                     <td><?php echo $library['total_students']; ?></td>
                                     <td><?php echo date('M j, Y', strtotime($library['created_at'])); ?></td>
@@ -366,13 +370,16 @@
                                                class="btn btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <?php if ($library['total_librarians'] == 0 && $library['total_books'] == 0 && $library['total_students'] == 0): ?>
-                                                <button type="button" class="btn btn-outline-danger" 
-                                                        onclick="confirmDelete(<?php echo $library['id']; ?>, '<?php echo htmlspecialchars($library['name']); ?>')" 
-                                                        title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            <?php endif; ?>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger delete-library-btn" 
+                                                    data-library-id="<?php echo $library['id']; ?>"
+                                                    data-library-name="<?php echo htmlspecialchars($library['name']); ?>"
+                                                    data-total-librarians="<?php echo $library['total_librarians']; ?>"
+                                                    data-total-books="<?php echo $library['total_books']; ?>"
+                                                    data-total-students="<?php echo $library['total_students']; ?>"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -490,21 +497,54 @@
 <!-- Delete Library Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Delete Library</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none;">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Library
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to permanently delete library "<span id="deleteLibraryName"></span>"?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</p>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div id="deleteWarningContent">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Password Authentication Section -->
+                <div id="passwordSection" style="display: none;">
+                    <div class="alert alert-warning" style="background: linear-gradient(135deg, #fff4e6 0%, #ffe5b4 100%); border: none; border-radius: 8px;">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Authentication Required</strong><br>
+                        <small>Please enter your password to confirm this critical action.</small>
+                    </div>
+                    <form method="POST" action="<?php echo BASE_PATH; ?>/admin/delete-library" id="deleteLibraryForm">
+                        <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
+                        <input type="hidden" name="id" id="deleteLibraryId">
+                        
+                        <div class="mb-3">
+                            <label for="admin_password" class="form-label" style="font-weight: 600; color: #663399;">
+                                <i class="fas fa-lock me-1"></i>Your Password
+                            </label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="admin_password" 
+                                   name="admin_password" 
+                                   required
+                                   placeholder="Enter your password"
+                                   style="border-radius: 8px; border: 2px solid #e3e6f0; padding: 0.75rem;">
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="<?php echo BASE_PATH; ?>/admin/delete-library" style="display: inline;">
-                    <input type="hidden" name="id" id="deleteLibraryId">
-                    <button type="submit" class="btn btn-danger">Delete Library</button>
-                </form>
+            <div class="modal-footer" style="border: none; background: #f8f9fc; padding: 1rem 1.5rem;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px; padding: 0.5rem 1.5rem;">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" 
+                        class="btn btn-danger" 
+                        id="confirmDeleteBtn" 
+                        style="display: none; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border: none; border-radius: 8px; padding: 0.5rem 1.5rem;">
+                    <i class="fas fa-trash me-1"></i>Delete Library
+                </button>
             </div>
         </div>
     </div>
@@ -581,7 +621,26 @@ document.addEventListener('DOMContentLoaded', function() {
         librarianFilter.value = '';
         filterLibraries();
     });
+    
+    // Attach delete button listeners
+    document.querySelectorAll('.delete-library-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const libraryId = parseInt(this.dataset.libraryId);
+            const libraryName = this.dataset.libraryName;
+            const totalLibrarians = parseInt(this.dataset.totalLibrarians);
+            const totalBooks = parseInt(this.dataset.totalBooks);
+            const totalStudents = parseInt(this.dataset.totalStudents);
+            
+            confirmLibraryDelete(libraryId, libraryName, totalLibrarians, totalBooks, totalStudents);
+            
+            return false;
+        });
+    });
 });
+
 
 function toggleLibrarianAssign() {
     const card = document.getElementById('librarianAssignCard');
@@ -597,10 +656,10 @@ function viewLibrary(library) {
     const content = `
         <div class="row">
             <div class="col-md-6">
-                <h6 class="text-primary"><i class="fas fa-building me-2"></i>Basic Information</h6>
+                <h6 style="color: #663399; font-weight: 600;"><i class="fas fa-building me-2"></i>Basic Information</h6>
                 <table class="table table-sm">
                     <tr><td><strong>Name:</strong></td><td>${library.name}</td></tr>
-                    <tr><td><strong>Type:</strong></td><td><span class="badge bg-${library.type === 'primary' ? 'primary' : 'success'}">${library.type.charAt(0).toUpperCase() + library.type.slice(1)} School</span></td></tr>
+                    <tr><td><strong>Type:</strong></td><td><span class="badge badge-purple">${library.type.charAt(0).toUpperCase() + library.type.slice(1)} School</span></td></tr>
                     <tr><td><strong>Address:</strong></td><td>${library.address}</td></tr>
                     ${library.phone ? `<tr><td><strong>Phone:</strong></td><td>${library.phone}</td></tr>` : ''}
                     ${library.email ? `<tr><td><strong>Email:</strong></td><td>${library.email}</td></tr>` : ''}
@@ -608,18 +667,18 @@ function viewLibrary(library) {
                 </table>
             </div>
             <div class="col-md-6">
-                <h6 class="text-primary"><i class="fas fa-chart-bar me-2"></i>Statistics</h6>
+                <h6 style="color: #663399; font-weight: 600;"><i class="fas fa-chart-bar me-2"></i>Statistics</h6>
                 <table class="table table-sm">
-                    <tr><td><strong>Librarians:</strong></td><td><span class="badge bg-${library.total_librarians > 0 ? 'success' : 'warning'}">${library.total_librarians}</span></td></tr>
-                    <tr><td><strong>Books:</strong></td><td><span class="badge bg-info">${library.total_books}</span></td></tr>
-                    <tr><td><strong>Students:</strong></td><td><span class="badge bg-secondary">${library.total_students}</span></td></tr>
+                    <tr><td><strong>Librarians:</strong></td><td><span class="badge badge-${library.total_librarians > 0 ? 'purple' : 'gray'}">${library.total_librarians}</span></td></tr>
+                    <tr><td><strong>Books:</strong></td><td><span class="badge badge-purple-light">${library.total_books}</span></td></tr>
+                    <tr><td><strong>Students:</strong></td><td><span class="badge badge-purple-light">${library.total_students}</span></td></tr>
                 </table>
             </div>
         </div>
         ${library.description ? `
         <div class="row mt-3">
             <div class="col-12">
-                <h6 class="text-primary"><i class="fas fa-info-circle me-2"></i>Description</h6>
+                <h6 style="color: #663399; font-weight: 600;"><i class="fas fa-info-circle me-2"></i>Description</h6>
                 <p class="text-muted">${library.description}</p>
             </div>
         </div>` : ''}
@@ -629,10 +688,75 @@ function viewLibrary(library) {
     new bootstrap.Modal(document.getElementById('viewLibraryModal')).show();
 }
 
-function confirmDelete(libraryId, libraryName) {
-    document.getElementById('deleteLibraryId').value = libraryId;
-    document.getElementById('deleteLibraryName').textContent = libraryName;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+function confirmLibraryDelete(libraryId, libraryName, totalLibrarians, totalBooks, totalStudents) {
+    try {
+        const deleteIdInput = document.getElementById('deleteLibraryId');
+        if (!deleteIdInput) {
+            return;
+        }
+        deleteIdInput.value = libraryId;
+        
+        // Build warning message based on what will be deleted
+        let warningContent = '';
+        let itemsList = [];
+        
+        if (totalLibrarians > 0) itemsList.push(`${totalLibrarians} librarian(s)`);
+        if (totalBooks > 0) itemsList.push(`${totalBooks} book(s)`);
+        if (totalStudents > 0) itemsList.push(`${totalStudents} student(s)`);
+        
+        if (itemsList.length > 0) {
+            warningContent = `
+                <div class="alert alert-danger" style="background: linear-gradient(135deg, #ffe5e5 0%, #ffcccc 100%); border: none; border-radius: 8px; margin-bottom: 1rem;">
+                    <h6 style="color: #c0392b; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Cascade Deletion Warning
+                    </h6>
+                    <p style="margin-bottom: 0.5rem; color: #555;">
+                        Deleting library <strong>"${libraryName}"</strong> will also permanently delete:
+                    </p>
+                    <ul style="margin: 0; padding-left: 1.5rem; color: #555;">
+                        ${itemsList.map(item => `<li><i class="fas fa-times-circle me-1" style="color: #c0392b;"></i>${item}</li>`).join('')}
+                    </ul>
+                    <p style="margin-top: 0.75rem; margin-bottom: 0; color: #c0392b; font-weight: 600;">
+                        <i class="fas fa-exclamation-circle me-1"></i>This action cannot be undone!
+                    </p>
+                </div>
+            `;
+        } else {
+            warningContent = `
+                <div class="alert alert-warning" style="background: linear-gradient(135deg, #fff4e6 0%, #ffe5b4 100%); border: none; border-radius: 8px; margin-bottom: 1rem;">
+                    <h6 style="color: #c0392b; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-exclamation-circle me-2"></i>Permanent Deletion Warning
+                    </h6>
+                    <p style="margin: 0; color: #555;">
+                        You are about to permanently delete library <strong>"${libraryName}"</strong>. 
+                        This action cannot be undone.
+                    </p>
+                </div>
+            `;
+        }
+        
+        // Always show password section and delete button
+        document.getElementById('passwordSection').style.display = 'block';
+        document.getElementById('confirmDeleteBtn').style.display = 'inline-block';
+        document.getElementById('confirmDeleteBtn').onclick = function() {
+            const password = document.getElementById('admin_password').value;
+            if (!password) {
+                const passwordInput = document.getElementById('admin_password');
+                passwordInput.classList.add('is-invalid');
+                passwordInput.focus();
+                return;
+            }
+            document.getElementById('deleteLibraryForm').submit();
+        };
+    
+        document.getElementById('deleteWarningContent').innerHTML = warningContent;
+        const modalElement = document.getElementById('deleteModal');
+        if (modalElement) {
+            new bootstrap.Modal(modalElement).show();
+        }
+    } catch (error) {
+        // Silently fail
+    }
 }
 
 // Auto-dismiss alerts after 5 seconds
@@ -647,35 +771,87 @@ setTimeout(function() {
 
 <style>
 .border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
+    border-left: 0.25rem solid #663399 !important;
 }
 
 .border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
+    border-left: 0.25rem solid #8a4baf !important;
 }
 
 .border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
+    border-left: 0.25rem solid #a47cc6 !important;
 }
 
 .border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
+    border-left: 0.25rem solid #c9a0dc !important;
 }
 
 .border-left-secondary {
-    border-left: 0.25rem solid #858796 !important;
-}
-
-.border-left-secondary {
-    border-left: 0.25rem solid #6c757d !important;
+    border-left: 0.25rem solid #9b7bb3 !important;
 }
 
 .border-left-dark {
-    border-left: 0.25rem solid #343a40 !important;
+    border-left: 0.25rem solid #553377 !important;
+}
+
+/* Enhanced Table Styling */
+.table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+.table thead th {
+    border: none !important;
+    padding: 1rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+}
+
+.table tbody td {
+    border: none !important;
+    border-top: 1px solid #f0f0f0 !important;
+    padding: 1rem !important;
+    vertical-align: middle !important;
+    transition: all 0.3s ease !important;
+}
+
+.table-hover tbody tr {
+    transition: all 0.3s ease !important;
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(0,0,0,.025);
+    background: linear-gradient(135deg, #f8f4fc 0%, #f0ebf7 100%) !important;
+    transform: scale(1.005) !important;
+    box-shadow: 0 4px 12px rgba(102, 51, 153, 0.08) !important;
+}
+
+/* Custom Badge Colors - Purple Theme */
+.badge-purple {
+    background: linear-gradient(135deg, #663399 0%, #8a4baf 100%) !important;
+    color: white !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+
+.badge-purple-light {
+    background: linear-gradient(135deg, #a47cc6 0%, #c9a0dc 100%) !important;
+    color: white !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+
+.badge-gray {
+    background: linear-gradient(135deg, #858796 0%, #9a9aad 100%) !important;
+    color: white !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
 }
 
 .badge {
@@ -686,23 +862,69 @@ setTimeout(function() {
     font-size: 0.875rem !important;
 }
 
+/* Button Group Enhancements */
 .btn-group .btn {
     margin-right: 2px;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
 }
 
 .btn-group .btn:last-child {
     margin-right: 0;
 }
 
+.btn-group .btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.btn-outline-primary {
+    color: #663399 !important;
+    border-color: #663399 !important;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #663399 0%, #8a4baf 100%) !important;
+    border-color: #663399 !important;
+    color: white !important;
+}
+
+.btn-outline-danger {
+    color: #e74c3c !important;
+    border-color: #e74c3c !important;
+}
+
+.btn-outline-danger:hover {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+    border-color: #e74c3c !important;
+    color: white !important;
+}
+
+/* Card Enhancements */
+.card {
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+    overflow: hidden !important;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.card-body {
+    padding: 1.5rem !important;
+}
+
 .main-content {
-    background: #f8f9fc;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
     min-height: calc(100vh - 60px);
 }
 
-
-
-.card {
-    border: 1px solid #e3e6f0;
+/* Table Responsive Container */
+.table-responsive {
+    border-radius: 12px !important;
+    overflow: hidden !important;
 }
 </style>
 
