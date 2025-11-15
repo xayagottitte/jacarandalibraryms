@@ -8,17 +8,7 @@
 8. delete report (admin)
 9. clean up old reports (admin)
 10. activity log filters should use ajax (no page reloads)
-10. System Settings
-            A. Reset to Defaults
-            B. Export Settings
-            C. Debug Tabs
-            D. default language
-            E. Timezone
-            F. date format 
-            G. system information
-            H. notification preferences
-            I. security configuration
-            J. to-profile drop down not working while in settings
+
 11. user preferences 
 12. profile edit 
 

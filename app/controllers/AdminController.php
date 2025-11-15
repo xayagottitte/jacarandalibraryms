@@ -384,14 +384,54 @@ class AdminController extends Controller {
 
     public function deleteLibrary() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
             
-            if (!$id) { $_SESSION['error'] = 'Invalid library ID.'; $this->redirect('/admin/libraries'); return; }
+            $id = $_POST['id'] ?? null;
+            $password = $_POST['admin_password'] ?? null;
+            
+            if (!$id) { 
+                $_SESSION['error'] = 'Invalid library ID.'; 
+                $this->redirect('/admin/libraries'); 
+                return; 
+            }
+            
+            // Verify admin password
+            if (!$password) {
+                $_SESSION['error'] = 'Password is required to delete a library.';
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Get current admin user
+            $userId = $_SESSION['user_id'];
+            $userModel = new User();
+            $user = $userModel->getUserProfile($userId);
+            
+            if (!$user || !password_verify($password, $user['password'])) {
+                $_SESSION['error'] = 'Incorrect password. Library deletion cancelled.';
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Check if library can be deleted
             list($ok, $reason) = $this->libraryModel->canDelete($id);
             if (!$ok) {
                 $_SESSION['error'] = "Cannot delete library. " . $reason;
             } else if ($this->libraryModel->deleteLibraryById($id)) {
                 $_SESSION['success'] = "Library deleted successfully!";
+                
+                // Log the deletion
+                Security::logActivity(
+                    $userId,
+                    'library_deleted',
+                    "Admin deleted library ID: $id",
+                    ['library_id' => $id]
+                );
             } else {
                 $_SESSION['error'] = "Failed to delete library.";
             }

@@ -158,72 +158,48 @@ class User extends Model {
     }
 
     public function deleteUser($userId) {
-        // Admin can delete ANY user including super admins
-        // But first check if user has created any records
-        
         try {
-            // Check if user has created any records in related tables
-            $hasRecords = false;
-            $recordTypes = [];
+            $this->db->beginTransaction();
             
-            // Check libraries
-            $query = "SELECT COUNT(*) as count FROM libraries WHERE created_by = ?";
-            $stmt = $this->db->prepare($query);
+            // Instead of preventing deletion, reassign all records to NULL or keep them orphaned
+            // This allows deletion while preserving data integrity
+            
+            // 1. Update libraries - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE libraries SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
-                $hasRecords = true;
-                $recordTypes[] = 'libraries';
-            }
             
-            // Check books
-            $query = "SELECT COUNT(*) as count FROM books WHERE created_by = ?";
-            $stmt = $this->db->prepare($query);
+            // 2. Update books - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE books SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
-                $hasRecords = true;
-                $recordTypes[] = 'books';
-            }
             
-            // Check students
-            $query = "SELECT COUNT(*) as count FROM students WHERE created_by = ?";
-            $stmt = $this->db->prepare($query);
+            // 3. Update students - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE students SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
-                $hasRecords = true;
-                $recordTypes[] = 'students';
-            }
             
-            // Check categories
-            $query = "SELECT COUNT(*) as count FROM categories WHERE created_by = ?";
-            $stmt = $this->db->prepare($query);
+            // 4. Update categories - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE categories SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
-                $hasRecords = true;
-                $recordTypes[] = 'categories';
-            }
             
-            // Check borrows
-            $query = "SELECT COUNT(*) as count FROM borrows WHERE created_by = ?";
-            $stmt = $this->db->prepare($query);
+            // 5. Update borrows - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE borrows SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0) {
-                $hasRecords = true;
-                $recordTypes[] = 'borrow records';
-            }
             
-            // If user has created records, prevent deletion
-            if ($hasRecords) {
-                $types = implode(', ', $recordTypes);
-                throw new Exception("Cannot delete user. This user has created: {$types}. Please deactivate the user instead.");
-            }
+            // 6. Update reservations - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE reservations SET created_by = NULL WHERE created_by = ?");
+            $stmt->execute([$userId]);
             
-            // If no records, proceed with deletion
+            // 7. Delete the user
             $query = "DELETE FROM users WHERE id = ?";
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$userId]);
+            $result = $stmt->execute([$userId]);
+            
+            $this->db->commit();
+            return $result;
             
         } catch (Exception $e) {
-            throw $e;
+            $this->db->rollBack();
+            error_log("Error deleting user: " . $e->getMessage());
+            throw new Exception("Failed to delete user: " . $e->getMessage());
         }
     }
 
