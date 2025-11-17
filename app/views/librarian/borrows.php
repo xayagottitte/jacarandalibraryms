@@ -698,8 +698,12 @@ include '../app/views/shared/layout-header.php';
                                             <i class="fas fa-check-circle"></i> Returned
                                         </span>
                                         <?php if ($fineRemaining > 0): ?>
-                                            <button type="button" class="btn-action btn-return" 
-                                                    onclick="openPaymentModal(<?= $borrow['id'] ?>, <?= $fineAmount ?>, <?= $paidAmount ?>, '<?= htmlspecialchars($borrow['book_title']) ?>', '<?= htmlspecialchars($borrow['student_name']) ?>')" 
+                                            <button type="button" class="btn-action btn-return btn-pay-fine" 
+                                                    data-borrow-id="<?= $borrow['id'] ?>" 
+                                                    data-fine-amount="<?= $fineAmount ?>" 
+                                                    data-paid-amount="<?= $paidAmount ?>" 
+                                                    data-book-title="<?= htmlspecialchars($borrow['book_title'] ?? '') ?>" 
+                                                    data-student-name="<?= htmlspecialchars($borrow['student_name'] ?? '') ?>" 
                                                     title="Pay Fine">
                                                 <i class="fas fa-money-bill-wave"></i> Pay Fine
                                             </button>
@@ -789,6 +793,92 @@ include '../app/views/shared/layout-header.php';
 
 <script>
 let paymentModal;
+let paymentHandlersAttached = false;
+
+function showInlineAlert(message, type = 'success') {
+    const container = document.querySelector('.borrows-container');
+    if (!container) return;
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-' + (type === 'success' ? 'success-modern' : 'danger-modern') + ' alert-dismissible fade show';
+    alert.setAttribute('role', 'alert');
+    alert.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    container.insertBefore(alert, container.firstChild.nextSibling);
+    setTimeout(() => { if (alert) alert.remove(); }, 5000);
+}
+
+function attachPaymentHandlers() {
+    if (paymentHandlersAttached) return;
+    
+    // Payment form handler
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(paymentForm);
+            const borrowId = formData.get('borrow_id');
+            
+            try {
+                const res = await fetch(paymentForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+                const json = await res.json();
+                if (!res.ok || !json.success) throw new Error(json.message || 'Failed to record payment');
+                
+                // Close modal
+                paymentModal.hide();
+                
+                // Show success message
+                showInlineAlert(json.message || 'Payment recorded successfully');
+                
+                // Reload page after 1 second to reflect changes
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (err) {
+                showInlineAlert(err.message || 'Error recording payment', 'error');
+            }
+        });
+    }
+    
+    // Pay Full button
+    const payFullBtn = document.getElementById('payFullBtn');
+    if (payFullBtn) {
+        payFullBtn.addEventListener('click', function() {
+            const remaining = parseFloat(document.getElementById('payment_remaining').textContent.replace(/,/g, ''));
+            document.getElementById('payment_amount').value = remaining.toFixed(2);
+        });
+    }
+    
+    paymentHandlersAttached = true;
+}
+
+function openPaymentModal(borrowId, totalFine, paidAmount, bookTitle, studentName) {
+    if (!paymentModal) {
+        paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    }
+    
+    // Attach handlers if not already done
+    attachPaymentHandlers();
+    
+    document.getElementById('payment_borrow_id').value = borrowId;
+    document.getElementById('payment_book').textContent = bookTitle;
+    document.getElementById('payment_student').textContent = studentName;
+    document.getElementById('payment_total').textContent = Number(totalFine).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('payment_paid').textContent = Number(paidAmount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    const remaining = Number(totalFine) - Number(paidAmount);
+    document.getElementById('payment_remaining').textContent = remaining.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('payment_amount').value = '';
+    document.getElementById('payment_amount').setAttribute('max', remaining.toFixed(2));
+    
+    paymentModal.show();
+    
+    // Focus on amount input after modal is shown
+    setTimeout(() => {
+        document.getElementById('payment_amount').focus();
+    }, 300);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
     const searchInput = document.getElementById('liveSearch');
@@ -882,17 +972,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     // AJAX: handle Return and Pay Fine without reload
-    function showInlineAlert(message, type = 'success') {
-        const container = document.querySelector('.borrows-container');
-        if (!container) return;
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-' + (type === 'success' ? 'success-modern' : 'danger-modern') + ' alert-dismissible fade show';
-        alert.setAttribute('role', 'alert');
-        alert.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        container.insertBefore(alert, container.firstChild.nextSibling);
-        setTimeout(() => { if (alert) alert.remove(); }, 5000);
-    }
-
     function findCell(row, index) {
         return row.querySelectorAll('td')[index];
     }
@@ -950,8 +1029,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 html = `
                     <div class="action-buttons">
                         ${html}
-                        <button type="button" class="btn-action btn-return" 
-                                onclick="openPaymentModal(${borrowId}, ${fineAmount}, ${paidAmount}, '${bookTitle.replace(/'/g, "\\'")}',' ${studentName.replace(/'/g, "\\'")}')" 
+                        <button type="button" class="btn-action btn-return btn-pay-fine" 
+                                data-borrow-id="${borrowId}" 
+                                data-fine-amount="${fineAmount}" 
+                                data-paid-amount="${paidAmount}" 
+                                data-book-title="${bookTitle}" 
+                                data-student-name="${studentName}" 
                                 title="Pay Fine">
                             <i class="fas fa-money-bill-wave"></i> Pay Fine
                         </button>
@@ -1058,72 +1141,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     attachAjaxHandlers();
-    
-    // Payment form handler
-    const paymentForm = document.getElementById('paymentForm');
-    if (paymentForm) {
-        paymentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(paymentForm);
-            const borrowId = formData.get('borrow_id');
-            
-            try {
-                const res = await fetch(paymentForm.action, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                });
-                const json = await res.json();
-                if (!res.ok || !json.success) throw new Error(json.message || 'Failed to record payment');
-                
-                // Close modal
-                paymentModal.hide();
-                
-                // Find and update the row
-                const row = document.querySelector(`input[name="borrow_id"][value="${borrowId}"]`)?.closest('tr');
-                if (row) {
-                    updateRowAfterPayment(row, json.data || {});
-                }
-                
-                showInlineAlert(json.message || 'Payment recorded successfully');
-                
-                // Reload page after 1 second to reflect changes
-                setTimeout(() => window.location.reload(), 1000);
-            } catch (err) {
-                showInlineAlert(err.message || 'Error recording payment', 'error');
-            }
-        });
-    }
-    
-    // Pay Full button
-    const payFullBtn = document.getElementById('payFullBtn');
-    if (payFullBtn) {
-        payFullBtn.addEventListener('click', function() {
-            const remaining = parseFloat(document.getElementById('payment_remaining').textContent.replace(/,/g, ''));
-            document.getElementById('payment_amount').value = remaining.toFixed(2);
-        });
-    }
 });
 
-function openPaymentModal(borrowId, totalFine, paidAmount, bookTitle, studentName) {
-    document.getElementById('payment_borrow_id').value = borrowId;
-    document.getElementById('payment_book').textContent = bookTitle;
-    document.getElementById('payment_student').textContent = studentName;
-    document.getElementById('payment_total').textContent = Number(totalFine).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('payment_paid').textContent = Number(paidAmount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    
-    const remaining = Number(totalFine) - Number(paidAmount);
-    document.getElementById('payment_remaining').textContent = remaining.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('payment_amount').value = '';
-    document.getElementById('payment_amount').setAttribute('max', remaining.toFixed(2));
-    
-    paymentModal.show();
-    
-    // Focus on amount input after modal is shown
-    setTimeout(() => {
-        document.getElementById('payment_amount').focus();
-    }, 300);
-}
+// Event delegation for Pay Fine buttons (outside DOMContentLoaded for global scope)
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-pay-fine');
+    if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const borrowId = btn.dataset.borrowId;
+        const fineAmount = btn.dataset.fineAmount;
+        const paidAmount = btn.dataset.paidAmount;
+        const bookTitle = btn.dataset.bookTitle;
+        const studentName = btn.dataset.studentName;
+        
+        openPaymentModal(borrowId, fineAmount, paidAmount, bookTitle, studentName);
+    }
+});
 
 // Live filter via AJAX (no reload, no button click)
 document.addEventListener('DOMContentLoaded', function() {

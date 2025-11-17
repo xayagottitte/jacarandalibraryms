@@ -257,6 +257,21 @@ include '../app/views/shared/layout-header.php';
     color: white;
 }
 
+.badge-danger-modern {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.inactive-student {
+    background-color: #fef2f2 !important;
+    opacity: 0.85;
+}
+
+.inactive-student:hover {
+    background-color: #fee2e2 !important;
+    opacity: 1;
+}
+
 /* Action Buttons */
 .action-buttons-group {
     display: flex;
@@ -446,11 +461,20 @@ include '../app/views/shared/layout-header.php';
                 </thead>
                 <tbody>
                     <?php foreach ($students as $student): ?>
-                        <tr class="student-row">
+                        <tr class="student-row <?= $student['status'] === 'inactive' ? 'inactive-student' : '' ?>">
                             <td>
                                 <span class="student-id"><?= htmlspecialchars($student['student_id']) ?></span>
                             </td>
-                            <td><span class="student-name"><?= htmlspecialchars($student['full_name']) ?></span></td>
+                            <td>
+                                <span class="student-name">
+                                    <?= htmlspecialchars($student['full_name']) ?>
+                                    <?php if ($student['status'] === 'inactive'): ?>
+                                        <span class="badge bg-danger ms-2" style="font-size: 0.65rem;" title="Inactive Student">
+                                            <i class="fas fa-ban"></i> Inactive
+                                        </span>
+                                    <?php endif; ?>
+                                </span>
+                            </td>
                             <td>
                                 <span class="class-info">
                                     Class <?= htmlspecialchars($student['class']) ?>
@@ -477,7 +501,8 @@ include '../app/views/shared/layout-header.php';
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge-modern <?= $student['status'] === 'active' ? 'badge-success-modern' : 'badge-secondary-modern' ?>">
+                                <span class="badge-modern <?= $student['status'] === 'active' ? 'badge-success-modern' : 'badge-danger-modern' ?>">
+                                    <i class="fas <?= $student['status'] === 'active' ? 'fa-check-circle' : 'fa-times-circle' ?> me-1"></i>
                                     <?= ucfirst($student['status']) ?>
                                 </span>
                             </td>
@@ -489,9 +514,24 @@ include '../app/views/shared/layout-header.php';
                                     <a href="/jacarandalibraryms/librarian/edit-student?id=<?= $student['id'] ?>" class="action-btn-modern btn-edit" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="/jacarandalibraryms/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="action-btn-modern btn-borrow" title="Borrow Book">
-                                        <i class="fas fa-book"></i>
-                                    </a>
+                                    <?php if ($student['status'] === 'active'): ?>
+                                        <a href="/jacarandalibraryms/librarian/borrow-book?student_id=<?= $student['id'] ?>" class="action-btn-modern btn-borrow" title="Borrow Book">
+                                            <i class="fas fa-book"></i>
+                                        </a>
+                                        <button type="button" class="action-btn-modern btn-deactivate" 
+                                                data-student-id="<?= $student['id'] ?>" 
+                                                data-student-name="<?= htmlspecialchars($student['full_name']) ?>" 
+                                                title="Deactivate Student">
+                                            <i class="fas fa-user-slash"></i>
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" class="action-btn-modern btn-activate" 
+                                                data-student-id="<?= $student['id'] ?>" 
+                                                data-student-name="<?= htmlspecialchars($student['full_name']) ?>" 
+                                                title="Activate Student">
+                                            <i class="fas fa-user-check"></i>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -516,6 +556,88 @@ include '../app/views/shared/layout-header.php';
             (<?= ucfirst($library['type']) ?> School) - 
             Valid classes: <?= $library['type'] === 'primary' ? '1-8' : '1-4' ?>
         </p>
+    </div>
+</div>
+
+<!-- Deactivate Student Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deactivateModalLabel">
+                    <i class="fas fa-user-slash me-2"></i>Deactivate Student
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deactivateForm" method="POST" action="<?= BASE_PATH ?>/librarian/deactivate-student">
+                <div class="modal-body">
+                    <input type="hidden" id="deactivate_student_id" name="student_id">
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Are you sure you want to deactivate <strong><span id="deactivate_student_name"></span></strong>?
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="deactivate_reason" class="form-label">
+                            Reason for Deactivation <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="deactivate_reason" name="reason" 
+                                  rows="3" required placeholder="Enter reason for deactivating this student..."></textarea>
+                        <small class="form-text text-muted">
+                            This reason will be recorded in the activity log.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-user-slash me-2"></i>Deactivate Student
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Activate Student Modal -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activateModalLabel">
+                    <i class="fas fa-user-check me-2"></i>Activate Student
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="activateForm" method="POST" action="<?= BASE_PATH ?>/librarian/activate-student">
+                <div class="modal-body">
+                    <input type="hidden" id="activate_student_id" name="student_id">
+                    
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Are you sure you want to activate <strong><span id="activate_student_name"></span></strong>?
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="activate_reason" class="form-label">
+                            Reason for Activation <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="activate_reason" name="reason" 
+                                  rows="3" required placeholder="Enter reason for activating this student..."></textarea>
+                        <small class="form-text text-muted">
+                            This reason will be recorded in the activity log.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-user-check me-2"></i>Activate Student
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -724,6 +846,84 @@ document.addEventListener('DOMContentLoaded', function() {
                     </tr>
                 `;
             }
+        });
+    }
+});
+
+// Deactivate/Activate Student Modals
+let deactivateModal, activateModal;
+
+document.addEventListener('click', function(e) {
+    // Handle deactivate button
+    const deactivateBtn = e.target.closest('.btn-deactivate');
+    if (deactivateBtn) {
+        e.preventDefault();
+        if (!deactivateModal) {
+            deactivateModal = new bootstrap.Modal(document.getElementById('deactivateModal'));
+        }
+        document.getElementById('deactivate_student_id').value = deactivateBtn.dataset.studentId;
+        document.getElementById('deactivate_student_name').textContent = deactivateBtn.dataset.studentName;
+        document.getElementById('deactivate_reason').value = '';
+        deactivateModal.show();
+    }
+    
+    // Handle activate button
+    const activateBtn = e.target.closest('.btn-activate');
+    if (activateBtn) {
+        e.preventDefault();
+        if (!activateModal) {
+            activateModal = new bootstrap.Modal(document.getElementById('activateModal'));
+        }
+        document.getElementById('activate_student_id').value = activateBtn.dataset.studentId;
+        document.getElementById('activate_student_name').textContent = activateBtn.dataset.studentName;
+        document.getElementById('activate_reason').value = '';
+        activateModal.show();
+    }
+});
+
+// Handle form submissions
+document.addEventListener('DOMContentLoaded', function() {
+    const deactivateForm = document.getElementById('deactivateForm');
+    if (deactivateForm) {
+        deactivateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(deactivateForm);
+            
+            fetch(deactivateForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(() => {
+                if (deactivateModal) deactivateModal.hide();
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to deactivate student');
+            });
+        });
+    }
+    
+    const activateForm = document.getElementById('activateForm');
+    if (activateForm) {
+        activateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(activateForm);
+            
+            fetch(activateForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(() => {
+                if (activateModal) activateModal.hide();
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to activate student');
+            });
         });
     }
 });

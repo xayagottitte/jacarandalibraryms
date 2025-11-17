@@ -151,6 +151,19 @@ class AuthController extends Controller {
                 return;
             }
             
+            // Additional XSS protection for password field
+            if (!Security::isPasswordSafeFromXSS($password)) {
+                $_SESSION['error'] = "Password contains invalid characters.";
+                Security::logSecurity(
+                    null,
+                    'registration_xss_attempt',
+                    "Registration attempt with XSS in password field from email: {$email}",
+                    'critical'
+                );
+                $this->redirect('/register');
+                return;
+            }
+            
             // Confirm password match
             if ($password !== $confirm_password) {
                 $_SESSION['error'] = "Passwords do not match.";

@@ -292,6 +292,66 @@ class Security {
     }
 
     /**
+     * Check if password reset is rate limited for an email
+     * @param string $email
+     * @return array ['allowed' => bool, 'attempts' => int, 'remaining_time' => int]
+     */
+    public static function checkPasswordResetRateLimit($email) {
+        try {
+            $database = new Database();
+            $db = $database->connect();
+            
+            $window = PASSWORD_RESET_RATE_LIMIT_WINDOW;
+            $maxAttempts = MAX_PASSWORD_RESET_ATTEMPTS;
+            
+            // Count reset requests within the time window
+            $stmt = $db->prepare("
+                SELECT COUNT(*) as attempt_count,
+                       MAX(created_at) as last_attempt,
+                       TIMESTAMPDIFF(SECOND, MAX(created_at), NOW()) as seconds_since_last
+                FROM password_reset_tokens 
+                WHERE email = ? 
+                AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)
+            ");
+            $stmt->execute([$email, $window]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result['attempt_count'] >= $maxAttempts) {
+                $remainingTime = max(0, $window - ($result['seconds_since_last'] ?? 0));
+                
+                return [
+                    'allowed' => false,
+                    'attempts' => $result['attempt_count'],
+                    'remaining_time' => $remainingTime
+                ];
+            }
+            
+            return [
+                'allowed' => true,
+                'attempts' => $result['attempt_count'],
+                'remaining_attempts' => $maxAttempts - $result['attempt_count']
+            ];
+        } catch (PDOException $e) {
+            error_log("Failed to check password reset rate limit: " . $e->getMessage());
+            // Fail secure - deny on error
+            return ['allowed' => false, 'attempts' => 0, 'remaining_time' => PASSWORD_RESET_RATE_LIMIT_WINDOW];
+        }
+    }
+
+    /**
+     * Validate password complexity for XSS prevention in password fields
+     * @param string $password
+     * @return bool
+     */
+    public static function isPasswordSafeFromXSS($password) {
+        // Check for HTML tags or script injections in password
+        if (preg_match('/<[^>]*>|javascript:|onerror=|onload=/i', $password)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Start a secure session with proper configuration
      */
     public static function startSecureSession() {

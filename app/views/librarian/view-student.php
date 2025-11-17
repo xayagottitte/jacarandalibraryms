@@ -526,6 +526,116 @@ include '../app/views/shared/layout-header.php';
                     </div>
                 <?php endif; ?>
             </div>
+
+            <!-- Borrowing History -->
+            <div class="info-card">
+                <div class="card-header-custom">
+                    <i class="fas fa-history"></i>
+                    <h5>Borrowing History</h5>
+                </div>
+                <?php if (!empty($borrow_history)): ?>
+                    <div class="table-responsive">
+                        <table class="borrow-table">
+                            <thead>
+                                <tr>
+                                    <th width="60"><i class="fas fa-image me-2"></i>Cover</th>
+                                    <th><i class="fas fa-book me-2"></i>Book Title</th>
+                                    <th><i class="fas fa-calendar-check me-2"></i>Borrowed</th>
+                                    <th><i class="fas fa-calendar-times me-2"></i>Due Date</th>
+                                    <th><i class="fas fa-calendar-day me-2"></i>Returned</th>
+                                    <th><i class="fas fa-info-circle me-2"></i>Status</th>
+                                    <th><i class="fas fa-exclamation-triangle me-2"></i>Overdue</th>
+                                    <th><i class="fas fa-dollar-sign me-2"></i>Fine</th>
+                                    <th><i class="fas fa-money-bill-wave me-2"></i>Paid</th>
+                                    <th><i class="fas fa-balance-scale me-2"></i>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($borrow_history as $history): ?>
+                                    <tr>
+                                        <td class="text-center">
+                                            <?php 
+                                            $bookModel = new Book();
+                                            $coverUrl = BASE_PATH . $bookModel->getBookCoverUrl($history['cover_image'] ?? null);
+                                            ?>
+                                            <img src="<?= $coverUrl ?>" alt="Book Cover" 
+                                                 style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                                 title="<?= htmlspecialchars($history['title']) ?>">
+                                        </td>
+                                        <td><strong><?= htmlspecialchars($history['title']) ?></strong></td>
+                                        <td><?= date('M j, Y', strtotime($history['borrowed_date'])) ?></td>
+                                        <td><?= date('M j, Y', strtotime($history['due_date'])) ?></td>
+                                        <td>
+                                            <?php if ($history['returned_date']): ?>
+                                                <?= date('M j, Y', strtotime($history['returned_date'])) ?>
+                                            <?php else: ?>
+                                                <span class="badge-custom badge-warning">
+                                                    <i class="fas fa-clock"></i>Not Returned
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <span class="badge-custom badge-<?= 
+                                                $history['status'] === 'returned' ? 'success' : 
+                                                ($history['status'] === 'borrowed' ? 'warning' : 'danger') 
+                                            ?>">
+                                                <i class="fas fa-<?= 
+                                                    $history['status'] === 'returned' ? 'check-circle' : 
+                                                    ($history['status'] === 'borrowed' ? 'hand-holding' : 'exclamation-circle') 
+                                                ?>"></i>
+                                                <?= ucfirst($history['status']) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($history['days_overdue'] > 0): ?>
+                                                <span class="badge-custom badge-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i><?= $history['days_overdue'] ?> days
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge-custom badge-success">
+                                                    <i class="fas fa-check"></i>On Time
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($history['calculated_fine'] > 0): ?>
+                                                <span class="text-danger fw-bold">MK <?= number_format($history['calculated_fine'], 2) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-success">MK 0.00</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($history['paid_amount'] > 0): ?>
+                                                <span class="text-success fw-bold">MK <?= number_format($history['paid_amount'], 2) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">MK 0.00</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                            $balance = $history['calculated_fine'] - $history['paid_amount'];
+                                            if ($balance > 0): ?>
+                                                <span class="badge-custom badge-danger">
+                                                    <i class="fas fa-exclamation-circle"></i>MK <?= number_format($balance, 2) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge-custom badge-success">
+                                                    <i class="fas fa-check-circle"></i>Paid
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <p class="mb-0">No borrowing history found.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- Statistics & Quick Actions Sidebar -->

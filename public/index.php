@@ -95,6 +95,8 @@ $router->add('/librarian/students', 'LibrarianController', 'students');
 $router->add('/librarian/create-student', 'LibrarianController', 'createStudent');
 $router->add('/librarian/view-student', 'LibrarianController', 'viewStudent');
 $router->add('/librarian/edit-student', 'LibrarianController', 'editStudent');
+$router->add('/librarian/deactivate-student', 'LibrarianController', 'deactivateStudent');
+$router->add('/librarian/activate-student', 'LibrarianController', 'activateStudent');
 
 // Borrow management routes
 $router->add('/librarian/borrows', 'LibrarianController', 'borrows');

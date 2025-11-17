@@ -32,6 +32,26 @@ class ForgotPasswordController extends Controller {
             return;
         }
         
+        // Check rate limiting
+        $rateLimit = Security::checkPasswordResetRateLimit($email);
+        if (!$rateLimit['allowed']) {
+            $remainingTime = Security::formatLockoutTime($rateLimit['remaining_time']);
+            $_SESSION['error'] = "Too many password reset requests. Please try again in {$remainingTime}.";
+            
+            // Log suspicious activity
+            Security::logSecurity(
+                null,
+                'password_reset_rate_limit',
+                "Password reset rate limit exceeded for email: {$email}",
+                'warning'
+            );
+            
+            // Still show success message to prevent email enumeration
+            $_SESSION['success'] = "If an account exists with that email, you will receive password reset instructions shortly.";
+            $this->redirect('/forgot-password');
+            return;
+        }
+        
         $user = $this->userModel->findByEmail($email);
         
         if ($user && $user['status'] === 'active') {
@@ -41,9 +61,26 @@ class ForgotPasswordController extends Controller {
             if ($this->userModel->storePasswordResetToken($email, $token)) {
                 $userName = $user['full_name'] ?? $user['username'];
                 $this->mailer->sendPasswordResetEmail($email, $userName, $token);
+                
+                // Log password reset request
+                Security::logSecurity(
+                    $user['id'],
+                    'password_reset_requested',
+                    "Password reset token generated for user: {$email}",
+                    'info'
+                );
             }
+        } else {
+            // Log failed attempt (account doesn't exist or inactive)
+            Security::logSecurity(
+                null,
+                'password_reset_invalid_email',
+                "Password reset requested for non-existent or inactive email: {$email}",
+                'warning'
+            );
         }
         
+        // Always show success message to prevent email enumeration
         $_SESSION['success'] = "If an account exists with that email, you will receive password reset instructions shortly.";
         $this->redirect('/forgot-password');
     }

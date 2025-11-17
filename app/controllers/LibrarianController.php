@@ -102,19 +102,55 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $categoryId = $_POST['category_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/create-book');
+                return;
+            }
+            
+            // Sanitize inputs
+            $title = Security::sanitizeInput($_POST['title'] ?? '');
+            $author = Security::sanitizeInput($_POST['author'] ?? '');
+            $isbn = Security::sanitizeInput($_POST['isbn'] ?? '');
+            $publisher = Security::sanitizeInput($_POST['publisher'] ?? '');
+            $publicationYear = Security::sanitizeInput($_POST['publication_year'] ?? '');
+            $classLevel = Security::sanitizeInput($_POST['class_level'] ?? '');
+            $totalCopies = (int)($_POST['total_copies'] ?? 1);
+            $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+            
+            // Validate required fields
+            if (empty($title) || empty($author)) {
+                $_SESSION['error'] = "Title and author are required.";
+                $this->redirect(BASE_PATH . '/librarian/create-book');
+                return;
+            }
+            
+            // Validate total copies
+            if ($totalCopies < 1 || $totalCopies > 10000) {
+                $_SESSION['error'] = "Total copies must be between 1 and 10000.";
+                $this->redirect(BASE_PATH . '/librarian/create-book');
+                return;
+            }
+            
+            // Validate publication year if provided
+            if (!empty($publicationYear) && !Security::validateNumber($publicationYear, 1000, date('Y') + 1)) {
+                $_SESSION['error'] = "Invalid publication year.";
+                $this->redirect(BASE_PATH . '/librarian/create-book');
+                return;
+            }
             
             $data = [
-                'title' => $_POST['title'],
-                'author' => $_POST['author'],
-                'isbn' => $_POST['isbn'] ?? null,
-                'publisher' => $_POST['publisher'] ?? null,
-                'publication_year' => $_POST['publication_year'] ?? null,
-                'category_id' => !empty($_POST['category_id']) ? $_POST['category_id'] : null,
+                'title' => $title,
+                'author' => $author,
+                'isbn' => !empty($isbn) ? $isbn : null, null,
+                'publisher' => !empty($publisher) ? $publisher : null,
+                'publication_year' => !empty($publicationYear) ? $publicationYear : null,
+                'category_id' => $categoryId,
                 'cover_image' => null, // Will be updated after insert if file uploaded
-                'class_level' => $_POST['class_level'] ?? null,
-                'total_copies' => $_POST['total_copies'] ?? 1,
-                'available_copies' => $_POST['total_copies'] ?? 1,
+                'class_level' => !empty($classLevel) ? $classLevel : null,
+                'total_copies' => $totalCopies,
+                'available_copies' => $totalCopies,
                 'library_id' => $libraryId,
                 'created_by' => $_SESSION['user_id']
             ];
@@ -130,13 +166,36 @@ class LibrarianController extends Controller {
 
             $bookId = $this->bookModel->create($data);
             if ($bookId) {
-                // Handle cover image upload
+                // Handle cover image upload with validation
                 if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
-                    $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $bookId);
-                    if (!$uploadResult['success']) {
-                        $_SESSION['warning'] = "Book added successfully, but cover image upload failed: " . $uploadResult['message'];
+                    // Validate file size
+                    if ($_FILES['cover_image']['size'] > MAX_FILE_SIZE) {
+                        $_SESSION['warning'] = "Book added successfully, but cover image is too large (max 5MB).";
+                    } else {
+                        // Validate file type
+                        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                        $fileType = mime_content_type($_FILES['cover_image']['tmp_name']);
+                        
+                        if (!in_array($fileType, $allowedTypes)) {
+                            $_SESSION['warning'] = "Book added successfully, but invalid cover image type. Only JPG, PNG, GIF allowed.";
+                        } else {
+                            $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $bookId);
+                            if (!$uploadResult['success']) {
+                                $_SESSION['warning'] = "Book added successfully, but cover image upload failed: " . Security::sanitizeInput($uploadResult['message']);
+                            }
+                        }
                     }
                 }
+                
+                // Log book creation
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'book_created',
+                    'data',
+                    "Created book: {$title} by {$author}",
+                    ['book_id' => $bookId, 'library_id' => $libraryId],
+                    'info'
+                );
                 
                 $_SESSION['success'] = "Book added successfully!";
                 $this->redirect(BASE_PATH . '/librarian/books');
@@ -170,26 +229,39 @@ class LibrarianController extends Controller {
             $currentBook = $this->bookModel->find($id);
             $coverImage = $currentBook['cover_image'] ?? null;
             
-            // Handle cover image upload
+            // Handle cover image upload with validation
             if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
-                $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $id);
-                if ($uploadResult['success']) {
-                    $coverImage = $uploadResult['filename'];
+                // Validate file size
+                if ($_FILES['cover_image']['size'] > MAX_FILE_SIZE) {
+                    $_SESSION['warning'] = "Cover image is too large (max 5MB).";
                 } else {
-                    $_SESSION['warning'] = "Failed to upload cover image: " . $uploadResult['message'];
+                    // Validate file type
+                    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                    $fileType = mime_content_type($_FILES['cover_image']['tmp_name']);
+                    
+                    if (!in_array($fileType, $allowedTypes)) {
+                        $_SESSION['warning'] = "Invalid cover image type. Only JPG, PNG, GIF allowed.";
+                    } else {
+                        $uploadResult = $this->bookModel->uploadBookCover($_FILES['cover_image'], $id);
+                        if ($uploadResult['success']) {
+                            $coverImage = $uploadResult['filename'];
+                        } else {
+                            $_SESSION['warning'] = "Failed to upload cover image: " . Security::sanitizeInput($uploadResult['message']);
+                        }
+                    }
                 }
             }
             
             $data = [
-                'title' => $_POST['title'],
-                'author' => $_POST['author'],
-                'isbn' => $_POST['isbn'] ?? null,
-                'publisher' => $_POST['publisher'] ?? null,
-                'publication_year' => $_POST['publication_year'] ?? null,
-                'category_id' => !empty($_POST['category_id']) ? $_POST['category_id'] : null,
+                'title' => $title,
+                'author' => $author,
+                'isbn' => !empty($isbn) ? $isbn : null,
+                'publisher' => !empty($publisher) ? $publisher : null,
+                'publication_year' => !empty($publicationYear) ? $publicationYear : null,
+                'category_id' => $categoryId,
                 'cover_image' => $coverImage,
-                'class_level' => $_POST['class_level'] ?? null,
-                'total_copies' => $_POST['total_copies'] ?? 1
+                'class_level' => !empty($classLevel) ? $classLevel : null,
+                'total_copies' => $totalCopies
             ];
 
             // Calculate available copies based on current borrows
@@ -197,6 +269,15 @@ class LibrarianController extends Controller {
             $data['available_copies'] = max(0, $data['total_copies'] - $borrowCount['borrowed_count']);
 
             if ($this->bookModel->updateBook($data, $id, $libraryId)) {
+                // Log book update
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'book_updated',
+                    'data',
+                    "Updated book: {$title} (ID: {$id})",
+                    ['book_id' => $id, 'library_id' => $libraryId],
+                    'info'
+                );
                 $_SESSION['success'] = "Book updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update book.";
@@ -342,6 +423,41 @@ class LibrarianController extends Controller {
         $studentModel = new Student();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/create-student');
+                return;
+            }
+            
+            // Sanitize inputs
+            $fullName = Security::sanitizeInput($_POST['full_name'] ?? '');
+            $email = Security::sanitizeInput($_POST['email'] ?? '');
+            $phone = Security::sanitizeInput($_POST['phone'] ?? '');
+            $class = Security::sanitizeInput($_POST['class'] ?? '');
+            $section = Security::sanitizeInput($_POST['section'] ?? '');
+            
+            // Validate required fields
+            if (empty($fullName) || strlen($fullName) < 3) {
+                $_SESSION['error'] = "Full name must be at least 3 characters long.";
+                $this->redirect(BASE_PATH . '/librarian/create-student');
+                return;
+            }
+            
+            // Validate email if provided
+            if (!empty($email) && !Security::validateEmail($email)) {
+                $_SESSION['error'] = "Please enter a valid email address.";
+                $this->redirect(BASE_PATH . '/librarian/create-student');
+                return;
+            }
+            
+            // Validate phone if provided
+            if (!empty($phone) && !Security::validatePhone($phone)) {
+                $_SESSION['error'] = "Please enter a valid phone number.";
+                $this->redirect(BASE_PATH . '/librarian/create-student');
+                return;
+            }
+            
             $class = $_POST['class'];
             
             // Validate class based on library type
@@ -355,17 +471,26 @@ class LibrarianController extends Controller {
 
             $data = [
                 'student_id' => $studentModel->generateStudentId($libraryId),
-                'full_name' => $_POST['full_name'],
-                'email' => $_POST['email'] ?? null,
-                'phone' => $_POST['phone'] ?? null,
+                'full_name' => $fullName,
+                'email' => !empty($email) ? $email : null,
+                'phone' => !empty($phone) ? $phone : null,
                 'class' => $class,
-                'section' => $_POST['section'] ?? null,
+                'section' => !empty($section) ? $section : null,
                 'library_id' => $libraryId,
                 'created_by' => $_SESSION['user_id'],
                 'status' => 'active'
             ];
 
             if ($studentModel->create($data)) {
+                // Log student creation
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'student_created',
+                    'data',
+                    "Created student: {$fullName} (ID: {$data['student_id']})",
+                    ['student_id' => $data['student_id'], 'library_id' => $libraryId],
+                    'info'
+                );
                 $_SESSION['success'] = "Student added successfully! Student ID: " . $data['student_id'];
                 $this->redirect(BASE_PATH . '/librarian/students');
                 return;
@@ -402,7 +527,8 @@ class LibrarianController extends Controller {
 
         $data = [
             'student' => $student,
-            'active_borrows' => $borrowModel->getActiveBorrowsByStudent($id)
+            'active_borrows' => $borrowModel->getActiveBorrowsByStudent($id),
+            'borrow_history' => $borrowModel->getBorrowHistoryByStudent($id)
         ];
         $this->view('librarian/view-student', $data);
     }
@@ -417,8 +543,56 @@ class LibrarianController extends Controller {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
-            $class = $_POST['class'];
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/students');
+                return;
+            }
+            
+            $id = (int)($_POST['id'] ?? 0);
+            
+            // Verify student belongs to librarian's library
+            $existingStudent = $studentModel->find($id);
+            if (!$existingStudent || $existingStudent['library_id'] != $libraryId) {
+                $_SESSION['error'] = "Student not found or access denied.";
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'unauthorized_student_edit_attempt',
+                    "Attempted to edit student {$id} from different library",
+                    'warning'
+                );
+                $this->redirect(BASE_PATH . '/librarian/students');
+                return;
+            }
+            
+            // Sanitize inputs
+            $fullName = Security::sanitizeInput($_POST['full_name'] ?? '');
+            $email = Security::sanitizeInput($_POST['email'] ?? '');
+            $phone = Security::sanitizeInput($_POST['phone'] ?? '');
+            $class = Security::sanitizeInput($_POST['class'] ?? '');
+            $section = Security::sanitizeInput($_POST['section'] ?? '');
+            
+            // Validate required fields
+            if (empty($fullName) || strlen($fullName) < 3) {
+                $_SESSION['error'] = "Full name must be at least 3 characters long.";
+                $this->redirect(BASE_PATH . "/librarian/edit-student?id={$id}");
+                return;
+            }
+            
+            // Validate email if provided
+            if (!empty($email) && !Security::validateEmail($email)) {
+                $_SESSION['error'] = "Please enter a valid email address.";
+                $this->redirect(BASE_PATH . "/librarian/edit-student?id={$id}");
+                return;
+            }
+            
+            // Validate phone if provided
+            if (!empty($phone) && !Security::validatePhone($phone)) {
+                $_SESSION['error'] = "Please enter a valid phone number.";
+                $this->redirect(BASE_PATH . "/librarian/edit-student?id={$id}");
+                return;
+            }
             
             // Validate class based on library type
             if (!$studentModel->validateClassForLibrary($libraryId, $class)) {
@@ -430,15 +604,24 @@ class LibrarianController extends Controller {
             }
 
             $data = [
-                'full_name' => $_POST['full_name'],
-                'email' => $_POST['email'] ?? null,
-                'phone' => $_POST['phone'] ?? null,
+                'full_name' => $fullName,
+                'email' => !empty($email) ? $email : null,
+                'phone' => !empty($phone) ? $phone : null,
                 'class' => $class,
-                'section' => $_POST['section'] ?? null,
-                'status' => $_POST['status'] ?? 'active'
+                'section' => !empty($section) ? $section : null,
+                'status' => Security::sanitizeInput($_POST['status'] ?? 'active')
             ];
 
             if ($studentModel->updateStudent($id, $data, $libraryId)) {
+                // Log student update
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'student_updated',
+                    'data',
+                    "Updated student: {$fullName} (ID: {$id})",
+                    ['student_id' => $id, 'library_id' => $libraryId],
+                    'info'
+                );
                 $_SESSION['success'] = "Student updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update student.";
@@ -470,6 +653,100 @@ class LibrarianController extends Controller {
         $this->view('librarian/edit-student', $data);
     }
 
+    public function deactivateStudent() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        $libraryId = $_SESSION['library_id'];
+        $studentModel = new Student();
+        $studentId = $_POST['student_id'] ?? null;
+        $reason = $_POST['reason'] ?? '';
+
+        if (!$studentId || empty($reason)) {
+            $_SESSION['error'] = 'Student ID and reason are required.';
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        $student = $studentModel->find($studentId);
+        if (!$student || $student['library_id'] != $libraryId) {
+            $_SESSION['error'] = 'Student not found or access denied.';
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        try {
+            $result = $studentModel->updateStatus($studentId, 'inactive');
+            
+            if ($result) {
+                // Log the activity
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'student_deactivated',
+                    'student_management',
+                    "Deactivated student: {$student['full_name']} (ID: {$student['student_id']}). Reason: {$reason}"
+                );
+                
+                $_SESSION['success'] = 'Student deactivated successfully.';
+            } else {
+                $_SESSION['error'] = 'Failed to deactivate student.';
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        }
+
+        $this->redirect(BASE_PATH . '/librarian/students');
+    }
+
+    public function activateStudent() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        $libraryId = $_SESSION['library_id'];
+        $studentModel = new Student();
+        $studentId = $_POST['student_id'] ?? null;
+        $reason = $_POST['reason'] ?? '';
+
+        if (!$studentId || empty($reason)) {
+            $_SESSION['error'] = 'Student ID and reason are required.';
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        $student = $studentModel->find($studentId);
+        if (!$student || $student['library_id'] != $libraryId) {
+            $_SESSION['error'] = 'Student not found or access denied.';
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
+        try {
+            $result = $studentModel->updateStatus($studentId, 'active');
+            
+            if ($result) {
+                // Log the activity
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'student_activated',
+                    'student_management',
+                    "Activated student: {$student['full_name']} (ID: {$student['student_id']}). Reason: {$reason}"
+                );
+                
+                $_SESSION['success'] = 'Student activated successfully.';
+            } else {
+                $_SESSION['error'] = 'Failed to activate student.';
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        }
+
+        $this->redirect(BASE_PATH . '/librarian/students');
+    }
+
     // Borrow Management Methods
     public function borrows() {
         $libraryId = $_SESSION['library_id'];
@@ -497,12 +774,64 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $bookId = $_POST['book_id'] ?? null;
-            $studentId = $_POST['student_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/borrows');
+                return;
+            }
+            
+            $bookId = (int)($_POST['book_id'] ?? 0);
+            $studentId = (int)($_POST['student_id'] ?? 0);
+            
+            // Validate IDs
+            if ($bookId <= 0 || $studentId <= 0) {
+                $_SESSION['error'] = "Invalid book or student selection.";
+                $this->redirect(BASE_PATH . '/librarian/borrow-book');
+                return;
+            }
+            
+            // Verify book belongs to librarian's library
+            $book = $this->bookModel->find($bookId);
+            if (!$book || $book['library_id'] != $libraryId) {
+                $_SESSION['error'] = "Book not found or access denied.";
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'unauthorized_borrow_attempt',
+                    "Attempted to borrow book {$bookId} from different library",
+                    'warning'
+                );
+                $this->redirect(BASE_PATH . '/librarian/borrow-book');
+                return;
+            }
+            
+            // Verify student belongs to librarian's library
+            $student = $this->studentModel->find($studentId);
+            if (!$student || $student['library_id'] != $libraryId) {
+                $_SESSION['error'] = "Student not found or access denied.";
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'unauthorized_borrow_attempt',
+                    "Attempted to assign book to student {$studentId} from different library",
+                    'warning'
+                );
+                $this->redirect(BASE_PATH . '/librarian/borrow-book');
+                return;
+            }
+            
             $borrowModel = new Borrow();
 
             try {
                 if ($borrowModel->borrowBook($bookId, $studentId, $_SESSION['user_id'])) {
+                    // Log borrow action
+                    Security::logActivity(
+                        $_SESSION['user_id'],
+                        'book_borrowed',
+                        'data',
+                        "Book '{$book['title']}' borrowed by student '{$student['full_name']}')",
+                        ['book_id' => $bookId, 'student_id' => $studentId, 'library_id' => $libraryId],
+                        'info'
+                    );
                     $_SESSION['success'] = "Book borrowed successfully!";
                 }
             } catch (Exception $e) {
@@ -520,7 +849,7 @@ class LibrarianController extends Controller {
         
         $data = [
             'books' => $bookModel->getBooksByLibrary($libraryId, ['status' => 'available']),
-            'students' => $studentModel->getStudentsByLibrary($libraryId),
+            'students' => $studentModel->getStudentsByLibrary($libraryId, ['status' => 'active']),
             'loan_period' => $libraryModel->getLoanPeriod($libraryId)
         ];
         $this->view('librarian/borrow-book', $data);
@@ -528,11 +857,85 @@ class LibrarianController extends Controller {
 
     public function returnBook() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token (skip for AJAX requests with alternative validation)
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            
+            if (!$isAjax && (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token']))) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/borrows');
+                return;
+            }
+            
+            $borrowId = (int)($_POST['borrow_id'] ?? 0);
+            
+            // Validate borrow ID
+            if ($borrowId <= 0) {
+                $error = "Invalid borrow ID.";
+                if ($isAjax) {
+                    http_response_code(400);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $error]);
+                    return;
+                }
+                $_SESSION['error'] = $error;
+                $this->redirect(BASE_PATH . '/librarian/borrows');
+                return;
+            }
+            
+            // Verify borrow belongs to librarian's library
+            $borrow = $this->borrowModel->find($borrowId);
+            if (!$borrow) {
+                $error = "Borrow record not found.";
+                if ($isAjax) {
+                    http_response_code(404);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $error]);
+                    return;
+                }
+                $_SESSION['error'] = $error;
+                $this->redirect(BASE_PATH . '/librarian/borrows');
+                return;
+            }
+            
+            $book = $this->bookModel->find($borrow['book_id']);
+            if (!$book || $book['library_id'] != $_SESSION['library_id']) {
+                $error = "Access denied. This borrow belongs to another library.";
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'unauthorized_return_attempt',
+                    "Attempted to return book from different library (borrow ID: {$borrowId})",
+                    'warning'
+                );
+                if ($isAjax) {
+                    http_response_code(403);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => $error]);
+                    return;
+                }
+                $_SESSION['error'] = $error;
+                $this->redirect(BASE_PATH . '/librarian/borrows');
+                return;
+            }
+            
             $borrowId = $_POST['borrow_id'] ?? null;
             $borrowModel = new Borrow();
 
             try {
                 $result = $borrowModel->returnBook($borrowId, $_SESSION['user_id']);
+                
+                // Log return action
+                $logMessage = "Book '{$result['book_title']}' returned by '{$result['student_name']}'";
+                if ($result['fine_amount'] > 0) {
+                    $logMessage .= " (Fine: MK {$result['fine_amount']})";
+                }
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'book_returned',
+                    'data',
+                    $logMessage,
+                    ['borrow_id' => $borrowId, 'fine_amount' => $result['fine_amount']],
+                    'info'
+                );
                 
                 // AJAX: return JSON without redirect
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {

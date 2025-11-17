@@ -10,6 +10,21 @@ class Borrow extends Model {
         $this->db->beginTransaction();
 
         try {
+            // Check if student is active
+            $studentQuery = "SELECT status, full_name FROM students WHERE id = :student_id";
+            $studentStmt = $this->db->prepare($studentQuery);
+            $studentStmt->bindParam(':student_id', $studentId);
+            $studentStmt->execute();
+            $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student) {
+                throw new Exception("Student not found.");
+            }
+            
+            if ($student['status'] !== 'active') {
+                throw new Exception("Cannot borrow book. Student '{$student['full_name']}' is inactive.");
+            }
+            
             // Get book info and library_id
             $bookQuery = "SELECT available_copies, title, library_id FROM books WHERE id = :book_id FOR UPDATE";
             $bookStmt = $this->db->prepare($bookQuery);
@@ -32,6 +47,10 @@ class Borrow extends Model {
                 throw new Exception("Book '{$book['title']}' is not available for borrowing.");
             }
 
+            // Get max books per student from system settings
+            $settingsModel = new SystemSettings();
+            $maxBooks = $settingsModel->getMaxBooksPerStudent();
+            
             // Check if student has reached borrow limit
             $borrowCountQuery = "SELECT COUNT(*) as count FROM borrows 
                                 WHERE student_id = :student_id AND status IN ('borrowed', 'overdue')";
@@ -40,8 +59,8 @@ class Borrow extends Model {
             $borrowCountStmt->execute();
             $borrowCount = $borrowCountStmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($borrowCount['count'] >= 5) {
-                throw new Exception("Student has reached the maximum borrowing limit (5 books).");
+            if ($borrowCount['count'] >= $maxBooks) {
+                throw new Exception("Student has reached the maximum borrowing limit ($maxBooks books).");
             }
 
             // Check if student already has this book
@@ -229,6 +248,42 @@ class Borrow extends Model {
         
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':student_id', $studentId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getBorrowHistoryByStudent($studentId) {
+        // Get fine per day from system settings
+        $settingsQuery = "SELECT setting_value FROM system_settings WHERE setting_key = 'fine_per_day'";
+        $settingsStmt = $this->db->prepare($settingsQuery);
+        $settingsStmt->execute();
+        $settingsResult = $settingsStmt->fetch(PDO::FETCH_ASSOC);
+        $finePerDay = $settingsResult ? (float)$settingsResult['setting_value'] : 100.0;
+        
+        $query = "SELECT br.*, bk.title, bk.author, bk.isbn, bk.cover_image,
+                         CASE 
+                           WHEN br.status = 'returned' AND br.returned_date > br.due_date 
+                                THEN DATEDIFF(br.returned_date, br.due_date)
+                           WHEN br.status IN ('borrowed', 'overdue') AND CURDATE() > br.due_date
+                                THEN DATEDIFF(CURDATE(), br.due_date)
+                           ELSE 0 
+                         END as days_overdue,
+                         CASE
+                           WHEN br.status = 'returned' THEN br.fine_amount
+                           WHEN br.status IN ('borrowed', 'overdue') AND CURDATE() > br.due_date
+                                THEN DATEDIFF(CURDATE(), br.due_date) * :fine_per_day
+                           ELSE 0
+                         END as calculated_fine,
+                         br.paid_amount
+                  FROM borrows br
+                  JOIN books bk ON br.book_id = bk.id
+                  WHERE br.student_id = :student_id
+                  ORDER BY br.borrowed_date DESC
+                  LIMIT 50";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':student_id', $studentId);
+        $stmt->bindParam(':fine_per_day', $finePerDay);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

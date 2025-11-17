@@ -72,17 +72,55 @@ class AdminController extends Controller {
 
     public function approveUser($userId = null) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId && $this->userModel->approveUser($userId, $_SESSION['user_id'])) {
-                // Get user details for welcome email
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            // Validate user ID
+            if ($userId <= 0) {
+                $_SESSION['error'] = "Invalid user ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Check if user exists and is pending
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $_SESSION['error'] = "User not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($user['status'] !== 'pending') {
+                $_SESSION['error'] = "Only pending users can be approved.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($this->userModel->approveUser($userId, $_SESSION['user_id'])) {
+                // Get updated user details for welcome email
                 $user = $this->userModel->find($userId);
                 if ($user && $user['email']) {
                     // Send welcome email
                     $this->mailer->sendWelcomeEmail($user['email'], $user['full_name'], $user['role']);
                 }
                 
-                $_SESSION['success'] = "User approved successfully! Welcome email sent.";
+                // Log approval
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'user_approved',
+                    'security',
+                    "Approved user registration: {$user['email']} ({$user['role']})",
+                    ['approved_user_id' => $userId],
+                    'info'
+                );
+                
+                $_SESSION['success'] = "User approved successfully! Welcome email sent.";;
             } else {
                 $_SESSION['error'] = "Failed to approve user.";
             }
@@ -92,24 +130,50 @@ class AdminController extends Controller {
 
     public function rejectUser($userId = null) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId) {
-                // Get user details before rejection for email
-                $user = $this->userModel->find($userId);
-                
-                if ($this->userModel->rejectUser($userId)) {
-                    // Send rejection email if user has email
-                    if ($user && $user['email']) {
-                        $this->mailer->sendRejectionEmail($user['email'], $user['full_name']);
-                    }
-                    
-                    $_SESSION['success'] = "User rejected successfully! Notification email sent.";
-                } else {
-                    $_SESSION['error'] = "Failed to reject user.";
-                }
-            } else {
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            // Validate user ID
+            if ($userId <= 0) {
                 $_SESSION['error'] = "Invalid user ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Get user details before rejection for email
+            $user = $this->userModel->find($userId);
+            
+            if (!$user) {
+                $_SESSION['error'] = "User not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($this->userModel->rejectUser($userId)) {
+                // Send rejection email if user has email
+                if ($user && $user['email']) {
+                    $this->mailer->sendRejectionEmail($user['email'], $user['full_name']);
+                }
+                
+                // Log rejection
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'user_rejected',
+                    'security',
+                    "Rejected user registration: {$user['email']}",
+                    ['rejected_user_id' => $userId],
+                    'info'
+                );
+                
+                $_SESSION['success'] = "User rejected successfully! Notification email sent.";
+            } else {
+                $_SESSION['error'] = "Failed to reject user.";
             }
         }
         $this->redirect('/admin/users');
@@ -117,27 +181,92 @@ class AdminController extends Controller {
 
     public function createUser() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Sanitize inputs
+            $username = Security::sanitizeInput($_POST['username'] ?? '');
+            $fullName = Security::sanitizeInput($_POST['full_name'] ?? '');
+            $email = Security::sanitizeInput($_POST['email'] ?? '');
+            $phone = Security::sanitizeInput($_POST['phone'] ?? '');
+            $role = Security::sanitizeInput($_POST['role'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            
+            // Validate username
+            if (!Security::validateUsername($username)) {
+                $_SESSION['error'] = "Username must be 3-50 characters (letters, numbers, underscore, hyphen only).";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Validate full name
+            if (empty($fullName) || strlen($fullName) < 3) {
+                $_SESSION['error'] = "Full name must be at least 3 characters long.";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Validate email
+            if (!Security::validateEmail($email)) {
+                $_SESSION['error'] = "Please enter a valid email address.";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Validate phone if provided
+            if (!empty($phone) && !Security::validatePhone($phone)) {
+                $_SESSION['error'] = "Please enter a valid phone number.";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Validate role
+            if (!in_array($role, ['super_admin', 'librarian'])) {
+                $_SESSION['error'] = "Invalid role selected.";
+                $this->view('admin/create-user');
+                return;
+            }
+            
+            // Validate password
+            $passwordValidation = Security::validatePassword($password);
+            if (!$passwordValidation['valid']) {
+                $_SESSION['error'] = implode(' ', $passwordValidation['errors']);
+                $this->view('admin/create-user');
+                return;
+            }
+            
             // Validate password confirmation
-            if ($_POST['password'] !== $_POST['confirm_password']) {
+            if ($password !== $confirmPassword) {
                 $_SESSION['error'] = "Passwords do not match.";
                 $this->view('admin/create-user');
                 return;
             }
-
-            // Validate password length
-            if (strlen($_POST['password']) < 6) {
-                $_SESSION['error'] = "Password must be at least 6 characters long.";
+            
+            // XSS protection for password
+            if (!Security::isPasswordSafeFromXSS($password)) {
+                $_SESSION['error'] = "Password contains invalid characters.";
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'user_creation_xss_attempt',
+                    "XSS attempt in password field while creating user {$email}",
+                    'critical'
+                );
                 $this->view('admin/create-user');
                 return;
             }
 
             $data = [
-                'username' => $_POST['username'],
-                'full_name' => $_POST['full_name'],
-                'email' => $_POST['email'],
-                'phone' => $_POST['phone'],
-                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
-                'role' => $_POST['role'],
+                'username' => $username,
+                'full_name' => $fullName,
+                'email' => $email,
+                'phone' => !empty($phone) ? $phone : null,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'role' => $role,
                 'status' => 'active'
             ];
 
@@ -148,6 +277,15 @@ class AdminController extends Controller {
                 $_SESSION['error'] = "Username already taken.";
             } else {
                 if ($this->userModel->create($data)) {
+                    // Log user creation
+                    Security::logActivity(
+                        $_SESSION['user_id'],
+                        'user_created',
+                        'security',
+                        "Created user account: {$email} ({$role})",
+                        ['created_user_email' => $email, 'role' => $role],
+                        'info'
+                    );
                     $_SESSION['success'] = "User created successfully!";
                     $this->redirect('/admin/users');
                     return;
@@ -162,9 +300,47 @@ class AdminController extends Controller {
 
     public function deactivateUser() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId && $this->userModel->deactivateUser($userId)) {
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            // Validate user ID
+            if ($userId <= 0) {
+                $_SESSION['error'] = "Invalid user ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Prevent self-deactivation
+            if ($userId == $_SESSION['user_id']) {
+                $_SESSION['error'] = "You cannot deactivate your own account.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Get user details
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $_SESSION['error'] = "User not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($this->userModel->deactivateUser($userId)) {
+                // Log user deactivation
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'user_deactivated',
+                    'security',
+                    "Deactivated user account: {$user['email']}",
+                    ['deactivated_user_id' => $userId],
+                    'info'
+                );
                 $_SESSION['success'] = "User deactivated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to deactivate user.";
@@ -175,9 +351,40 @@ class AdminController extends Controller {
 
     public function activateUser() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId && $this->userModel->activateUser($userId)) {
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            // Validate user ID
+            if ($userId <= 0) {
+                $_SESSION['error'] = "Invalid user ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Get user details
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $_SESSION['error'] = "User not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($this->userModel->activateUser($userId)) {
+                // Log user activation
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'user_activated',
+                    'security',
+                    "Activated user account: {$user['email']}",
+                    ['activated_user_id' => $userId],
+                    'info'
+                );
                 $_SESSION['success'] = "User activated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to activate user.";
@@ -188,20 +395,54 @@ class AdminController extends Controller {
 
     public function deleteUser() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId) {
-                try {
-                    if ($this->userModel->deleteUser($userId)) {
-                        $_SESSION['success'] = "User deleted successfully!";
-                    } else {
-                        $_SESSION['error'] = "Failed to delete user.";
-                    }
-                } catch (Exception $e) {
-                    $_SESSION['error'] = $e->getMessage();
-                }
-            } else {
+            $userId = (int)($_POST['user_id'] ?? 0);
+            
+            // Validate user ID
+            if ($userId <= 0) {
                 $_SESSION['error'] = "Invalid user ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Prevent self-deletion
+            if ($userId == $_SESSION['user_id']) {
+                $_SESSION['error'] = "You cannot delete your own account.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Get user details before deletion
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $_SESSION['error'] = "User not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            try {
+                if ($this->userModel->deleteUser($userId)) {
+                    // Log user deletion
+                    Security::logActivity(
+                        $_SESSION['user_id'],
+                        'user_deleted',
+                        'security',
+                        "Deleted user account: {$user['email']} ({$user['role']})",
+                        ['deleted_user_id' => $userId],
+                        'warning'
+                    );
+                    $_SESSION['success'] = "User deleted successfully!";
+                } else {
+                    $_SESSION['error'] = "Failed to delete user.";
+                }
+            } catch (Exception $e) {
+                $_SESSION['error'] = $e->getMessage();
             }
         }
         $this->redirect('/admin/users');
@@ -209,10 +450,49 @@ class AdminController extends Controller {
 
     public function assignLibrary() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userId = $_POST['user_id'] ?? null;
-            $libraryId = $_POST['library_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
             
-            if ($userId && $libraryId && $this->userModel->assignLibrary($userId, $libraryId)) {
+            $userId = (int)($_POST['user_id'] ?? 0);
+            $libraryId = (int)($_POST['library_id'] ?? 0);
+            
+            // Validate IDs
+            if ($userId <= 0 || $libraryId <= 0) {
+                $_SESSION['error'] = "Invalid user or library ID.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Verify user exists and is a librarian
+            $user = $this->userModel->find($userId);
+            if (!$user || $user['role'] !== 'librarian') {
+                $_SESSION['error'] = "Only librarians can be assigned to libraries.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Verify library exists
+            $library = $this->libraryModel->find($libraryId);
+            if (!$library) {
+                $_SESSION['error'] = "Library not found.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            if ($this->userModel->assignLibrary($userId, $libraryId)) {
+                // Log library assignment
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'library_assigned',
+                    'security',
+                    "Assigned librarian {$user['email']} to library {$library['name']}",
+                    ['user_id' => $userId, 'library_id' => $libraryId],
+                    'info'
+                );
                 $_SESSION['success'] = "Library assigned successfully!";
             } else {
                 $_SESSION['error'] = "Failed to assign library.";
@@ -236,36 +516,104 @@ class AdminController extends Controller {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                return;
+            }
+            
             // Clean and prepare library_id
-            $libraryId = isset($_POST['library_id']) && !empty($_POST['library_id']) ? $_POST['library_id'] : null;
+            $libraryId = isset($_POST['library_id']) && !empty($_POST['library_id']) ? (int)$_POST['library_id'] : null;
+            
+            // Sanitize inputs
+            $username = Security::sanitizeInput($_POST['username'] ?? '');
+            $fullName = Security::sanitizeInput($_POST['full_name'] ?? '');
+            $email = Security::sanitizeInput($_POST['email'] ?? '');
+            $role = Security::sanitizeInput($_POST['role'] ?? '');
+            
+            // Validate username
+            if (!Security::validateUsername($username)) {
+                $_SESSION['error'] = "Username must be 3-50 characters (letters, numbers, underscore, hyphen only).";
+                $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                return;
+            }
+            
+            // Validate full name
+            if (empty($fullName) || strlen($fullName) < 3) {
+                $_SESSION['error'] = "Full name must be at least 3 characters long.";
+                $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                return;
+            }
+            
+            // Validate email
+            if (!Security::validateEmail($email)) {
+                $_SESSION['error'] = "Please enter a valid email address.";
+                $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                return;
+            }
+            
+            // Validate role
+            if (!in_array($role, ['super_admin', 'librarian'])) {
+                $_SESSION['error'] = "Invalid role selected.";
+                $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                return;
+            }
             
             $data = [
                 'id' => $userId,
-                'username' => trim($_POST['username']),
-                'full_name' => trim($_POST['full_name']),
-                'email' => trim($_POST['email']),
-                'role' => $_POST['role'],
+                'username' => $username,
+                'full_name' => $fullName,
+                'email' => $email,
+                'role' => $role,
                 'library_id' => $libraryId
             ];
 
             // Update password only if provided
             if (!empty($_POST['password'])) {
-                if ($_POST['password'] !== $_POST['confirm_password']) {
+                $password = $_POST['password'];
+                $confirmPassword = $_POST['confirm_password'] ?? '';
+                
+                if ($password !== $confirmPassword) {
                     $_SESSION['error'] = "Passwords do not match.";
                     $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
                     return;
                 }
                 
-                if (strlen($_POST['password']) < 6) {
-                    $_SESSION['error'] = "Password must be at least 6 characters.";
+                // Validate password
+                $passwordValidation = Security::validatePassword($password);
+                if (!$passwordValidation['valid']) {
+                    $_SESSION['error'] = implode(' ', $passwordValidation['errors']);
                     $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
                     return;
                 }
                 
-                $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                // XSS protection for password
+                if (!Security::isPasswordSafeFromXSS($password)) {
+                    $_SESSION['error'] = "Password contains invalid characters.";
+                    Security::logSecurity(
+                        $_SESSION['user_id'],
+                        'user_edit_xss_attempt',
+                        "XSS attempt in password field while editing user {$email}",
+                        'critical'
+                    );
+                    $this->view('admin/edit-user', ['user' => $user, 'libraries' => $this->libraryModel->all()]);
+                    return;
+                }
+                
+                $data['password'] = password_hash($password, PASSWORD_DEFAULT);
             }
 
             if ($this->userModel->update($data)) {
+                // Log user update
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'user_updated',
+                    'security',
+                    "Updated user account: {$email}",
+                    ['updated_user_id' => $userId],
+                    'info'
+                );
                 $_SESSION['success'] = "User updated successfully!";
                 $this->redirect('/admin/users');
                 return;
@@ -330,15 +678,65 @@ class AdminController extends Controller {
 
     public function createLibrary() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->view('admin/create-library');
+                return;
+            }
+            
+            // Sanitize inputs
+            $name = Security::sanitizeInput($_POST['name'] ?? '');
+            $type = Security::sanitizeInput($_POST['type'] ?? '');
+            $address = Security::sanitizeInput($_POST['address'] ?? '');
+            $loanPeriod = (int)($_POST['loan_period_days'] ?? 5);
+            
+            // Validate name
+            if (empty($name) || strlen($name) < 3) {
+                $_SESSION['error'] = "Library name must be at least 3 characters long.";
+                $this->view('admin/create-library');
+                return;
+            }
+            
+            // Validate type
+            if (!in_array($type, ['primary', 'secondary'])) {
+                $_SESSION['error'] = "Invalid library type selected.";
+                $this->view('admin/create-library');
+                return;
+            }
+            
+            // Validate address
+            if (empty($address) || strlen($address) < 5) {
+                $_SESSION['error'] = "Address must be at least 5 characters long.";
+                $this->view('admin/create-library');
+                return;
+            }
+            
+            // Validate loan period
+            if ($loanPeriod < 1 || $loanPeriod > 90) {
+                $_SESSION['error'] = "Loan period must be between 1 and 90 days.";
+                $this->view('admin/create-library');
+                return;
+            }
+            
             $data = [
-                'name' => $_POST['name'],
-                'type' => $_POST['type'],
-                'address' => $_POST['address'],
-                'loan_period_days' => $_POST['loan_period_days'] ?? 5,
+                'name' => $name,
+                'type' => $type,
+                'address' => $address,
+                'loan_period_days' => $loanPeriod,
                 'created_by' => $_SESSION['user_id']
             ];
 
             if ($this->libraryModel->create($data)) {
+                // Log library creation
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'library_created',
+                    'security',
+                    "Created library: {$name} ({$type})",
+                    ['library_name' => $name, 'type' => $type],
+                    'info'
+                );
                 $_SESSION['success'] = "Library created successfully!";
                 $this->redirect('/admin/libraries');
                 return;
@@ -352,15 +750,81 @@ class AdminController extends Controller {
 
     public function editLibrary($id = null) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            $id = (int)($_POST['id'] ?? 0);
+            
+            // Validate library ID
+            if ($id <= 0) {
+                $_SESSION['error'] = "Invalid library ID.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Verify library exists
+            $library = $this->libraryModel->find($id);
+            if (!$library) {
+                $_SESSION['error'] = "Library not found.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Sanitize inputs
+            $name = Security::sanitizeInput($_POST['name'] ?? '');
+            $type = Security::sanitizeInput($_POST['type'] ?? '');
+            $address = Security::sanitizeInput($_POST['address'] ?? '');
+            $loanPeriod = (int)($_POST['loan_period_days'] ?? 5);
+            
+            // Validate name
+            if (empty($name) || strlen($name) < 3) {
+                $_SESSION['error'] = "Library name must be at least 3 characters long.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Validate type
+            if (!in_array($type, ['primary', 'secondary'])) {
+                $_SESSION['error'] = "Invalid library type selected.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Validate address
+            if (empty($address) || strlen($address) < 5) {
+                $_SESSION['error'] = "Address must be at least 5 characters long.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Validate loan period
+            if ($loanPeriod < 1 || $loanPeriod > 90) {
+                $_SESSION['error'] = "Loan period must be between 1 and 90 days.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
             $data = [
-                'name' => $_POST['name'],
-                'type' => $_POST['type'],
-                'address' => $_POST['address'],
-                'loan_period_days' => $_POST['loan_period_days'] ?? 5
+                'name' => $name,
+                'type' => $type,
+                'address' => $address,
+                'loan_period_days' => $loanPeriod
             ];
 
             if ($this->libraryModel->updateLibrary($data, $id)) {
+                // Log library update
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'library_updated',
+                    'security',
+                    "Updated library: {$name}",
+                    ['library_id' => $id],
+                    'info'
+                );
                 $_SESSION['success'] = "Library updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update library.";
@@ -391,17 +855,26 @@ class AdminController extends Controller {
                 return;
             }
             
-            $id = $_POST['id'] ?? null;
-            $password = $_POST['admin_password'] ?? null;
+            $id = (int)($_POST['id'] ?? 0);
+            $password = $_POST['admin_password'] ?? '';
             
-            if (!$id) { 
+            // Validate library ID
+            if ($id <= 0) { 
                 $_SESSION['error'] = 'Invalid library ID.'; 
                 $this->redirect('/admin/libraries'); 
                 return; 
             }
             
+            // Verify library exists
+            $library = $this->libraryModel->find($id);
+            if (!$library) {
+                $_SESSION['error'] = 'Library not found.';
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
             // Verify admin password
-            if (!$password) {
+            if (empty($password)) {
                 $_SESSION['error'] = 'Password is required to delete a library.';
                 $this->redirect('/admin/libraries');
                 return;
@@ -413,6 +886,13 @@ class AdminController extends Controller {
             $user = $userModel->getUserProfile($userId);
             
             if (!$user || !password_verify($password, $user['password'])) {
+                // Log failed deletion attempt
+                Security::logSecurity(
+                    $userId,
+                    'library_deletion_failed',
+                    "Failed library deletion attempt - incorrect password for library: {$library['name']}",
+                    'warning'
+                );
                 $_SESSION['error'] = 'Incorrect password. Library deletion cancelled.';
                 $this->redirect('/admin/libraries');
                 return;
@@ -423,15 +903,16 @@ class AdminController extends Controller {
             if (!$ok) {
                 $_SESSION['error'] = "Cannot delete library. " . $reason;
             } else if ($this->libraryModel->deleteLibraryById($id)) {
-                $_SESSION['success'] = "Library deleted successfully!";
-                
                 // Log the deletion
                 Security::logActivity(
                     $userId,
                     'library_deleted',
-                    "Admin deleted library ID: $id",
-                    ['library_id' => $id]
+                    'security',
+                    "Deleted library: {$library['name']}",
+                    ['library_id' => $id],
+                    'warning'
                 );
+                $_SESSION['success'] = "Library deleted successfully!";
             } else {
                 $_SESSION['error'] = "Failed to delete library.";
             }
@@ -441,17 +922,53 @@ class AdminController extends Controller {
 
     public function assignLibrarian() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $libraryId = $_POST['library_id'] ?? null;
-            $librarianId = $_POST['librarian_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
             
-            if ($libraryId && $librarianId) {
-                if ($this->libraryModel->assignLibrarian($libraryId, $librarianId, $_SESSION['user_id'])) {
-                    $_SESSION['success'] = "Librarian assigned successfully!";
-                } else {
-                    $_SESSION['error'] = "Failed to assign librarian.";
-                }
+            $libraryId = (int)($_POST['library_id'] ?? 0);
+            $librarianId = (int)($_POST['librarian_id'] ?? 0);
+            
+            // Validate IDs
+            if ($libraryId <= 0 || $librarianId <= 0) {
+                $_SESSION['error'] = "Invalid library or librarian ID.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Verify library and librarian exist
+            $library = $this->libraryModel->find($libraryId);
+            $librarian = $this->userModel->find($librarianId);
+            
+            if (!$library || !$librarian) {
+                $_SESSION['error'] = "Library or librarian not found.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Verify user is a librarian
+            if ($librarian['role'] !== 'librarian') {
+                $_SESSION['error'] = "Selected user is not a librarian.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            if ($this->libraryModel->assignLibrarian($libraryId, $librarianId, $_SESSION['user_id'])) {
+                // Log librarian assignment
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'librarian_assigned',
+                    'security',
+                    "Assigned librarian {$librarian['email']} to library {$library['name']}",
+                    ['librarian_id' => $librarianId, 'library_id' => $libraryId],
+                    'info'
+                );
+                $_SESSION['success'] = "Librarian assigned successfully!";
             } else {
-                $_SESSION['error'] = "Please select both library and librarian.";
+                $_SESSION['error'] = "Failed to assign librarian.";
             }
         }
         $this->redirect('/admin/libraries');
@@ -459,9 +976,40 @@ class AdminController extends Controller {
 
     public function removeLibrarianAssignment() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $librarianId = $_POST['librarian_id'] ?? null;
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
             
-            if ($librarianId && $this->libraryModel->removeLibrarianAssignment($librarianId)) {
+            $librarianId = (int)($_POST['librarian_id'] ?? 0);
+            
+            // Validate ID
+            if ($librarianId <= 0) {
+                $_SESSION['error'] = "Invalid librarian ID.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Verify librarian exists
+            $librarian = $this->userModel->find($librarianId);
+            if (!$librarian) {
+                $_SESSION['error'] = "Librarian not found.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            if ($this->libraryModel->removeLibrarianAssignment($librarianId)) {
+                // Log librarian removal
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'librarian_removed',
+                    'security',
+                    "Removed librarian assignment: {$librarian['email']}",
+                    ['librarian_id' => $librarianId],
+                    'info'
+                );
                 $_SESSION['success'] = "Librarian assignment removed successfully!";
             } else {
                 $_SESSION['error'] = "Failed to remove librarian assignment.";
@@ -475,9 +1023,39 @@ class AdminController extends Controller {
         $settingsModel = new SystemSettings();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            foreach ($_POST['settings'] as $key => $value) {
-                $settingsModel->updateSetting($key, $value, $_SESSION['user_id']);
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/settings');
+                return;
             }
+            
+            if (!isset($_POST['settings']) || !is_array($_POST['settings'])) {
+                $_SESSION['error'] = "Invalid settings data.";
+                $this->redirect('/admin/settings');
+                return;
+            }
+            
+            $updatedSettings = [];
+            foreach ($_POST['settings'] as $key => $value) {
+                // Sanitize setting key and value
+                $key = Security::sanitizeInput($key);
+                $value = Security::sanitizeInput($value);
+                
+                $settingsModel->updateSetting($key, $value, $_SESSION['user_id']);
+                $updatedSettings[] = $key;
+            }
+            
+            // Log settings update
+            Security::logActivity(
+                $_SESSION['user_id'],
+                'settings_updated',
+                'security',
+                "Updated system settings: " . implode(', ', $updatedSettings),
+                ['settings' => $updatedSettings],
+                'info'
+            );
+            
             $_SESSION['success'] = "System settings updated successfully!";
             $this->redirect('/admin/settings');
             return;
@@ -563,7 +1141,6 @@ class AdminController extends Controller {
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'data' => $data]);
             exit;
-                        \Security::logActivity($_SESSION['user_id'] ?? null, 'Updated reservation period to ' . $period);
         }
     }
 

@@ -31,16 +31,19 @@ define('SESSION_TIMEOUT', 1800); // 30 minutes (session inactivity timeout)
 define('SESSION_ABSOLUTE_TIMEOUT', 28800); // 8 hours (absolute session lifetime)
 define('CSRF_TOKEN_LIFETIME', 3600); // 1 hour
 define('SESSION_REGENERATE_INTERVAL', 300); // 5 minutes (regenerate session ID periodically)
+define('MAX_PASSWORD_RESET_ATTEMPTS', 3); // Max password reset requests per hour
+define('PASSWORD_RESET_RATE_LIMIT_WINDOW', 3600); // 1 hour in seconds
+define('PASSWORD_RESET_TOKEN_EXPIRY', 3600); // 1 hour token validity
 
 // File Upload Configuration
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_FILE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'csv']);
 
 // Email Configuration
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'lettherebecarnagex@gmail.com');
-define('SMTP_PASSWORD', 'wiyc axrx gdvj poxv'); // Use environment variable or secure vault in production
+define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
+define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
+define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: 'lettherebecarnagex@gmail.com');
+define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: ''); // MUST be set via environment variable in production
 
 // Backup Configuration
 define('BACKUP_PATH', '../backups/');

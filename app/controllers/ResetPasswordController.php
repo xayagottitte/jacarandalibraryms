@@ -48,6 +48,19 @@ class ResetPasswordController extends Controller {
                 return;
             }
             
+            // Additional XSS protection for password field
+            if (!Security::isPasswordSafeFromXSS($password)) {
+                $_SESSION['error'] = "Password contains invalid characters.";
+                Security::logSecurity(
+                    null,
+                    'password_reset_xss_attempt',
+                    "Password reset attempt with XSS in password field for token: {$token}",
+                    'critical'
+                );
+                $this->redirect("/reset-password?token=$token");
+                return;
+            }
+            
             // Confirm password match
             if ($password !== $confirm_password) {
                 $_SESSION['error'] = "Passwords do not match.";

@@ -137,6 +137,7 @@ include '../app/views/shared/layout-header.php';
     margin-bottom: 0;
     border-collapse: collapse;
     font-size: 0.9rem;
+    table-layout: fixed;
 }
 
 /* Table Header */
@@ -352,16 +353,16 @@ include '../app/views/shared/layout-header.php';
             <table class="modern-table">
                     <thead>
                         <tr class="table-header">
-                            <th width="60px">COVER</th>
-                            <th>TITLE</th>
-                            <th>AUTHOR</th>
-                            <th>ISBN</th>
-                            <th>CATEGORY</th>
-                            <th>CLASS LEVEL</th>
-                            <th class="text-center">AVAILABLE</th>
-                            <th class="text-center">TOTAL</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
+                            <th style="width: 60px;">COVER</th>
+                            <th style="width: 18%;">TITLE</th>
+                            <th style="width: 13%;">AUTHOR</th>
+                            <th style="width: 10%;">ISBN</th>
+                            <th style="width: 10%;">CATEGORY</th>
+                            <th style="width: 9%;">CLASS LEVEL</th>
+                            <th style="width: 7%;" class="text-center">AVAILABLE</th>
+                            <th style="width: 6%;" class="text-center">TOTAL</th>
+                            <th style="width: 9%;">STATUS</th>
+                            <th style="width: 18%;">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>

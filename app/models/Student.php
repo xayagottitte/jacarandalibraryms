@@ -139,6 +139,14 @@ class Student extends Model {
         return $stmt->execute();
     }
 
+    public function updateStatus($id, $status) {
+        $query = "UPDATE students SET status = :status WHERE id = :id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
     public function getClassBorrowStats($libraryId) {
         $query = "SELECT 
                     s.class,
