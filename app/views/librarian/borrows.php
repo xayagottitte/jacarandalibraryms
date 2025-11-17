@@ -698,13 +698,11 @@ include '../app/views/shared/layout-header.php';
                                             <i class="fas fa-check-circle"></i> Returned
                                         </span>
                                         <?php if ($fineRemaining > 0): ?>
-                                            <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline js-pay-fine-form">
-                                                <input type="hidden" name="borrow_id" value="<?= $borrow['id'] ?>">
-                                                <input type="number" name="amount" step="0.01" min="0.01" placeholder="Amount" style="max-width:120px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:8px;">
-                                                <button type="submit" class="btn-action btn-return" title="Pay Fine">
-                                                    <i class="fas fa-money-bill-wave"></i> Pay Fine
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn-action btn-return" 
+                                                    onclick="openPaymentModal(<?= $borrow['id'] ?>, <?= $fineAmount ?>, <?= $paidAmount ?>, '<?= htmlspecialchars($borrow['book_title']) ?>', '<?= htmlspecialchars($borrow['student_name']) ?>')" 
+                                                    title="Pay Fine">
+                                                <i class="fas fa-money-bill-wave"></i> Pay Fine
+                                            </button>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
@@ -726,8 +724,73 @@ include '../app/views/shared/layout-header.php';
     </div>
 </div>
 
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">
+                    <i class="fas fa-money-bill-wave me-2"></i>Record Fine Payment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="paymentForm" method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine">
+                <div class="modal-body">
+                    <input type="hidden" id="payment_borrow_id" name="borrow_id">
+                    
+                    <div class="mb-3">
+                        <p class="mb-2"><strong>Book:</strong> <span id="payment_book"></span></p>
+                        <p class="mb-3"><strong>Student:</strong> <span id="payment_student"></span></p>
+                    </div>
+
+                    <div class="alert alert-info mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Total Fine:</strong></span>
+                            <span class="text-end"><strong>MK <span id="payment_total">0.00</span></strong></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Already Paid:</span>
+                            <span class="text-end text-success">MK <span id="payment_paid">0.00</span></span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Remaining:</strong></span>
+                            <span class="text-end"><strong class="text-danger">MK <span id="payment_remaining">0.00</span></strong></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_amount" class="form-label">
+                            Payment Amount <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">MK</span>
+                            <input type="number" class="form-control" id="payment_amount" name="amount" 
+                                   step="0.01" min="0.01" required placeholder="Enter amount">
+                            <button type="button" class="btn btn-outline-secondary" id="payFullBtn">
+                                Pay Full
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">
+                            Enter any amount up to the remaining balance. Partial payments are allowed.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-2"></i>Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+let paymentModal;
 document.addEventListener('DOMContentLoaded', function() {
+    paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
     const searchInput = document.getElementById('liveSearch');
     const table = document.getElementById('borrowsTable');
     const tbody = table.querySelector('tbody');
@@ -880,15 +943,18 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             if (hasFine) {
                 const borrowId = row.querySelector('input[name="borrow_id"]').value;
+                const bookTitle = findCell(row, 2)?.innerText || 'Unknown';
+                const studentName = findCell(row, 1)?.innerText || 'Unknown';
+                const fineAmount = Number(data.fine_amount || 0);
+                const paidAmount = Number(data.paid_amount || 0);
                 html = `
                     <div class="action-buttons">
                         ${html}
-                        <form method="POST" action="<?= BASE_PATH ?>/librarian/pay-fine" class="d-inline js-pay-fine-form">
-                            <input type="hidden" name="borrow_id" value="${borrowId}">
-                            <button type="submit" class="btn-action btn-return" title="Pay Fine">
-                                <i class="fas fa-money-bill-wave"></i> Pay Fine
-                            </button>
-                        </form>
+                        <button type="button" class="btn-action btn-return" 
+                                onclick="openPaymentModal(${borrowId}, ${fineAmount}, ${paidAmount}, '${bookTitle.replace(/'/g, "\\'")}',' ${studentName.replace(/'/g, "\\'")}')" 
+                                title="Pay Fine">
+                            <i class="fas fa-money-bill-wave"></i> Pay Fine
+                        </button>
                     </div>
                 `;
             } else {
@@ -962,28 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        const payForms = (scope || document).querySelectorAll('form[action$="/librarian/pay-fine"]');
-        payForms.forEach(form => {
-            form.classList.add('js-pay-fine-form');
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const row = e.target.closest('tr');
-                const formData = new FormData(form);
-                try {
-                    const res = await fetch(form.action, {
-                        method: 'POST',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        body: formData
-                    });
-                    const json = await res.json();
-                    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to pay fine');
-                    updateRowAfterPayment(row, json.data || {});
-                    showInlineAlert(json.message || 'Fine paid');
-                } catch (err) {
-                    showInlineAlert(err.message || 'Error paying fine', 'error');
-                }
-            });
-        });
+        // Pay fine now handled by modal, no inline forms needed
 
         const lostForms = (scope || document).querySelectorAll('form[action$="/librarian/mark-lost"]');
         lostForms.forEach(form => {
@@ -1013,7 +1058,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     attachAjaxHandlers();
+    
+    // Payment form handler
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(paymentForm);
+            const borrowId = formData.get('borrow_id');
+            
+            try {
+                const res = await fetch(paymentForm.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+                const json = await res.json();
+                if (!res.ok || !json.success) throw new Error(json.message || 'Failed to record payment');
+                
+                // Close modal
+                paymentModal.hide();
+                
+                // Find and update the row
+                const row = document.querySelector(`input[name="borrow_id"][value="${borrowId}"]`)?.closest('tr');
+                if (row) {
+                    updateRowAfterPayment(row, json.data || {});
+                }
+                
+                showInlineAlert(json.message || 'Payment recorded successfully');
+                
+                // Reload page after 1 second to reflect changes
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (err) {
+                showInlineAlert(err.message || 'Error recording payment', 'error');
+            }
+        });
+    }
+    
+    // Pay Full button
+    const payFullBtn = document.getElementById('payFullBtn');
+    if (payFullBtn) {
+        payFullBtn.addEventListener('click', function() {
+            const remaining = parseFloat(document.getElementById('payment_remaining').textContent.replace(/,/g, ''));
+            document.getElementById('payment_amount').value = remaining.toFixed(2);
+        });
+    }
 });
+
+function openPaymentModal(borrowId, totalFine, paidAmount, bookTitle, studentName) {
+    document.getElementById('payment_borrow_id').value = borrowId;
+    document.getElementById('payment_book').textContent = bookTitle;
+    document.getElementById('payment_student').textContent = studentName;
+    document.getElementById('payment_total').textContent = Number(totalFine).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('payment_paid').textContent = Number(paidAmount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    const remaining = Number(totalFine) - Number(paidAmount);
+    document.getElementById('payment_remaining').textContent = remaining.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('payment_amount').value = '';
+    document.getElementById('payment_amount').setAttribute('max', remaining.toFixed(2));
+    
+    paymentModal.show();
+    
+    // Focus on amount input after modal is shown
+    setTimeout(() => {
+        document.getElementById('payment_amount').focus();
+    }, 300);
+}
 
 // Live filter via AJAX (no reload, no button click)
 document.addEventListener('DOMContentLoaded', function() {
