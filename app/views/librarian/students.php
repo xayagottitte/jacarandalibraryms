@@ -383,7 +383,7 @@ include '../app/views/shared/layout-header.php';
 
     <!-- Search and Filter Form -->
     <div class="filter-card">
-        <form method="POST" action="/jacarandalibraryms/librarian/students">
+        <form method="POST" action="/jacarandalibraryms/librarian/students" id="filterForm">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label for="search" class="form-label">Live Search Students</label>
@@ -400,26 +400,30 @@ include '../app/views/shared/layout-header.php';
                 </div>
                 <div class="col-md-3">
                     <label for="class" class="form-label">Class</label>
-                    <select class="form-select" id="class" name="class">
+                    <select class="form-select filter-input" id="class" name="class">
                         <option value="">All Classes</option>
-                        <?php foreach ($classes as $class): ?>
-                            <option value="<?= htmlspecialchars($class['class']) ?>" 
-                                <?= ($filters['class'] ?? '') === $class['class'] ? 'selected' : '' ?>>
-                                Class <?= htmlspecialchars($class['class']) ?>
+                        <?php 
+                        $maxClass = ($library['type'] ?? 'primary') === 'primary' ? 8 : 4;
+                        for ($i = 1; $i <= $maxClass; $i++): 
+                        ?>
+                            <option value="<?= $i ?>" <?= ($filters['class'] ?? '') == $i ? 'selected' : '' ?>>
+                                Class <?= $i ?>
                             </option>
-                        <?php endforeach; ?>
+                        <?php endfor; ?>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
-                    <select class="form-select" id="status" name="status">
+                    <select class="form-select filter-input" id="status" name="status">
                         <option value="">All Status</option>
                         <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
                         <option value="inactive" <?= ($filters['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-filter w-100">Filter</button>
+                    <button type="button" id="clearFilters" class="btn btn-filter w-100">
+                        <i class="fas fa-times me-2"></i>Clear
+                    </button>
                 </div>
             </div>
         </form>
@@ -647,6 +651,81 @@ document.addEventListener('DOMContentLoaded', function() {
             liveSearchInput.focus();
         }
     });
+    
+    // AJAX Filter functionality
+    const filterInputs = document.querySelectorAll('.filter-input');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    const studentsTableBody = document.querySelector('.modern-students-table tbody');
+    
+    // Apply filters on any select change
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+    
+    // Clear filters button
+    clearFiltersBtn.addEventListener('click', function() {
+        filterInputs.forEach(input => {
+            input.selectedIndex = 0;
+        });
+        liveSearchInput.value = '';
+        document.getElementById('search').value = '';
+        applyFilters();
+    });
+    
+    function applyFilters() {
+        // Show loading state
+        if (studentsTableBody) {
+            studentsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading students...</p>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Build form data
+        const formData = new FormData(document.getElementById('filterForm'));
+        
+        // Fetch filtered data
+        fetch('<?= BASE_PATH ?>/librarian/students', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Update table body
+            const newTableBody = doc.querySelector('.modern-students-table tbody');
+            if (newTableBody && studentsTableBody) {
+                studentsTableBody.innerHTML = newTableBody.innerHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (studentsTableBody) {
+                studentsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error loading students. Please try again.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+    }
 });
 </script>
 
