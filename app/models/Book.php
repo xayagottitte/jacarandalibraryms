@@ -210,7 +210,7 @@ class Book extends Model {
 
     public function getDeletedBooks($libraryId = null) {
         $query = "SELECT b.*, l.name as library_name, c.name as category_name, 
-                  u.name as deleted_by_name, b.deleted_at
+                  u.full_name as deleted_by_name, b.deleted_at
                   FROM books b 
                   LEFT JOIN libraries l ON b.library_id = l.id 
                   LEFT JOIN categories c ON b.category_id = c.id

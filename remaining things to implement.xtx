@@ -1,36 +1,27 @@
+❌ NOT WORKING / INCOMPLETE:
+High Priority:
 
-2. categories should be a drop down and admin/librarian should be able to add new categories.
-3. enlarge users table ina dmin dashboard
-4. library delete button  not working
-5. library type (adding library, there only primary and secondary)
-6. generate new report (admin)
-7. view report (admin button)
-8. delete report (admin)
-9. clean up old reports (admin)
-10. activity log filters should use ajax (no page reloads)
-
-11. user preferences 
-12. profile edit 
-
-librarian dashboard students at risk has 0 unpaid fines
-
-13. add book. 
-14. ejohnso books table shfting to the right
-15. deleting a book not working
-16. student management 
-          A. all classes should be in filter (primary has 5 to 8)
-          B. filter should use ajax to avoid reloads
-          C. deactivate and activate students(with reasons)
-17. borrow management
-          C. partial pay (student may not pay whole amount at once)
-18. report management 
-          A. delete the saved reports.
-          B. quick action 
-                    i. overdue books
-                    ii. monthly summary
-20. profile management
-          A. profile pic upload
-          B profile detail edits
-
-history of a student borrowing
-mobile notifications
+Activity Log Filters - Currently uses page reloads, needs AJAX implementation
+Students at Risk showing 0 unpaid fines - Data calculation issue in librarian dashboard
+Reports Module Issues:
+Generate New Report - Exists but needs verification
+View Report - Implemented but needs testing
+Delete Report - Implemented (deleteReport() method exists)
+Clean Up Old Reports - Implemented (cleanupOldReports() method exists)
+Student Management Issues:
+Filter by Class - Currently uses page reloads, needs AJAX
+All Classes in Filter - Primary should show 5-8, needs verification
+Deactivate/Activate Students - No controller methods found for this
+Borrow Management:
+Partial Fine Payment - payFine() exists but doesn't support partial payments
+UI/UX Issues:
+Books Table Shifting Right - CSS/layout issue
+Users Table Too Small - Needs enlargement in admin dashboard
+Missing Features:
+Student Borrowing History - No controller/view found
+Mobile Notifications - Not implemented
+User Preferences - Controller exists but may be incomplete
+Library Type Dropdown - Only shows "primary" and "secondary"
+Deleted/Missing Files:
+ReservationController.php - Deleted (entire reservation system removed)
+Google OAuth - Deleted files

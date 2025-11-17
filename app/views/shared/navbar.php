@@ -291,25 +291,33 @@ body {
                                 <i class="fas fa-building"></i> Libraries
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/books') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/books">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/admin/books') || str_contains($_SERVER['REQUEST_URI'], '/admin/deleted-books') ? 'active' : '' ?>" 
+                               href="#" id="booksDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-book"></i> Books
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="booksDropdown">
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/books">
+                                    <i class="fas fa-book"></i> All Books
+                                </a></li>
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/deleted-books">
+                                    <i class="fas fa-trash-restore"></i> Deleted Books
+                                </a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/deleted-books') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/deleted-books">
-                                <i class="fas fa-trash-restore"></i> Deleted Books
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/reports') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/reports">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/admin/reports') || str_contains($_SERVER['REQUEST_URI'], '/admin/activity-logs') ? 'active' : '' ?>" 
+                               href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-chart-line"></i> Reports
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/activity-logs') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/activity-logs">
-                                <i class="fas fa-history"></i> Activity Logs
-                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/reports">
+                                    <i class="fas fa-chart-line"></i> Reports
+                                </a></li>
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/activity-logs">
+                                    <i class="fas fa-history"></i> Activity Logs
+                                </a></li>
+                            </ul>
                         </li>
                     <?php elseif ($_SESSION['role'] === 'librarian'): ?>
                         <li class="nav-item">

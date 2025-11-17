@@ -402,7 +402,7 @@ include '../app/views/shared/layout-header.php';
                                         <button class="action-btn edit-btn" title="Edit" data-book-id="<?= $book['id'] ?>">EDIT</button>
                                         <?php if ($book['available_copies'] == $book['total_copies']): ?>
                                             <button class="action-btn delete-btn" title="Delete" 
-                                                    onclick="confirmDelete('Are you sure you want to delete this book?', <?= $book['id'] ?>)">DELETE</button>
+                                                    onclick="confirmDeleteWithPassword(<?= $book['id'] ?>); return false;">DELETE</button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -850,11 +850,12 @@ function escapeRegex(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function confirmDelete(message, bookId) {
+function confirmDeleteWithPassword(bookId) {
     // Show password modal instead of confirm dialog
     document.getElementById('deleteBookId').value = bookId;
     document.getElementById('deletePassword').value = '';
     document.getElementById('deletePasswordModal').style.display = 'block';
+    return false; // Prevent any default action
 }
 
 function closeDeleteModal() {

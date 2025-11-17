@@ -170,10 +170,10 @@ include '../app/views/shared/layout-header.php';
                 <h5 class="mb-0 text-white"><i class="fas fa-filter me-2"></i>Filters</h5>
             </div>
             <div class="card-body">
-                <form method="GET" action="<?= BASE_PATH ?>/admin/activity-logs" class="row g-3">
+                <form method="GET" action="<?= BASE_PATH ?>/admin/activity-logs" class="row g-3" id="filterForm">
                     <div class="col-md-3">
                         <label class="form-label">User</label>
-                        <select name="user_id" class="form-select">
+                        <select name="user_id" class="form-select filter-input">
                             <option value="">All Users</option>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?= $user['id'] ?>" <?= ($filters['user_id'] == $user['id']) ? 'selected' : '' ?>>
@@ -184,7 +184,7 @@ include '../app/views/shared/layout-header.php';
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Category</label>
-                        <select name="event_category" class="form-select">
+                        <select name="event_category" class="form-select filter-input">
                             <option value="">All</option>
                             <option value="authentication" <?= ($filters['event_category'] == 'authentication') ? 'selected' : '' ?>>Authentication</option>
                             <option value="profile" <?= ($filters['event_category'] == 'profile') ? 'selected' : '' ?>>Profile</option>
@@ -195,7 +195,7 @@ include '../app/views/shared/layout-header.php';
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Severity</label>
-                        <select name="severity" class="form-select">
+                        <select name="severity" class="form-select filter-input">
                             <option value="">All</option>
                             <option value="info" <?= ($filters['severity'] == 'info') ? 'selected' : '' ?>>Info</option>
                             <option value="warning" <?= ($filters['severity'] == 'warning') ? 'selected' : '' ?>>Warning</option>
@@ -204,15 +204,15 @@ include '../app/views/shared/layout-header.php';
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">From Date</label>
-                        <input type="date" name="date_from" class="form-control" value="<?= htmlspecialchars($filters['date_from'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="date" name="date_from" class="form-control filter-input" value="<?= htmlspecialchars($filters['date_from'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">To Date</label>
-                        <input type="date" name="date_to" class="form-control" value="<?= htmlspecialchars($filters['date_to'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="date" name="date_to" class="form-control filter-input" value="<?= htmlspecialchars($filters['date_to'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                     </div>
                     <div class="col-md-1 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i>
+                        <button type="button" id="clearFilters" class="btn btn-secondary w-100" title="Clear Filters">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </form>
@@ -353,5 +353,121 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterInputs = document.querySelectorAll('.filter-input');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    const logsTableBody = document.querySelector('.table tbody');
+    
+    // Apply filters on any input change
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+    
+    // Clear filters button
+    clearFiltersBtn.addEventListener('click', function() {
+        filterInputs.forEach(input => {
+            if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else {
+                input.value = '';
+            }
+        });
+        applyFilters();
+    });
+    
+    function applyFilters(page = 1) {
+        // Show loading state
+        if (logsTableBody) {
+            logsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading activity logs...</p>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Build query string
+        const formData = new FormData(document.getElementById('filterForm'));
+        const params = new URLSearchParams();
+        
+        formData.forEach((value, key) => {
+            if (value) {
+                params.append(key, value);
+            }
+        });
+        
+        if (page > 1) {
+            params.append('page', page);
+        }
+        
+        // Fetch filtered data
+        fetch('<?= BASE_PATH ?>/admin/activity-logs?' + params.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Update table body
+            const newTableBody = doc.querySelector('.table tbody');
+            if (newTableBody && logsTableBody) {
+                logsTableBody.innerHTML = newTableBody.innerHTML;
+            }
+            
+            // Update pagination
+            const newPagination = doc.querySelector('.pagination');
+            const currentPagination = document.querySelector('.pagination');
+            if (newPagination && currentPagination) {
+                currentPagination.parentElement.innerHTML = newPagination.parentElement.innerHTML;
+                attachPaginationListeners();
+            }
+            
+            // Update URL without page reload
+            const newUrl = '<?= BASE_PATH ?>/admin/activity-logs' + (params.toString() ? '?' + params.toString() : '');
+            window.history.pushState({}, '', newUrl);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (logsTableBody) {
+                logsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error loading activity logs. Please try again.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+    }
+    
+    function attachPaginationListeners() {
+        const paginationLinks = document.querySelectorAll('.pagination .page-link');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = new URL(this.href);
+                const page = url.searchParams.get('page') || 1;
+                applyFilters(page);
+            });
+        });
+    }
+    
+    // Attach pagination listeners on initial load
+    attachPaginationListeners();
+});
+</script>
 
 <?php include '../app/views/shared/footer.php'; ?>
