@@ -27,12 +27,24 @@ class Book extends Model {
         parent::__construct();
     }
 
+    // Override find method to exclude soft-deleted books by default
+    public function find($id, $includeDeleted = false) {
+        $query = "SELECT * FROM books WHERE id = :id";
+        if (!$includeDeleted) {
+            $query .= " AND deleted_at IS NULL";
+        }
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function getBooksByLibrary($libraryId, $filters = []) {
         $query = "SELECT b.*, l.name as library_name, l.type as library_type, c.name as category_name 
                   FROM books b 
                   LEFT JOIN libraries l ON b.library_id = l.id 
                   LEFT JOIN categories c ON b.category_id = c.id
-                  WHERE b.library_id = ?";
+                  WHERE b.library_id = ? AND b.deleted_at IS NULL";
         
         $params = [$libraryId];
 
@@ -171,47 +183,106 @@ class Book extends Model {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function deleteBook($id, $libraryId) {
+    public function deleteBook($id, $libraryId, $deletedBy = null) {
         try {
-            // Use a transaction to ensure all-or-nothing deletion
-            $this->db->beginTransaction();
-            
-            // Step 1: Delete all borrow records for this book (history included)
-            // The controller already verified no active borrows exist
-            $deleteBorrowsQuery = "DELETE FROM borrows WHERE book_id = ?";
-            $stmt = $this->db->prepare($deleteBorrowsQuery);
-            $stmt->execute([$id]);
-            $deletedBorrows = $stmt->rowCount();
-            error_log("Book deletion: Deleted {$deletedBorrows} borrow record(s) for book ID {$id}");
-            
-            // Step 2: Now delete the book itself
-            $query = "DELETE FROM books WHERE id = ? AND library_id = ?";
+            // Soft delete - mark as deleted instead of removing from database
+            $query = "UPDATE books SET deleted_at = NOW(), deleted_by = ? WHERE id = ? AND library_id = ? AND deleted_at IS NULL";
             $stmt = $this->db->prepare($query);
-            $result = $stmt->execute([$id, $libraryId]);
-            $rowsDeleted = $stmt->rowCount();
+            $result = $stmt->execute([$deletedBy, $id, $libraryId]);
+            $rowsUpdated = $stmt->rowCount();
             
-            if ($rowsDeleted > 0) {
-                // Commit the transaction
-                $this->db->commit();
-                
+            if ($rowsUpdated > 0) {
                 // Log the deletion
                 $userId = $_SESSION['user_id'] ?? 0;
-                \Security::logActivity($userId, 'book_delete', 'data', "Deleted book ID {$id} from library {$libraryId} (removed {$deletedBorrows} borrow records)");
+                \Security::logActivity($userId, 'book_delete', 'data', "Soft deleted book ID {$id} from library {$libraryId}");
                 return true;
             } else {
-                // No rows deleted - rollback
-                $this->db->rollBack();
-                error_log("Book deletion failed: No book found with ID {$id} in library {$libraryId}");
+                error_log("Book soft deletion failed: No book found with ID {$id} in library {$libraryId} or already deleted");
                 return false;
             }
             
         } catch (PDOException $e) {
-            // Rollback on any error
+            error_log("Book soft deletion error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+
+    public function getDeletedBooks($libraryId = null) {
+        $query = "SELECT b.*, l.name as library_name, c.name as category_name, 
+                  u.name as deleted_by_name, b.deleted_at
+                  FROM books b 
+                  LEFT JOIN libraries l ON b.library_id = l.id 
+                  LEFT JOIN categories c ON b.category_id = c.id
+                  LEFT JOIN users u ON b.deleted_by = u.id
+                  WHERE b.deleted_at IS NOT NULL";
+        
+        $params = [];
+        if ($libraryId) {
+            $query .= " AND b.library_id = ?";
+            $params[] = $libraryId;
+        }
+        
+        $query .= " ORDER BY b.deleted_at DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function restoreBook($id) {
+        try {
+            $query = "UPDATE books SET deleted_at = NULL, deleted_by = NULL WHERE id = ? AND deleted_at IS NOT NULL";
+            $stmt = $this->db->prepare($query);
+            $result = $stmt->execute([$id]);
+            $rowsUpdated = $stmt->rowCount();
+            
+            if ($rowsUpdated > 0) {
+                // Log the restoration
+                $userId = $_SESSION['user_id'] ?? 0;
+                \Security::logActivity($userId, 'book_restore', 'data', "Restored book ID {$id}");
+                return true;
+            }
+            return false;
+            
+        } catch (PDOException $e) {
+            error_log("Book restoration error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function permanentlyDeleteBook($id) {
+        try {
+            // Use a transaction for permanent deletion
+            $this->db->beginTransaction();
+            
+            // Delete all borrow records first
+            $deleteBorrowsQuery = "DELETE FROM borrows WHERE book_id = ?";
+            $stmt = $this->db->prepare($deleteBorrowsQuery);
+            $stmt->execute([$id]);
+            $deletedBorrows = $stmt->rowCount();
+            
+            // Permanently delete the book
+            $query = "DELETE FROM books WHERE id = ?";
+            $stmt = $this->db->prepare($query);
+            $result = $stmt->execute([$id]);
+            $rowsDeleted = $stmt->rowCount();
+            
+            if ($rowsDeleted > 0) {
+                $this->db->commit();
+                $userId = $_SESSION['user_id'] ?? 0;
+                \Security::logActivity($userId, 'book_permanent_delete', 'data', "Permanently deleted book ID {$id} (removed {$deletedBorrows} borrow records)");
+                return true;
+            } else {
+                $this->db->rollBack();
+                return false;
+            }
+            
+        } catch (PDOException $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            error_log("Book deletion error: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+            error_log("Book permanent deletion error: " . $e->getMessage());
             return false;
         }
     }

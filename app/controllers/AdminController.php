@@ -825,6 +825,13 @@ class AdminController extends Controller {
                 return;
             }
 
+            // Check if already deleted
+            if ($book['deleted_at']) {
+                $_SESSION['error'] = "This book has already been deleted.";
+                $this->redirect(BASE_PATH . '/admin/books');
+                return;
+            }
+
             // Check for active borrows
             $activeBorrows = $this->bookModel->checkActiveBorrows($bookId);
             
@@ -834,8 +841,9 @@ class AdminController extends Controller {
                 return;
             }
 
-            // Delete the book
-            $deleted = $this->bookModel->deleteBook($bookId, $book['library_id']);
+            // Soft delete the book
+            $userId = $_SESSION['user_id'] ?? null;
+            $deleted = $this->bookModel->deleteBook($bookId, $book['library_id'], $userId);
             
             if ($deleted) {
                 $_SESSION['success'] = "Book '{$book['title']}' has been deleted successfully.";
@@ -848,6 +856,87 @@ class AdminController extends Controller {
         }
 
         $this->redirect(BASE_PATH . '/admin/books');
+    }
+
+    public function deletedBooks() {
+        // Admin can view all deleted books across all libraries
+        $deletedBooks = $this->bookModel->getDeletedBooks();
+        
+        $data = [
+            'title' => 'Deleted Books',
+            'books' => $deletedBooks
+        ];
+        
+        $this->view('admin/deleted-books', $data);
+    }
+
+    public function restoreBook() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Invalid request method.";
+            $this->redirect(BASE_PATH . '/admin/deleted-books');
+            return;
+        }
+
+        $bookId = $_POST['id'] ?? null;
+        
+        if (!$bookId) {
+            $_SESSION['error'] = "Book ID is required.";
+            $this->redirect(BASE_PATH . '/admin/deleted-books');
+            return;
+        }
+
+        try {
+            $restored = $this->bookModel->restoreBook($bookId);
+            
+            if ($restored) {
+                $_SESSION['success'] = "Book has been restored successfully.";
+            } else {
+                $_SESSION['error'] = "Failed to restore the book. It may not exist or is not deleted.";
+            }
+            
+        } catch (Exception $e) {
+            $_SESSION['error'] = "An error occurred: " . $e->getMessage();
+        }
+
+        $this->redirect(BASE_PATH . '/admin/deleted-books');
+    }
+
+    public function permanentlyDeleteBook() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Invalid request method.";
+            $this->redirect(BASE_PATH . '/admin/deleted-books');
+            return;
+        }
+
+        $bookId = $_POST['id'] ?? null;
+        $confirm = $_POST['confirm'] ?? null;
+        
+        if (!$bookId) {
+            $_SESSION['error'] = "Book ID is required.";
+            $this->redirect(BASE_PATH . '/admin/deleted-books');
+            return;
+        }
+
+        if ($confirm !== 'PERMANENTLY DELETE') {
+            $_SESSION['error'] = "Confirmation text is required to permanently delete.";
+            $this->redirect(BASE_PATH . '/admin/deleted-books');
+            return;
+        }
+
+        try {
+            $deleted = $this->bookModel->permanentlyDeleteBook($bookId);
+            
+            if ($deleted) {
+                $_SESSION['success'] = "Book has been permanently deleted from the database.";
+            } else {
+                $_SESSION['error'] = "Failed to permanently delete the book.";
+            }
+            
+        } catch (Exception $e) {
+            $_SESSION['error'] = "An error occurred: " . $e->getMessage();
+        }
+
+        $this->redirect(BASE_PATH . '/admin/deleted-books');
     }
 
     public function activityLogs() {

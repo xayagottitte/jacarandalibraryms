@@ -297,6 +297,11 @@ body {
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/deleted-books') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/deleted-books">
+                                <i class="fas fa-trash-restore"></i> Deleted Books
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/reports') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/reports">
                                 <i class="fas fa-chart-line"></i> Reports
                             </a>

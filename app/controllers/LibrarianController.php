@@ -232,10 +232,18 @@ class LibrarianController extends Controller {
         }
 
         $bookId = $_POST['id'] ?? null;
+        $password = $_POST['password'] ?? null;
         $libraryId = $_SESSION['library_id'] ?? null;
+        $userId = $_SESSION['user_id'] ?? null;
         
         if (!$bookId) {
             $_SESSION['error'] = "Book ID is required.";
+            $this->redirect(BASE_PATH . '/librarian/books');
+            return;
+        }
+
+        if (!$password) {
+            $_SESSION['error'] = "Password is required to delete a book.";
             $this->redirect(BASE_PATH . '/librarian/books');
             return;
         }
@@ -247,6 +255,16 @@ class LibrarianController extends Controller {
         }
 
         try {
+            // Verify password
+            $userModel = new \User();
+            $user = $userModel->find($userId);
+            
+            if (!$user || !password_verify($password, $user['password'])) {
+                $_SESSION['error'] = "Invalid password. Book deletion requires password confirmation.";
+                $this->redirect(BASE_PATH . '/librarian/books');
+                return;
+            }
+
             // Get book details
             $book = $this->bookModel->find($bookId);
             
@@ -263,6 +281,13 @@ class LibrarianController extends Controller {
                 return;
             }
 
+            // Check if already deleted
+            if ($book['deleted_at']) {
+                $_SESSION['error'] = "This book has already been deleted.";
+                $this->redirect(BASE_PATH . '/librarian/books');
+                return;
+            }
+
             // Check for active borrows
             $activeBorrows = $this->bookModel->checkActiveBorrows($bookId);
             
@@ -272,8 +297,8 @@ class LibrarianController extends Controller {
                 return;
             }
 
-            // Delete the book
-            $deleted = $this->bookModel->deleteBook($bookId, $libraryId);
+            // Soft delete the book
+            $deleted = $this->bookModel->deleteBook($bookId, $libraryId, $userId);
             
             if ($deleted) {
                 $_SESSION['success'] = "Book '{$book['title']}' has been deleted successfully.";

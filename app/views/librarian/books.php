@@ -421,7 +421,122 @@ include '../app/views/shared/layout-header.php';
         </div>
 </div>
 
+<!-- Password Confirmation Modal for Delete -->
+<div id="deletePasswordModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeDeleteModal()">&times;</span>
+        <h2>Confirm Book Deletion</h2>
+        <p>Please enter your password to confirm deletion of this book.</p>
+        <form id="deleteBookForm" method="POST" action="<?= BASE_PATH ?>/librarian/delete-book">
+            <input type="hidden" id="deleteBookId" name="id">
+            <div class="form-group">
+                <label for="deletePassword">Your Password:</label>
+                <input type="password" id="deletePassword" name="password" class="form-control" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="submit" class="btn-danger">Delete Book</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #663399;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
 /* Additional Table Styles */
 .modern-table-container {
     width: 98%;
@@ -736,20 +851,22 @@ function escapeRegex(string) {
 }
 
 function confirmDelete(message, bookId) {
-    if (confirm(message)) {
-        // Create a form to submit the delete request
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '<?= BASE_PATH ?>/librarian/delete-book';
-        
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'id';
-        input.value = bookId;
-        
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
+    // Show password modal instead of confirm dialog
+    document.getElementById('deleteBookId').value = bookId;
+    document.getElementById('deletePassword').value = '';
+    document.getElementById('deletePasswordModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deletePasswordModal').style.display = 'none';
+    document.getElementById('deletePassword').value = '';
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('deletePasswordModal');
+    if (event.target == modal) {
+        closeDeleteModal();
     }
 }
 
