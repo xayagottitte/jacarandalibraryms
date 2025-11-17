@@ -173,33 +173,45 @@ class Book extends Model {
 
     public function deleteBook($id, $libraryId) {
         try {
-            // Since there's a foreign key constraint, we need to handle borrows first
-            // Option 1: Delete all borrow records for this book (if no active borrows exist)
-            // The controller already checks for active borrows, so this should be safe
+            // Use a transaction to ensure all-or-nothing deletion
+            $this->db->beginTransaction();
             
-            // Delete all borrow records for this book
+            // Step 1: Delete all borrow records for this book (history included)
+            // The controller already verified no active borrows exist
             $deleteBorrowsQuery = "DELETE FROM borrows WHERE book_id = ?";
             $stmt = $this->db->prepare($deleteBorrowsQuery);
             $stmt->execute([$id]);
+            $deletedBorrows = $stmt->rowCount();
+            error_log("Book deletion: Deleted {$deletedBorrows} borrow record(s) for book ID {$id}");
             
-            // Now delete the book
+            // Step 2: Now delete the book itself
             $query = "DELETE FROM books WHERE id = ? AND library_id = ?";
             $stmt = $this->db->prepare($query);
             $result = $stmt->execute([$id, $libraryId]);
+            $rowsDeleted = $stmt->rowCount();
             
-            if ($result) {
-                $rowsDeleted = $stmt->rowCount();
-                if ($rowsDeleted > 0) {
-                    // Log the deletion
-                    $userId = $_SESSION['user_id'] ?? 0;
-                    \Security::logActivity($userId, 'book_delete', 'data', "Deleted book ID {$id} from library {$libraryId}");
-                    return true;
-                }
+            if ($rowsDeleted > 0) {
+                // Commit the transaction
+                $this->db->commit();
+                
+                // Log the deletion
+                $userId = $_SESSION['user_id'] ?? 0;
+                \Security::logActivity($userId, 'book_delete', 'data', "Deleted book ID {$id} from library {$libraryId} (removed {$deletedBorrows} borrow records)");
+                return true;
+            } else {
+                // No rows deleted - rollback
+                $this->db->rollBack();
+                error_log("Book deletion failed: No book found with ID {$id} in library {$libraryId}");
+                return false;
             }
             
-            return false;
         } catch (PDOException $e) {
+            // Rollback on any error
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Book deletion error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return false;
         }
     }
