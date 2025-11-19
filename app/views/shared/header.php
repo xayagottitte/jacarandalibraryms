@@ -29,7 +29,7 @@
         // Try both system_name and library_name for backward compatibility
         $system_name = $systemSettings->getSetting('system_name') 
                     ?: $systemSettings->getSetting('library_name') 
-                    ?: 'Multi-Library System';
+                    ?: 'Jacaranda Libraries';
     }
     
     // Include navbar for all pages

@@ -159,46 +159,89 @@ class User extends Model {
 
     public function deleteUser($userId) {
         try {
-            $this->db->beginTransaction();
+            error_log("Starting user deletion for ID: $userId");
             
-            // Instead of preventing deletion, reassign all records to NULL or keep them orphaned
-            // This allows deletion while preserving data integrity
+            // Disable foreign key checks temporarily
+            $this->db->exec("SET FOREIGN_KEY_CHECKS = 0");
+            
+            $this->db->beginTransaction();
             
             // 1. Update libraries - set created_by to NULL
             $stmt = $this->db->prepare("UPDATE libraries SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected libraries");
             
             // 2. Update books - set created_by to NULL
             $stmt = $this->db->prepare("UPDATE books SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected books");
             
             // 3. Update students - set created_by to NULL
             $stmt = $this->db->prepare("UPDATE students SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected students");
             
             // 4. Update categories - set created_by to NULL
             $stmt = $this->db->prepare("UPDATE categories SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected categories");
             
-            // 5. Update borrows - set created_by to NULL
-            $stmt = $this->db->prepare("UPDATE borrows SET created_by = NULL WHERE created_by = ?");
+            // 5. Update backup_logs - set created_by to NULL
+            $stmt = $this->db->prepare("UPDATE backup_logs SET created_by = NULL WHERE created_by = ?");
             $stmt->execute([$userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected backup_logs");
             
-            // 6. Update reservations - set created_by to NULL
-            $stmt = $this->db->prepare("UPDATE reservations SET created_by = NULL WHERE created_by = ?");
-            $stmt->execute([$userId]);
+            // 6. Update borrows - set all user reference columns to NULL
+            $stmt = $this->db->prepare("
+                UPDATE borrows SET 
+                    created_by = NULL,
+                    issued_by = NULL,
+                    borrowed_by = NULL,
+                    returned_to = NULL,
+                    returned_by = NULL,
+                    lost_marked_by = NULL
+                WHERE created_by = :uid 
+                   OR issued_by = :uid 
+                   OR borrowed_by = :uid 
+                   OR returned_to = :uid 
+                   OR returned_by = :uid 
+                   OR lost_marked_by = :uid
+            ");
+            $stmt->execute(['uid' => $userId]);
+            $affected = $stmt->rowCount();
+            error_log("Updated $affected borrow records");
             
             // 7. Delete the user
             $query = "DELETE FROM users WHERE id = ?";
             $stmt = $this->db->prepare($query);
             $result = $stmt->execute([$userId]);
+            $deletedUser = $stmt->rowCount();
+            error_log("Deleted user: " . ($deletedUser > 0 ? "YES" : "NO"));
             
-            $this->db->commit();
-            return $result;
+            if ($deletedUser > 0) {
+                $this->db->commit();
+                // Re-enable foreign key checks
+                $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
+                error_log("User deletion committed successfully");
+                return true;
+            } else {
+                $this->db->rollBack();
+                $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
+                error_log("User not found or already deleted");
+                return false;
+            }
             
         } catch (Exception $e) {
             $this->db->rollBack();
+            // Re-enable foreign key checks even on error
+            $this->db->exec("SET FOREIGN_KEY_CHECKS = 1");
             error_log("Error deleting user: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             throw new Exception("Failed to delete user: " . $e->getMessage());
         }
     }

@@ -438,12 +438,14 @@
                                                 <td>
                                                     <div class="btn-group" role="group">
                                                         <form method="POST" action="<?= BASE_PATH ?>/admin/approve-user" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                                             <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                                             <button type="submit" class="btn btn-success btn-sm modern-btn">
                                                                 <i class="fas fa-check"></i>
                                                             </button>
                                                         </form>
                                                         <form method="POST" action="<?= BASE_PATH ?>/admin/reject-user" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                                             <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                                             <button type="submit" class="btn btn-danger btn-sm modern-btn">
                                                                 <i class="fas fa-times"></i>

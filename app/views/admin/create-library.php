@@ -1,5 +1,5 @@
 <?php 
-$title = "Create Library - Multi-Library System";
+$title = "Create Library - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>
@@ -108,6 +108,7 @@ include '../app/views/shared/layout-header.php';
 <div class="modern-card">
     <div class="card-body p-4">
         <form method="POST" action="<?= BASE_PATH ?>/admin/create-library">
+            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
             <div class="row g-4">
                 <div class="col-md-6">
                     <label for="name" class="form-label-modern">

@@ -1,5 +1,5 @@
 <?php 
-$title = "Create User - Multi-Library System";
+$title = "Create User - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>
@@ -157,6 +157,7 @@ include '../app/views/shared/layout-header.php';
     <div class="modern-card">
         <div class="card-body p-4">
             <form method="POST" action="<?= BASE_PATH ?>/admin/create-user">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                 <!-- Personal Information -->
                 <div class="form-section-title">
                     <i class="fas fa-user"></i> Personal Information

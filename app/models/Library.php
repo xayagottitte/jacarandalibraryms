@@ -143,17 +143,25 @@ class Library extends Model {
             
             $this->db->beginTransaction();
             
-            // 1. Delete all borrows related to this library (must come before students/books)
-            $stmt = $this->db->prepare("DELETE FROM borrows WHERE library_id = :id");
+            // 1. Delete all borrows related to books in this library
+            $stmt = $this->db->prepare("
+                DELETE borrows FROM borrows 
+                INNER JOIN books ON borrows.book_id = books.id 
+                WHERE books.library_id = :id
+            ");
             $result = $stmt->execute([':id' => $id]);
             $deletedBorrows = $stmt->rowCount();
-            error_log("Deleted $deletedBorrows borrows");
+            error_log("Deleted $deletedBorrows borrows (via books)");
             
-            // 2. Delete reservations related to this library
-            $stmt = $this->db->prepare("DELETE FROM reservations WHERE library_id = :id");
+            // 2. Delete any remaining borrows related to students in this library
+            $stmt = $this->db->prepare("
+                DELETE borrows FROM borrows 
+                INNER JOIN students ON borrows.student_id = students.id 
+                WHERE students.library_id = :id
+            ");
             $result = $stmt->execute([':id' => $id]);
-            $deletedReservations = $stmt->rowCount();
-            error_log("Deleted $deletedReservations reservations");
+            $deletedBorrowsStudents = $stmt->rowCount();
+            error_log("Deleted $deletedBorrowsStudents additional borrows (via students)");
             
             // 3. Delete all students in this library
             $stmt = $this->db->prepare("DELETE FROM students WHERE library_id = :id");
@@ -170,15 +178,34 @@ class Library extends Model {
             // 5. Delete reports for this library
             $stmt = $this->db->prepare("DELETE FROM reports WHERE library_id = :id");
             $result = $stmt->execute([':id' => $id]);
-            error_log("Deleted reports");
+            $deletedReports = $stmt->rowCount();
+            error_log("Deleted $deletedReports reports");
             
-            // 6. Delete all librarians assigned to this library
-            $stmt = $this->db->prepare("DELETE FROM users WHERE library_id = :id");
+            // 6. Delete categories for this library
+            $stmt = $this->db->prepare("DELETE FROM categories WHERE library_id = :id");
             $result = $stmt->execute([':id' => $id]);
-            $deletedUsers = $stmt->rowCount();
-            error_log("Deleted $deletedUsers librarians");
+            $deletedCategories = $stmt->rowCount();
+            error_log("Deleted $deletedCategories categories");
             
-            // 7. Finally, delete the library itself
+            // 7. Delete library assignments
+            $stmt = $this->db->prepare("DELETE FROM library_assignments WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedAssignments = $stmt->rowCount();
+            error_log("Deleted $deletedAssignments library assignments");
+            
+            // 8. Delete system statistics for this library
+            $stmt = $this->db->prepare("DELETE FROM system_statistics WHERE library_id = :id");
+            $result = $stmt->execute([':id' => $id]);
+            $deletedStats = $stmt->rowCount();
+            error_log("Deleted $deletedStats system statistics");
+            
+            // 9. Delete or update users assigned to this library (set library_id to NULL)
+            $stmt = $this->db->prepare("UPDATE users SET library_id = NULL WHERE library_id = :id AND role != 'super_admin'");
+            $result = $stmt->execute([':id' => $id]);
+            $updatedUsers = $stmt->rowCount();
+            error_log("Updated $updatedUsers users (set library_id to NULL)");
+            
+            // 10. Finally, delete the library itself
             $stmt = $this->db->prepare("DELETE FROM libraries WHERE id = :id");
             $result = $stmt->execute([':id' => $id]);
             $deletedLibrary = $stmt->rowCount();

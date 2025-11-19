@@ -127,6 +127,81 @@
             </div>
         <?php endif; ?>
 
+        <!-- PIN Confirmation Form (displayed after delete button is clicked) -->
+        <?php if (isset($_SESSION['awaiting_pin_confirmation']) && $_SESSION['awaiting_pin_confirmation'] === true && $_SESSION['pin_action'] === 'delete_user'): ?>
+            <div class="card border-danger mb-4 shadow">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Confirm User Deletion</strong>
+                    </div>
+                    <a href="<?php echo BASE_PATH; ?>/admin/cancel-user-deletion" class="btn btn-sm btn-light">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Two-Factor Authentication Required</strong><br>
+                        A 6-digit PIN has been sent to your email address. Please check your inbox and enter the PIN below to complete the deletion.
+                    </div>
+                    
+                    <div class="alert alert-warning mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> Deleting this user will affect multiple records in the system:
+                        <ul class="mb-0 mt-2">
+                            <li>Books, Students, Categories, and Libraries created by this user will lose creator information</li>
+                            <li>Borrowing records will lose user associations (issued by, returned by, etc.)</li>
+                            <li>The records themselves will NOT be deleted, but they will no longer show who performed the actions</li>
+                        </ul>
+                    </div>
+                    
+                    <?php if (isset($_SESSION['confirmation_data']['user_email']) && isset($_SESSION['confirmation_data']['user_role'])): ?>
+                        <div class="mb-3">
+                            <strong>User to be deleted:</strong><br>
+                            Email: <?php echo htmlspecialchars($_SESSION['confirmation_data']['user_email']); ?><br>
+                            Role: <?php echo htmlspecialchars(ucfirst($_SESSION['confirmation_data']['user_role'])); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <form method="POST" action="<?php echo BASE_PATH; ?>/admin/confirm-user-deletion" id="confirmUserDeletionForm">
+                        <div class="mb-3">
+                            <label for="confirmationPin" class="form-label">
+                                <i class="fas fa-key me-1"></i>Enter 6-Digit PIN
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="confirmationPin" 
+                                   name="pin" 
+                                   pattern="[0-9]{6}" 
+                                   maxlength="6" 
+                                   placeholder="000000"
+                                   style="letter-spacing: 0.5em; font-size: 1.5rem; font-weight: bold;"
+                                   required 
+                                   autofocus>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>PIN expires in 10 minutes
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger flex-fill">
+                                <i class="fas fa-check me-2"></i>Confirm Deletion
+                            </button>
+                            <a href="<?php echo BASE_PATH; ?>/admin/cancel-user-deletion" class="btn btn-secondary flex-fill">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Didn't receive the email? Check your spam folder or contact support.
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- User Statistics Cards -->
         <div class="row mb-4">
             <?php 
@@ -370,6 +445,7 @@
                                             <?php if ($user['status'] === 'pending' && $user['role'] === 'librarian'): ?>
                                                 <!-- Approve Button -->
                                                 <form method="POST" action="<?php echo BASE_PATH; ?>/admin/approve-user" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                                     <button type="submit" class="btn btn-sm btn-success" title="Approve User">
                                                         <i class="fas fa-check"></i>
@@ -408,6 +484,7 @@
                                                     </button>
                                                 <?php elseif ($user['status'] === 'inactive'): ?>
                                                     <form method="POST" action="<?php echo BASE_PATH; ?>/admin/activate-user" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                                                         <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                                         <button type="submit" class="btn btn-sm btn-success" title="Activate User">
                                                             <i class="fas fa-user-check"></i>
@@ -462,6 +539,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="<?php echo BASE_PATH; ?>/admin/reject-user" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                     <input type="hidden" name="user_id" id="rejectUserId">
                     <button type="submit" class="btn btn-danger">Reject User</button>
                 </form>
@@ -494,6 +572,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="<?php echo BASE_PATH; ?>/admin/deactivate-user" id="deactivateForm" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                     <input type="hidden" name="user_id" id="deactivateUserId">
                     <button type="submit" class="btn btn-warning">
                         <i class="fas fa-user-slash me-2"></i>Deactivate User
@@ -524,15 +603,35 @@
                         This is a Super Admin account. Deleting will permanently remove their administrative access and all associated data.
                     </div>
                 </div>
+                
+                <form method="POST" action="<?php echo BASE_PATH; ?>/admin/delete-user" id="deleteForm">
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                    <input type="hidden" name="user_id" id="deleteUserId">
+                    
+                    <div class="mb-3">
+                        <label for="deleteUserPassword" class="form-label">
+                            <i class="fas fa-lock me-1"></i>Confirm Your Password <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="deleteUserPassword" 
+                               name="password" 
+                               placeholder="Enter your admin password"
+                               required>
+                        <small class="text-muted">For security, please enter your password to proceed.</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        After confirming, a PIN will be sent to your email for final verification.
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="<?php echo BASE_PATH; ?>/admin/delete-user" id="deleteForm" style="display: inline;">
-                    <input type="hidden" name="user_id" id="deleteUserId">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Delete Permanently
-                    </button>
-                </form>
+                <button type="submit" form="deleteForm" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Proceed to Delete
+                </button>
             </div>
         </div>
     </div>
@@ -555,6 +654,7 @@
                 </div>
                 <p>Assign library to user <strong><span id="assignUsername"></span></strong>:</p>
                 <form method="POST" action="<?php echo BASE_PATH; ?>/admin/assign-library" id="assignLibraryForm">
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                     <input type="hidden" name="user_id" id="assignUserId">
                     <div class="mb-3">
                         <label for="library_id" class="form-label">

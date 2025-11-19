@@ -1,4 +1,4 @@
-// Custom JavaScript for Multi-Library System
+// Custom JavaScript for Jacaranda Libraries
 
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-hide alerts after 5 seconds

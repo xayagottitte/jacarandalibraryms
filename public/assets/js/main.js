@@ -1,4 +1,4 @@
-// Multi-Library System - Main JavaScript
+// Jacaranda Libraries Main JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeSystem();

@@ -51,6 +51,62 @@ class AdminController extends Controller {
         
         $this->view('admin/dashboard', $data);
     }
+    
+    /**
+     * Verify admin password for critical operations
+     */
+    public function verifyPassword() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            exit;
+        }
+        
+        // Verify CSRF token
+        if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid security token']);
+            exit;
+        }
+        
+        $password = $_POST['confirm_password'] ?? '';
+        
+        if (empty($password)) {
+            echo json_encode(['success' => false, 'message' => 'Password is required']);
+            exit;
+        }
+        
+        // Verify password
+        if (Security::verifyAdminPassword($_SESSION['user_id'], $password)) {
+            // Mark password as confirmed
+            Security::markPasswordConfirmed();
+            
+            // Log password confirmation
+            Security::logActivity(
+                $_SESSION['user_id'],
+                'password_confirmed',
+                'security',
+                'Admin password confirmed for critical action',
+                [],
+                'info'
+            );
+            
+            echo json_encode(['success' => true]);
+        } else {
+            // Log failed confirmation
+            Security::logSecurity(
+                $_SESSION['user_id'],
+                'password_confirmation_failed',
+                'Failed password confirmation attempt',
+                'warning'
+            );
+            
+            echo json_encode(['success' => false, 'message' => 'Incorrect password']);
+        }
+        exit;
+        
+        $this->view('admin/dashboard', $data);
+    }
 
     // User Management Methods
     public function users() {
@@ -403,6 +459,7 @@ class AdminController extends Controller {
             }
             
             $userId = (int)($_POST['user_id'] ?? 0);
+            $password = $_POST['password'] ?? '';
             
             // Validate user ID
             if ($userId <= 0) {
@@ -418,7 +475,7 @@ class AdminController extends Controller {
                 return;
             }
             
-            // Get user details before deletion
+            // Get user details
             $user = $this->userModel->find($userId);
             if (!$user) {
                 $_SESSION['error'] = "User not found.";
@@ -426,25 +483,165 @@ class AdminController extends Controller {
                 return;
             }
             
+            // Verify admin password
+            $adminUserId = $_SESSION['user_id'];
+            
+            if (!Security::verifyAdminPassword($adminUserId, $password)) {
+                // Log failed deletion attempt
+                Security::logSecurity(
+                    $adminUserId,
+                    'user_deletion_failed',
+                    "Failed user deletion attempt - incorrect password for user: {$user['email']}",
+                    'warning'
+                );
+                $_SESSION['error'] = 'Incorrect password. User deletion cancelled.';
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Generate and send confirmation PIN to admin's email
+            $pin = Security::generateConfirmationPin();
+            Security::storeConfirmationPin($pin, 'delete_user', [
+                'user_id' => $userId,
+                'user_email' => $user['email'],
+                'user_role' => $user['role']
+            ]);
+            
+            // Get admin email
+            $admin = $this->userModel->find($adminUserId);
+            
+            // Send PIN via email
+            try {
+                $emailSent = $this->mailer->sendUserDeletionPin(
+                    $admin['email'],
+                    $admin['full_name'],
+                    $user['email'],
+                    $user['role'],
+                    $pin
+                );
+                
+                if ($emailSent) {
+                    $_SESSION['info'] = "A confirmation PIN has been sent to {$admin['email']}. Please enter it to complete the deletion.";
+                    $_SESSION['awaiting_pin_confirmation'] = true;
+                    $_SESSION['pin_action'] = 'delete_user';
+                } else {
+                    $_SESSION['error'] = 'Failed to send confirmation PIN. Please try again.';
+                    Security::clearConfirmationPin();
+                    unset($_SESSION['awaiting_pin_confirmation']);
+                    unset($_SESSION['pin_action']);
+                }
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Error sending confirmation email: ' . $e->getMessage();
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+            }
+        }
+        $this->redirect('/admin/users');
+    }
+    
+    /**
+     * Confirm user deletion with PIN
+     */
+    public function confirmUserDeletion() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            $pin = Security::sanitizeInput($_POST['confirmation_pin'] ?? '');
+            
+            if (empty($pin)) {
+                $_SESSION['error'] = 'Please enter the confirmation PIN.';
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Verify PIN
+            if (!Security::verifyConfirmationPin($pin, 'delete_user')) {
+                $_SESSION['error'] = 'Invalid or expired PIN. Please request a new confirmation PIN.';
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'user_deletion_pin_failed',
+                    'Failed user deletion - invalid PIN',
+                    'warning'
+                );
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Get stored user data
+            $data = Security::getConfirmationData();
+            if (!$data || !isset($data['user_id'])) {
+                $_SESSION['error'] = 'Confirmation data not found. Please try again.';
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            $userId = $data['user_id'];
+            $userEmail = $data['user_email'];
+            $userRole = $data['user_role'];
+            
+            // Verify user still exists
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $_SESSION['error'] = 'User not found or already deleted.';
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/users');
+                return;
+            }
+            
+            // Perform deletion
             try {
                 if ($this->userModel->deleteUser($userId)) {
-                    // Log user deletion
                     Security::logActivity(
                         $_SESSION['user_id'],
                         'user_deleted',
                         'security',
-                        "Deleted user account: {$user['email']} ({$user['role']})",
+                        "Deleted user account: {$userEmail} ({$userRole}) (PIN confirmed)",
                         ['deleted_user_id' => $userId],
                         'warning'
                     );
-                    $_SESSION['success'] = "User deleted successfully!";
+                    $_SESSION['success'] = "User '{$userEmail}' deleted successfully!";
+                    Security::clearConfirmationPin();
+                    unset($_SESSION['awaiting_pin_confirmation']);
+                    unset($_SESSION['pin_action']);
                 } else {
                     $_SESSION['error'] = "Failed to delete user.";
+                    Security::clearConfirmationPin();
+                    unset($_SESSION['awaiting_pin_confirmation']);
+                    unset($_SESSION['pin_action']);
                 }
             } catch (Exception $e) {
-                $_SESSION['error'] = $e->getMessage();
+                $_SESSION['error'] = "Error deleting user: " . $e->getMessage();
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
             }
         }
+        $this->redirect('/admin/users');
+    }
+    
+    /**
+     * Cancel user deletion PIN confirmation
+     */
+    public function cancelUserDeletion() {
+        Security::clearConfirmationPin();
+        unset($_SESSION['awaiting_pin_confirmation']);
+        unset($_SESSION['pin_action']);
+        
+        $_SESSION['info'] = 'User deletion cancelled.';
         $this->redirect('/admin/users');
     }
 
@@ -873,7 +1070,7 @@ class AdminController extends Controller {
                 return;
             }
             
-            // Verify admin password
+            // Verify admin password using Security class
             if (empty($password)) {
                 $_SESSION['error'] = 'Password is required to delete a library.';
                 $this->redirect('/admin/libraries');
@@ -882,10 +1079,8 @@ class AdminController extends Controller {
             
             // Get current admin user
             $userId = $_SESSION['user_id'];
-            $userModel = new User();
-            $user = $userModel->getUserProfile($userId);
             
-            if (!$user || !password_verify($password, $user['password'])) {
+            if (!Security::verifyAdminPassword($userId, $password)) {
                 // Log failed deletion attempt
                 Security::logSecurity(
                     $userId,
@@ -898,25 +1093,155 @@ class AdminController extends Controller {
                 return;
             }
             
+            // Generate and send confirmation PIN to admin's email
+            $pin = Security::generateConfirmationPin();
+            Security::storeConfirmationPin($pin, 'delete_library', [
+                'library_id' => $id,
+                'library_name' => $library['name']
+            ]);
+            
+            // Get admin email
+            $admin = $this->userModel->find($userId);
+            
+            // Send PIN via email
+            try {
+                $emailSent = $this->mailer->sendLibraryDeletionPin(
+                    $admin['email'],
+                    $admin['full_name'],
+                    $library['name'],
+                    $pin
+                );
+                
+                if ($emailSent) {
+                    $_SESSION['info'] = "A confirmation PIN has been sent to {$admin['email']}. Please enter it to complete the deletion.";
+                    $_SESSION['awaiting_pin_confirmation'] = true;
+                    $_SESSION['pin_action'] = 'delete_library';
+                } else {
+                    $_SESSION['error'] = 'Failed to send confirmation PIN. Please try again.';
+                    Security::clearConfirmationPin();
+                    // Clear session flags when email fails
+                    unset($_SESSION['awaiting_pin_confirmation']);
+                    unset($_SESSION['pin_action']);
+                }
+            } catch (Exception $e) {
+                $_SESSION['error'] = 'Error sending confirmation email: ' . $e->getMessage();
+                Security::clearConfirmationPin();
+                // Clear session flags on error
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+            }
+        }
+        $this->redirect('/admin/libraries');
+    }
+    
+    /**
+     * Confirm library deletion with PIN
+     */
+    public function confirmLibraryDeletion() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            $pin = Security::sanitizeInput($_POST['confirmation_pin'] ?? '');
+            
+            if (empty($pin)) {
+                $_SESSION['error'] = 'Please enter the confirmation PIN.';
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Verify PIN
+            if (!Security::verifyConfirmationPin($pin, 'delete_library')) {
+                $_SESSION['error'] = 'Invalid or expired PIN. Please request a new confirmation PIN.';
+                Security::logSecurity(
+                    $_SESSION['user_id'],
+                    'library_deletion_pin_failed',
+                    'Failed library deletion - invalid PIN',
+                    'warning'
+                );
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            // Get stored library data
+            $data = Security::getConfirmationData();
+            if (!$data || !isset($data['library_id'])) {
+                $_SESSION['error'] = 'Confirmation data not found. Please try again.';
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
+            $id = $data['library_id'];
+            $libraryName = $data['library_name'];
+            
+            // Verify library still exists
+            $library = $this->libraryModel->find($id);
+            if (!$library) {
+                $_SESSION['error'] = 'Library not found.';
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
+                $this->redirect('/admin/libraries');
+                return;
+            }
+            
             // Check if library can be deleted
             list($ok, $reason) = $this->libraryModel->canDelete($id);
             if (!$ok) {
                 $_SESSION['error'] = "Cannot delete library. " . $reason;
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
             } else if ($this->libraryModel->deleteLibraryById($id)) {
                 // Log the deletion
                 Security::logActivity(
-                    $userId,
+                    $_SESSION['user_id'],
                     'library_deleted',
                     'security',
-                    "Deleted library: {$library['name']}",
+                    "Deleted library: {$libraryName} (PIN confirmed)",
                     ['library_id' => $id],
                     'warning'
                 );
                 $_SESSION['success'] = "Library deleted successfully!";
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
             } else {
                 $_SESSION['error'] = "Failed to delete library.";
+                // Clear all confirmation data
+                Security::clearConfirmationPin();
+                unset($_SESSION['awaiting_pin_confirmation']);
+                unset($_SESSION['pin_action']);
             }
         }
+        $this->redirect('/admin/libraries');
+    }
+
+    /**
+     * Cancel library deletion PIN confirmation
+     */
+    public function cancelLibraryDeletion() {
+        // Clear all confirmation data
+        Security::clearConfirmationPin();
+        unset($_SESSION['awaiting_pin_confirmation']);
+        unset($_SESSION['pin_action']);
+        
+        $_SESSION['info'] = 'Library deletion cancelled.';
         $this->redirect('/admin/libraries');
     }
 

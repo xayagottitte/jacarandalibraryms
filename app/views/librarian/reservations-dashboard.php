@@ -1,5 +1,5 @@
 <?php
-$title = "Reservation Dashboard - Multi-Library System";
+$title = "Reservation Dashboard - Jacaranda Libraries";
 include '../app/views/shared/header.php';
 ?>
 <div class="container mt-5">

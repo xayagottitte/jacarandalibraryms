@@ -1,6 +1,13 @@
             </div>
         </div>
 
+        <?php 
+        // Include password confirmation modal for admin users
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'super_admin') {
+            include __DIR__ . '/password-confirm-modal.php';
+        }
+        ?>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             // Auto-hide alerts after 5 seconds

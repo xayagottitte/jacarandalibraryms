@@ -134,6 +134,7 @@
             </div>
             <div class="card-body">
                 <form method="POST" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                     <!-- Account Information Section -->
                     <div class="mb-4">
                         <h6 class="text-primary mb-3">

@@ -1,5 +1,5 @@
 <?php
-$title = "Edit Book - Multi-Library System";
+$title = "Edit Book - Jacaranda Libraries";
 include __DIR__ . '/../shared/header.php';
 include __DIR__ . '/../shared/navbar.php';
 

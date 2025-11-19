@@ -1,6 +1,6 @@
 
 <?php 
-$title = "Manage Categories - Multi-Library System";
+$title = "Manage Categories - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>

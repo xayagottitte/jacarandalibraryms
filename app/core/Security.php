@@ -74,6 +74,129 @@ class Security {
     public static function verifyCSRFToken($token) {
         return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
     }
+    
+    /**
+     * Verify admin password for critical operations
+     * @param int $userId User ID to verify
+     * @param string $password Password to verify
+     * @return bool True if password is correct
+     */
+    public static function verifyAdminPassword($userId, $password) {
+        try {
+            $database = new Database();
+            $db = $database->connect();
+            
+            $stmt = $db->prepare("SELECT password FROM users WHERE id = ? AND (role = 'super_admin' OR role = 'admin')");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                return false;
+            }
+            
+            return password_verify($password, $user['password']);
+        } catch (Exception $e) {
+            error_log("Password verification failed: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Require password confirmation for critical actions
+     * Checks if password was recently verified (within 15 minutes)
+     * @return bool True if password is verified or within grace period
+     */
+    public static function requirePasswordConfirmation() {
+        // Check if password was recently confirmed (15 minute grace period)
+        if (isset($_SESSION['password_confirmed_at'])) {
+            $timeSinceConfirmation = time() - $_SESSION['password_confirmed_at'];
+            if ($timeSinceConfirmation < 900) { // 15 minutes
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Mark password as confirmed
+     */
+    public static function markPasswordConfirmed() {
+        $_SESSION['password_confirmed_at'] = time();
+    }
+    
+    /**
+     * Clear password confirmation
+     */
+    public static function clearPasswordConfirmation() {
+        unset($_SESSION['password_confirmed_at']);
+    }
+    
+    /**
+     * Generate a random 6-digit PIN for email confirmation
+     * @return string 6-digit PIN
+     */
+    public static function generateConfirmationPin() {
+        return str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Store confirmation PIN in session with expiry
+     * @param string $pin The PIN to store
+     * @param string $action The action being confirmed (e.g., 'delete_library')
+     * @param array $data Additional data about the action
+     */
+    public static function storeConfirmationPin($pin, $action, $data = []) {
+        $_SESSION['confirmation_pin'] = [
+            'pin' => password_hash($pin, PASSWORD_DEFAULT),
+            'action' => $action,
+            'data' => $data,
+            'created_at' => time(),
+            'expires_at' => time() + 600 // 10 minutes
+        ];
+    }
+    
+    /**
+     * Verify confirmation PIN
+     * @param string $pin The PIN to verify
+     * @param string $action The action being confirmed
+     * @return bool True if PIN is valid and not expired
+     */
+    public static function verifyConfirmationPin($pin, $action) {
+        if (!isset($_SESSION['confirmation_pin'])) {
+            return false;
+        }
+        
+        $stored = $_SESSION['confirmation_pin'];
+        
+        // Check if expired
+        if (time() > $stored['expires_at']) {
+            unset($_SESSION['confirmation_pin']);
+            return false;
+        }
+        
+        // Check if action matches
+        if ($stored['action'] !== $action) {
+            return false;
+        }
+        
+        // Verify PIN (don't unset here - let the caller decide when to clear)
+        return password_verify($pin, $stored['pin']);
+    }
+    
+    /**
+     * Get stored confirmation data
+     * @return array|null The stored data or null
+     */
+    public static function getConfirmationData() {
+        return $_SESSION['confirmation_pin']['data'] ?? null;
+    }
+    
+    /**
+     * Clear confirmation PIN
+     */
+    public static function clearConfirmationPin() {
+        unset($_SESSION['confirmation_pin']);
+    }
 
     public static function checkAuthorization($requiredRole, $userLibraryId = null, $resourceLibraryId = null) {
         // Super admin can access everything

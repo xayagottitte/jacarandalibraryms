@@ -75,6 +75,11 @@ $router->add('/admin/reports', 'AdminController', 'reports');
 $router->add('/admin/generate-report', 'AdminController', 'generateReport');
 $router->add('/admin/export-report', 'AdminController', 'exportReport');
 $router->add('/admin/activity-logs', 'AdminController', 'activityLogs');
+$router->add('/admin/verify-password', 'AdminController', 'verifyPassword');
+$router->add('/admin/confirm-library-deletion', 'AdminController', 'confirmLibraryDeletion');
+$router->add('/admin/cancel-library-deletion', 'AdminController', 'cancelLibraryDeletion');
+$router->add('/admin/confirm-user-deletion', 'AdminController', 'confirmUserDeletion');
+$router->add('/admin/cancel-user-deletion', 'AdminController', 'cancelUserDeletion');
 
 // Librarian routes
 $router->add('/librarian/dashboard', 'LibrarianController', 'dashboard');

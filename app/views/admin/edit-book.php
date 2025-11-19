@@ -115,6 +115,7 @@
                     </div>
                     <div class="card-body">
                         <form method="POST" id="editBookForm" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                             <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
                             <input type="hidden" name="library_id" value="<?php echo $book['library_id']; ?>">
                             

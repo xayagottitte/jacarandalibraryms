@@ -1,5 +1,5 @@
 <?php 
-$title = "Borrow Book - Multi-Library System";
+$title = "Borrow Book - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>

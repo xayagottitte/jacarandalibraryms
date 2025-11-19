@@ -1,5 +1,5 @@
 <?php 
-$title = "System Settings - Multi-Library System";
+$title = "System Settings - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 
@@ -219,7 +219,7 @@ function getSettingValue($settings, $key, $default = '') {
 <div class="container-fluid px-4 py-4">
     <div class="settings-header">
         <h2><i class="fas fa-cog me-3"></i>System Settings</h2>
-        <p>Configure and manage your multi-library system preferences</p>
+        <p>Configure and manage your Jacaranda Libraries preferences</p>
     </div>
 
     <!-- Flash Messages -->
@@ -252,7 +252,7 @@ function getSettingValue($settings, $key, $default = '') {
                     <div class="col-md-6">
                         <label class="form-label">System Name</label>
                         <input type="text" class="form-control" name="settings[system_name]" 
-                               value="<?= getSettingValue($settings, 'system_name', 'Multi-Library System') ?>">
+                               value="<?= getSettingValue($settings, 'system_name', 'Jacaranda Libraries') ?>">
                         <small class="text-muted">The name displayed across the system</small>
                     </div>
                     <div class="col-md-6">

@@ -135,6 +135,78 @@
             </div>
         <?php endif; ?>
 
+        <?php if (isset($_SESSION['info'])): ?>
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i><?= $_SESSION['info']; unset($_SESSION['info']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <!-- PIN Confirmation Section -->
+        <?php if (isset($_SESSION['awaiting_pin_confirmation']) && $_SESSION['awaiting_pin_confirmation'] === true): ?>
+            <div class="card mb-4 border-0 shadow-lg" style="background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div style="font-size: 4rem; color: #dc2626;">🔒</div>
+                        <h4 class="fw-bold mt-3" style="color: #dc2626;">
+                            <i class="fas fa-shield-alt me-2"></i>Library Deletion Confirmation Required
+                        </h4>
+                        <p class="text-muted mb-0">
+                            A 6-digit confirmation PIN has been sent to your email address.
+                            <br>Please enter it below to complete the library deletion.
+                        </p>
+                    </div>
+
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                            <form method="POST" action="<?= BASE_PATH ?>/admin/confirm-library-deletion">
+                                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                                
+                                <div class="mb-3">
+                                    <label for="confirmation_pin" class="form-label fw-bold">
+                                        <i class="fas fa-key me-2"></i>Confirmation PIN
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control form-control-lg text-center" 
+                                           id="confirmation_pin" 
+                                           name="confirmation_pin" 
+                                           placeholder="Enter 6-digit PIN" 
+                                           maxlength="6" 
+                                           pattern="[0-9]{6}"
+                                           style="letter-spacing: 0.5rem; font-size: 1.5rem; font-family: 'Courier New', monospace;"
+                                           required 
+                                           autofocus>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>This PIN expires in 10 minutes
+                                    </small>
+                                </div>
+
+                                <div class="alert alert-warning border-0 shadow-sm" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Warning:</strong> This action cannot be undone. All library data, books, and borrowing history will be permanently deleted.
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                    <button type="submit" class="btn btn-danger btn-lg px-5" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: none;">
+                                        <i class="fas fa-trash-alt me-2"></i>Confirm Deletion
+                                    </button>
+                                    <a href="<?= BASE_PATH ?>/admin/cancel-library-deletion" class="btn btn-secondary btn-lg px-5">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                            <i class="fas fa-envelope me-1"></i>Didn't receive the PIN? Check your spam folder or contact the system administrator.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Library Statistics Cards -->
         <div class="row mb-4">
             <?php 
@@ -420,6 +492,7 @@
                         You have <strong><?php echo count($available_librarians); ?></strong> librarian(s) available for assignment.
                     </div>
                     <form method="POST" action="<?php echo BASE_PATH; ?>/admin/assign-librarian" id="assignLibrarianForm">
+                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label for="assign_library_id" class="form-label">

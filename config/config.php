@@ -2,6 +2,32 @@
 // Include Composer autoloader
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Load .env file if it exists
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $envLines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($envLines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+        
+        // Parse KEY=VALUE pairs
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            
+            // Set as environment variable
+            if (!empty($key) && !getenv($key)) {
+                putenv("$key=$value");
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+            }
+        }
+    }
+}
+
 // Set timezone to match your location (East Africa Time)
 date_default_timezone_set('Africa/Nairobi');
 
@@ -42,7 +68,7 @@ define('ALLOWED_FILE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'csv']);
 // Email Configuration
 define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
 define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
-define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: 'lettherebecarnagex@gmail.com');
+define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
 define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: ''); // MUST be set via environment variable in production
 
 // Backup Configuration

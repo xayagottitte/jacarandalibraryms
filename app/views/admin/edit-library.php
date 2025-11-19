@@ -1,5 +1,5 @@
 <?php 
-$title = "Edit Library - Multi-Library System";
+$title = "Edit Library - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>
@@ -158,6 +158,7 @@ include '../app/views/shared/layout-header.php';
     <div class="modern-card">
         <div class="card-body p-4">
                     <form method="POST" action="<?= BASE_PATH ?>/admin/edit-library">
+                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                         <input type="hidden" name="id" value="<?= $library['id'] ?>">
                         
                         <div class="row g-4">

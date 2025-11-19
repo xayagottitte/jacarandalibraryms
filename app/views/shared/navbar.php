@@ -263,8 +263,8 @@ body {
         }
         ?>
         <a class="navbar-brand" href="<?= $dashboardLink ?>">
-            <img src="<?= BASE_PATH ?>/public/assets/img/logo.png" alt="<?= htmlspecialchars($system_name ?? 'Multi-Library System') ?>" style="height: 40px; width: 40px; margin-right: 8px; border-radius: 50%; object-fit: cover;">
-            <?= htmlspecialchars($system_name ?? 'Multi-Library System') ?>
+            <img src="<?= BASE_PATH ?>/public/assets/img/logo.png" alt="<?= htmlspecialchars($system_name ?? 'Jacaranda Libraries') ?>" style="height: 40px; width: 40px; margin-right: 8px; border-radius: 50%; object-fit: cover;">
+            <?= htmlspecialchars($system_name ?? 'Jacaranda Libraries') ?>
         </a>
         
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">

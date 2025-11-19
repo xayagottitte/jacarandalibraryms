@@ -1,5 +1,5 @@
 <?php 
-$title = "Librarian Dashboard - Multi-Library System";
+$title = "Librarian Dashboard - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>

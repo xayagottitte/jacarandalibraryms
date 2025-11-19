@@ -1,5 +1,5 @@
 <?php 
-$title = "Student Details - Multi-Library System";
+$title = "Student Details - Jacaranda Libraries";
 include '../app/views/shared/header.php'; 
 include '../app/views/shared/layout-header.php'; 
 ?>
