@@ -334,6 +334,7 @@ include '../app/views/shared/layout-header.php';
 
     <div class="form-card">
         <form method="POST" action="<?= BASE_PATH ?>/librarian/quick-borrow">
+            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
             <div class="row g-4">
                 <div class="col-md-6">
                     <div class="mb-3">

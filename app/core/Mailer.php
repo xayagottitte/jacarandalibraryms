@@ -17,7 +17,7 @@ class Mailer {
             $this->mailer->SMTPAuth   = true;
             $this->mailer->Username   = SMTP_USERNAME;
             $this->mailer->Password   = SMTP_PASSWORD;
-            $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Use STARTTLS for port 587
+            $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // Use SMTPS for port 465
             $this->mailer->Port       = SMTP_PORT;
             $this->mailer->Hostname   = gethostname() ?: 'localhost'; // Use actual hostname for EHLO
             
@@ -36,11 +36,11 @@ class Mailer {
                 )
             );
             
-            // Enable debug output (comment out in production)
-            $this->mailer->SMTPDebug = SMTP::DEBUG_SERVER;
-            $this->mailer->Debugoutput = function($str, $level) {
-                error_log("SMTP Debug [$level]: $str");
-            };
+            // Disable debug output in production
+            // $this->mailer->SMTPDebug = SMTP::DEBUG_SERVER;
+            // $this->mailer->Debugoutput = function($str, $level) {
+            //     error_log("SMTP Debug [$level]: $str");
+            // };
             
             // Default sender
             $this->mailer->setFrom(SMTP_USERNAME, APP_NAME);

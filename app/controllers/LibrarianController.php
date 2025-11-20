@@ -225,6 +225,16 @@ class LibrarianController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             
+            // Extract and sanitize POST data
+            $title = Security::sanitizeInput($_POST['title'] ?? '');
+            $author = Security::sanitizeInput($_POST['author'] ?? '');
+            $isbn = Security::sanitizeInput($_POST['isbn'] ?? '');
+            $publisher = Security::sanitizeInput($_POST['publisher'] ?? '');
+            $publicationYear = Security::sanitizeInput($_POST['publication_year'] ?? '');
+            $categoryId = Security::sanitizeInput($_POST['category_id'] ?? '');
+            $classLevel = Security::sanitizeInput($_POST['class_level'] ?? '');
+            $totalCopies = intval($_POST['total_copies'] ?? 0);
+            
             // Get current book data to preserve cover image if not updating
             $currentBook = $this->bookModel->find($id);
             $coverImage = $currentBook['cover_image'] ?? null;
@@ -659,6 +669,13 @@ class LibrarianController extends Controller {
             return;
         }
 
+        // Verify CSRF token
+        if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+            $_SESSION['error'] = "Invalid security token. Please try again.";
+            $this->redirect(BASE_PATH . '/librarian/students');
+            return;
+        }
+
         $libraryId = $_SESSION['library_id'];
         $studentModel = new Student();
         $studentId = $_POST['student_id'] ?? null;
@@ -1089,6 +1106,13 @@ class LibrarianController extends Controller {
         $libraryId = $_SESSION['library_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect(BASE_PATH . '/librarian/quick-borrow');
+                return;
+            }
+
             $studentIdInput = $_POST['student_id'] ?? '';
             $isbn = $_POST['isbn'] ?? '';
             $borrowModel = new Borrow();
@@ -1211,7 +1235,28 @@ class LibrarianController extends Controller {
             $libraryId = $_SESSION['library_id'];
             $reportModel = new Report();
             $type = $_POST['report_type'] ?? '';
-            $filters = json_decode($_POST['filters'] ?? '{}', true);
+            
+            // Build filters from POST data
+            $filters = [];
+            
+            // Date range filters
+            if (!empty($_POST['date_range'])) {
+                $dateRange = $_POST['date_range'];
+                if ($dateRange === 'custom') {
+                    if (!empty($_POST['start_date'])) $filters['start_date'] = $_POST['start_date'];
+                    if (!empty($_POST['end_date'])) $filters['end_date'] = $_POST['end_date'];
+                } else {
+                    $days = intval($dateRange);
+                    $filters['start_date'] = date('Y-m-d', strtotime("-$days days"));
+                    $filters['end_date'] = date('Y-m-d');
+                }
+            }
+            
+            // Other filters
+            if (!empty($_POST['category'])) $filters['category'] = $_POST['category'];
+            if (!empty($_POST['status'])) $filters['status'] = $_POST['status'];
+            if (!empty($_POST['class'])) $filters['class'] = $_POST['class'];
+            if (!empty($_POST['student_status'])) $filters['status'] = $_POST['student_status'];
             
             switch ($type) {
                 case 'books':
@@ -1230,52 +1275,185 @@ class LibrarianController extends Controller {
                     $data = [];
             }
 
-            // Save report record
-            if (!empty($_POST['report_title'])) {
-                $reportModel->saveReport([
-                    'title' => $_POST['report_title'],
-                    'type' => $type,
-                    'generated_by' => $_SESSION['user_id'],
-                    'library_id' => $libraryId,
-                    'date_range_start' => $filters['start_date'] ?? null,
-                    'date_range_end' => $filters['end_date'] ?? null,
-                    'filters' => json_encode($filters)
-                ]);
-            }
-
-            // Instead of echoing JSON, load a view to generate a CSV
-            $this->view('librarian/report-csv', [
-                'title' => $_POST['report_title'] ?? 'Generated Report',
-                'type' => $type,
-                'data' => $data
-            ]);
+            // Return JSON for AJAX requests
+            header('Content-Type: application/json');
+            echo json_encode($data);
             exit;
         }
     }
 
-    public function addCategory() {
-        header('Content-Type: application/json');
+    public function exportReport() {
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $libraryId = $_SESSION['library_id'];
+            $reportModel = new Report();
+            $type = $_GET['report_type'] ?? '';
+            $format = $_GET['export_format'] ?? 'excel';
+            
+            // Build filters from GET data
+            $filters = [];
+            
+            // Date range filters
+            if (!empty($_GET['date_range'])) {
+                $dateRange = $_GET['date_range'];
+                if ($dateRange === 'custom') {
+                    if (!empty($_GET['start_date'])) $filters['start_date'] = $_GET['start_date'];
+                    if (!empty($_GET['end_date'])) $filters['end_date'] = $_GET['end_date'];
+                } else {
+                    $days = intval($dateRange);
+                    $filters['start_date'] = date('Y-m-d', strtotime("-$days days"));
+                    $filters['end_date'] = date('Y-m-d');
+                }
+            }
+            
+            // Other filters
+            if (!empty($_GET['category'])) $filters['category'] = $_GET['category'];
+            if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
+            if (!empty($_GET['class'])) $filters['class'] = $_GET['class'];
+            if (!empty($_GET['student_status'])) $filters['status'] = $_GET['student_status'];
+            
+            switch ($type) {
+                case 'books':
+                    $data = $reportModel->generateBooksReport($libraryId, $filters);
+                    $filename = 'books-report';
+                    break;
+                case 'students':
+                    $data = $reportModel->generateStudentsReport($libraryId, $filters);
+                    $filename = 'students-report';
+                    break;
+                case 'borrows':
+                    $data = $reportModel->generateBorrowingReport($libraryId, $filters);
+                    $filename = 'borrows-report';
+                    break;
+                case 'financial':
+                    $data = $reportModel->generateFinancialReport($libraryId, $filters);
+                    $filename = 'financial-report';
+                    break;
+                default:
+                    $data = [];
+                    $filename = 'report';
+            }
+
+            $filename .= '-' . date('Y-m-d-His');
+
+            if ($format === 'pdf') {
+                $this->exportToPDF($data, $filename, $type);
+            } else {
+                $this->exportToExcel($data, $filename);
+            }
+        }
+    }
+
+    private function exportToExcel($data, $filename) {
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment; filename="' . $filename . '.xls"');
+        header('Cache-Control: max-age=0');
         
+        if (!empty($data)) {
+            echo "<table border='1'>";
+            echo "<tr>";
+            foreach (array_keys($data[0]) as $header) {
+                echo "<th>" . htmlspecialchars($header) . "</th>";
+            }
+            echo "</tr>";
+            
+            foreach ($data as $row) {
+                echo "<tr>";
+                foreach ($row as $cell) {
+                    echo "<td>" . htmlspecialchars($cell ?? '') . "</td>";
+                }
+                echo "</tr>";
+            }
+            echo "</table>";
+        } else {
+            echo "<p>No data available</p>";
+        }
+        exit;
+    }
+
+    private function exportToPDF($data, $filename, $reportType) {
+        header('Content-Type: text/html');
+        header('Content-Disposition: attachment; filename="' . $filename . '.html"');
+        
+        $html = '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>' . htmlspecialchars($filename) . '</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #4CAF50; color: white; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>' . ucfirst($reportType) . ' Report</h1>
+    <p><strong>Generated:</strong> ' . date('F j, Y g:i A') . '</p>';
+        
+        if (!empty($data)) {
+            $html .= '<table>';
+            $html .= '<thead><tr>';
+            foreach (array_keys($data[0]) as $header) {
+                $html .= '<th>' . htmlspecialchars($header) . '</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            
+            foreach ($data as $row) {
+                $html .= '<tr>';
+                foreach ($row as $cell) {
+                    $html .= '<td>' . htmlspecialchars($cell ?? '') . '</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table>';
+        } else {
+            $html .= '<p>No data available for this report.</p>';
+        }
+        
+        $html .= '<div class="footer">
+        <p>Jacaranda Library Management System</p>
+    </div>
+</body>
+</html>';
+        
+        echo $html;
+        exit;
+    }
+
+    public function addCategory() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-            exit;
+            $_SESSION['error'] = 'Invalid request method';
+            $this->redirect(BASE_PATH . '/librarian/add-category');
+            return;
+        }
+
+        // Verify CSRF token
+        if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+            $_SESSION['error'] = 'Invalid security token';
+            $this->redirect(BASE_PATH . '/librarian/add-category');
+            return;
         }
 
         $libraryId = $_SESSION['library_id'];
         $categoryName = trim($_POST['name'] ?? '');
 
         if (empty($categoryName)) {
-            echo json_encode(['success' => false, 'message' => 'Category name is required']);
-            exit;
+            $_SESSION['error'] = 'Category name is required';
+            $this->redirect(BASE_PATH . '/librarian/add-category');
+            return;
         }
 
         $createdBy = $_SESSION['user_id'] ?? null;
         if ($this->categoryModel->addCategory($categoryName, $createdBy)) {
-            echo json_encode(['success' => true, 'message' => 'Category added successfully']);
+            $_SESSION['success'] = 'Category added successfully';
+            $this->redirect(BASE_PATH . '/librarian/categories');
         } else {
-            echo json_encode(['success' => false, 'message' => 'Category already exists or failed to add']);
+            $_SESSION['error'] = 'Category already exists or failed to add';
+            $this->redirect(BASE_PATH . '/librarian/add-category');
         }
-        exit;
     }
 }
 ?>

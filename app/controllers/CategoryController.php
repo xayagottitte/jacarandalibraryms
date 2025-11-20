@@ -56,8 +56,15 @@ class CategoryController extends Controller {
     public function apiAdd() {
         header('Content-Type: application/json');
         $libraryId = $_SESSION['library_id'];
+        $createdBy = $_SESSION['user_id'] ?? null;
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                echo json_encode(['success' => false, 'message' => 'Invalid security token']);
+                exit;
+            }
+            
             $name = trim($_POST['name'] ?? '');
             
             if (empty($name)) {
@@ -65,7 +72,7 @@ class CategoryController extends Controller {
                 exit;
             }
             
-            $result = $this->categoryModel->addCategory($libraryId, $name);
+            $result = $this->categoryModel->addCategory($name, $createdBy);
             
             if ($result) {
                 // Get the newly added category

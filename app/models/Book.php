@@ -443,10 +443,12 @@ class Book extends Model {
                     b.title, 
                     b.class_level,
                     COUNT(br.id) as borrow_count
-                  FROM borrows br
-                  JOIN books b ON br.book_id = b.id
+                  FROM books b
+                  JOIN borrows br ON br.book_id = b.id
+                    AND br.borrowed_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                   WHERE b.library_id = :library_id
                   GROUP BY b.id, b.title, b.class_level
+                  HAVING borrow_count >= 2
                   ORDER BY borrow_count DESC
                   LIMIT :limit";
         
@@ -463,13 +465,17 @@ class Book extends Model {
                     b.class_level,
                     COALESCE(COUNT(br.id), 0) as borrow_count
                   FROM books b
-                  LEFT JOIN borrows br ON br.book_id = b.id
+                  LEFT JOIN borrows br ON br.book_id = b.id 
+                    AND br.borrowed_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                   LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
-                  AND (c.name = 'Educational' OR c.name = 'education')
+                  AND (c.name LIKE '%education%' OR c.name LIKE '%Educational%')
+                  AND b.available_copies > 0
                   GROUP BY b.id, b.title, b.class_level
+                  HAVING borrow_count <= 1
                   ORDER BY borrow_count ASC, b.created_at DESC
-                  LIMIT :limit";        $stmt = $this->db->prepare($query);
+                  LIMIT :limit";
+        $stmt = $this->db->prepare($query);
         $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -481,11 +487,14 @@ class Book extends Model {
                     c.name as category,
                     COUNT(DISTINCT br.id) as borrow_count
                   FROM books b
-                  LEFT JOIN borrows br ON br.book_id = b.id
+                  LEFT JOIN borrows br ON br.book_id = b.id 
+                    AND br.borrowed_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    AND br.status != 'lost'
                   LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
                   AND b.category_id IS NOT NULL 
                   GROUP BY c.id, c.name
+                  HAVING borrow_count > 0
                   ORDER BY borrow_count DESC";
         
         $stmt = $this->db->prepare($query);

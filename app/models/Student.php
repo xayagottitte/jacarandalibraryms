@@ -151,11 +151,15 @@ class Student extends Model {
         $query = "SELECT 
                     s.class,
                     COUNT(DISTINCT br.id) as borrow_count,
-                    COUNT(DISTINCT s.id) as student_count
+                    COUNT(DISTINCT s.id) as student_count,
+                    ROUND(COUNT(DISTINCT br.id) / COUNT(DISTINCT s.id), 1) as avg_per_student
                   FROM students s
-                  LEFT JOIN borrows br ON br.student_id = s.id
+                  LEFT JOIN borrows br ON br.student_id = s.id 
+                    AND br.borrowed_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                   WHERE s.library_id = :library_id
+                  AND s.status = 'active'
                   GROUP BY s.class
+                  HAVING student_count > 0
                   ORDER BY CAST(s.class AS UNSIGNED)";
         
         $stmt = $this->db->prepare($query);

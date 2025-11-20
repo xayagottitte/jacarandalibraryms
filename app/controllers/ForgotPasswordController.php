@@ -46,8 +46,6 @@ class ForgotPasswordController extends Controller {
                 'warning'
             );
             
-            // Still show success message to prevent email enumeration
-            $_SESSION['success'] = "If an account exists with that email, you will receive password reset instructions shortly.";
             $this->redirect('/forgot-password');
             return;
         }
@@ -60,13 +58,17 @@ class ForgotPasswordController extends Controller {
             // Let the database handle expiration time to avoid timezone issues
             if ($this->userModel->storePasswordResetToken($email, $token)) {
                 $userName = $user['full_name'] ?? $user['username'];
-                $this->mailer->sendPasswordResetEmail($email, $userName, $token);
+                $emailSent = $this->mailer->sendPasswordResetEmail($email, $userName, $token);
+                
+                if (!$emailSent) {
+                    error_log("Failed to send password reset email to: {$email}");
+                }
                 
                 // Log password reset request
                 Security::logSecurity(
                     $user['id'],
                     'password_reset_requested',
-                    "Password reset token generated for user: {$email}",
+                    "Password reset token generated for user: {$email}" . ($emailSent ? '' : ' (email failed)'),
                     'info'
                 );
             }

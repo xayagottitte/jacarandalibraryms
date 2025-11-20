@@ -199,20 +199,20 @@ class User extends Model {
             // 6. Update borrows - set all user reference columns to NULL
             $stmt = $this->db->prepare("
                 UPDATE borrows SET 
-                    created_by = NULL,
-                    issued_by = NULL,
-                    borrowed_by = NULL,
-                    returned_to = NULL,
-                    returned_by = NULL,
-                    lost_marked_by = NULL
-                WHERE created_by = :uid 
-                   OR issued_by = :uid 
-                   OR borrowed_by = :uid 
-                   OR returned_to = :uid 
-                   OR returned_by = :uid 
-                   OR lost_marked_by = :uid
+                    created_by = CASE WHEN created_by = ? THEN NULL ELSE created_by END,
+                    issued_by = CASE WHEN issued_by = ? THEN NULL ELSE issued_by END,
+                    borrowed_by = CASE WHEN borrowed_by = ? THEN NULL ELSE borrowed_by END,
+                    returned_to = CASE WHEN returned_to = ? THEN NULL ELSE returned_to END,
+                    returned_by = CASE WHEN returned_by = ? THEN NULL ELSE returned_by END,
+                    lost_marked_by = CASE WHEN lost_marked_by = ? THEN NULL ELSE lost_marked_by END
+                WHERE created_by = ? 
+                   OR issued_by = ? 
+                   OR borrowed_by = ? 
+                   OR returned_to = ? 
+                   OR returned_by = ? 
+                   OR lost_marked_by = ?
             ");
-            $stmt->execute(['uid' => $userId]);
+            $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
             $affected = $stmt->rowCount();
             error_log("Updated $affected borrow records");
             

@@ -410,6 +410,128 @@ include '../app/views/shared/layout-header.php';
         </div>
     </div>
 
+    <!-- Report Generation Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="form-card">
+                <div class="chart-header mb-4">
+                    <h6><i class="fas fa-chart-line"></i>Generate Reports</h6>
+                </div>
+                <form method="POST" action="<?= BASE_PATH ?>/librarian/generate-report" id="reportForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="reportType" class="form-label">Report Type</label>
+                            <select class="form-select" name="report_type" id="reportType" required>
+                                <option value="">Select Report Type</option>
+                                <option value="books">Books Report</option>
+                                <option value="students">Students Report</option>
+                                <option value="borrows">Borrowing Report</option>
+                                <option value="financial">Financial Report</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="dateRange" class="form-label">Date Range</label>
+                            <select class="form-select" name="date_range" id="dateRange">
+                                <option value="7">Last 7 Days</option>
+                                <option value="30" selected>Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                                <option value="365">Last Year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3" id="customDateRange" style="display: none;">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" id="startDate">
+                        </div>
+                        <div class="col-md-3 mb-3" id="customDateRangeEnd" style="display: none;">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date" id="endDate">
+                        </div>
+                    </div>
+
+                    <!-- Conditional Filters -->
+                    <div class="row" id="bookFilters" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" name="category">
+                                <option value="">All Categories</option>
+                                <?php if (!empty($categories)): ?>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?= htmlspecialchars($category['id']) ?>">
+                                            <?= htmlspecialchars($category['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="bookStatus" class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="">All Status</option>
+                                <option value="available">Available</option>
+                                <option value="unavailable">Unavailable</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row" id="studentFilters" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                            <label for="class" class="form-label">Class</label>
+                            <select class="form-select" name="class">
+                                <option value="">All Classes</option>
+                                <?php if (!empty($classes)): ?>
+                                    <?php foreach ($classes as $class): ?>
+                                        <option value="<?= htmlspecialchars($class['class']) ?>">
+                                            <?= htmlspecialchars($class['class']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="studentStatus" class="form-label">Student Status</label>
+                            <select class="form-select" name="student_status">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 justify-content-end mt-4">
+                        <button type="button" class="btn-reset" onclick="resetForm()">
+                            <i class="fas fa-undo me-1"></i> Reset
+                        </button>
+                        <button type="button" class="btn-submit" onclick="generateReport()">
+                            <i class="fas fa-chart-bar me-1"></i> Generate Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Results Display -->
+    <div class="row mb-4" id="reportResults" style="display: none;">
+        <div class="col-12">
+            <div class="form-card">
+                <div class="chart-header mb-4">
+                    <h6><i class="fas fa-table"></i><span id="reportTitle">Report Results</span></h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="reportTable">
+                        <thead id="reportTableHead"></thead>
+                        <tbody id="reportTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="noDataMessage" style="display: none; text-align: center; padding: 40px;">
+                    <i class="fas fa-inbox" style="font-size: 48px; color: #999;"></i>
+                    <p style="margin-top: 20px; color: #666;">No data available for this report.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -511,132 +633,8 @@ include '../app/views/shared/layout-header.php';
 
     <!-- Report Generation -->
     <div class="row">
-        <div class="col-lg-8">
-            <div class="form-card">
-                <div class="chart-header mb-4">
-                    <h6><i class="fas fa-chart-line"></i>Generate Reports</h6>
-                </div>
-                    <form method="POST" action="<?= BASE_PATH ?>/librarian/generate-report" id="reportForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="reportType" class="form-label">Report Type</label>
-                                <select class="form-select" name="report_type" id="reportType" required>
-                                    <option value="">Select Report Type</option>
-                                    <option value="books">Books Report</option>
-                                    <option value="students">Students Report</option>
-                                    <option value="borrowing">Borrowing Report</option>
-                                    <option value="overdue">Overdue Books Report</option>
-                                    <option value="financial">Financial Report</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="dateRange" class="form-label">Date Range</label>
-                                <select class="form-select" name="date_range" id="dateRange">
-                                    <option value="7">Last 7 Days</option>
-                                    <option value="30" selected>Last 30 Days</option>
-                                    <option value="90">Last 90 Days</option>
-                                    <option value="365">Last Year</option>
-                                    <option value="custom">Custom Range</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row" id="customDateRange" style="display: none;">
-                            <div class="col-md-6 mb-3">
-                                <label for="startDate" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" name="start_date" id="startDate">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="endDate" class="form-label">End Date</label>
-                                <input type="date" class="form-control" name="end_date" id="endDate">
-                            </div>
-                        </div>
-
-                        <!-- Conditional Filters -->
-                        <div class="row" id="bookFilters" style="display: none;">
-                            <div class="col-md-6 mb-3">
-                                <label for="category" class="form-label">Category</label>
-                                <select class="form-select" name="category">
-                                    <option value="">All Categories</option>
-                                    <?php if (!empty($categories)): ?>
-                                        <?php foreach ($categories as $category): ?>
-                                            <option value="<?= htmlspecialchars($category['name']) ?>">
-                                                <?= htmlspecialchars($category['name']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="bookStatus" class="form-label">Status</label>
-                                <select class="form-select" name="status">
-                                    <option value="">All Status</option>
-                                    <option value="available">Available</option>
-                                    <option value="unavailable">Unavailable</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row" id="studentFilters" style="display: none;">
-                            <div class="col-md-6 mb-3">
-                                <label for="class" class="form-label">Class</label>
-                                <select class="form-select" name="class">
-                                    <option value="">All Classes</option>
-                                    <?php if (!empty($classes)): ?>
-                                        <?php foreach ($classes as $class): ?>
-                                            <option value="<?= htmlspecialchars($class['class']) ?>">
-                                                <?= htmlspecialchars($class['class']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="studentStatus" class="form-label">Student Status</label>
-                                <select class="form-select" name="student_status">
-                                    <option value="">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-3 justify-content-end mt-4">
-                            <button type="button" class="btn-reset" onclick="resetForm()">
-                                <i class="fas fa-undo me-1"></i> Reset
-                            </button>
-                            <button type="submit" class="btn-submit">
-                                <i class="fas fa-chart-bar me-1"></i> Generate Report
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-
-
-            <!-- Quick Actions -->
-            <div class="reports-list-card">
-                <div class="chart-header mb-4">
-                    <h6><i class="fas fa-bolt"></i>Quick Actions</h6>
-                </div>
-                <div>
-                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('overdue')">
-                        <i class="fas fa-exclamation-triangle"></i> Overdue Books
-                    </button>
-                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('popular')">
-                        <i class="fas fa-star"></i> Popular Books
-                    </button>
-                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('monthly')">
-                        <i class="fas fa-calendar-alt"></i> Monthly Summary
-                    </button>
-                    <button type="button" class="btn-quick-action" onclick="generateQuickReport('inventory')">
-                        <i class="fas fa-boxes"></i> Inventory Status
-                    </button>
-                </div>
-            </div>
+        <div class="col-12">
+            <!-- Report generation form moved to top -->
         </div>
     </div>
 </div>
@@ -646,6 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const reportType = document.getElementById('reportType');
     const dateRange = document.getElementById('dateRange');
     const customDateRange = document.getElementById('customDateRange');
+    const customDateRangeEnd = document.getElementById('customDateRangeEnd');
     const bookFilters = document.getElementById('bookFilters');
     const studentFilters = document.getElementById('studentFilters');
 
@@ -653,8 +652,10 @@ document.addEventListener('DOMContentLoaded', function() {
     dateRange.addEventListener('change', function() {
         if (this.value === 'custom') {
             customDateRange.style.display = 'block';
+            customDateRangeEnd.style.display = 'block';
         } else {
             customDateRange.style.display = 'none';
+            customDateRangeEnd.style.display = 'none';
         }
     });
 
@@ -665,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
         studentFilters.style.display = 'none';
 
         // Show relevant filters
-        if (this.value === 'books' || this.value === 'borrowing') {
+        if (this.value === 'books' || this.value === 'borrows') {
             bookFilters.style.display = 'block';
         } else if (this.value === 'students') {
             studentFilters.style.display = 'block';
@@ -673,12 +674,125 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function exportReport(format) {
+function generateReport() {
     const form = document.getElementById('reportForm');
     const formData = new FormData(form);
-    formData.append('export_format', format);
+    const reportType = form.querySelector('[name="report_type"]').value;
+    
+    if (!reportType) {
+        alert('Please select a report type.');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating...';
+    submitBtn.disabled = true;
+    
+    fetch('<?= BASE_PATH ?>/librarian/generate-report', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            document.getElementById('reportResults').style.display = 'block';
+            document.getElementById('reportTable').style.display = 'none';
+            document.getElementById('noDataMessage').style.display = 'block';
+            return;
+        }
+        
+        // Display report results
+        displayReportResults(data, reportType);
+    })
+    .catch(error => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        alert('Failed to generate report. Please try again.');
+        console.error(error);
+    });
+}
 
-    // AJAX check for empty report before download
+function displayReportResults(data, reportType) {
+    const resultsDiv = document.getElementById('reportResults');
+    const tableHead = document.getElementById('reportTableHead');
+    const tableBody = document.getElementById('reportTableBody');
+    const reportTitle = document.getElementById('reportTitle');
+    const reportTable = document.getElementById('reportTable');
+    const noDataMsg = document.getElementById('noDataMessage');
+    
+    // Update title
+    const titles = {
+        'books': 'Books Report',
+        'students': 'Students Report',
+        'borrows': 'Borrowing Report',
+        'financial': 'Financial Report'
+    };
+    reportTitle.textContent = titles[reportType] || 'Report Results';
+    
+    // Show table, hide no data message
+    reportTable.style.display = 'table';
+    noDataMsg.style.display = 'none';
+    
+    // Build table headers
+    const headers = Object.keys(data[0]);
+    let headerHTML = '<tr>';
+    headers.forEach(header => {
+        headerHTML += `<th>${header.replace(/_/g, ' ').toUpperCase()}</th>`;
+    });
+    headerHTML += '</tr>';
+    tableHead.innerHTML = headerHTML;
+    
+    // Build table rows
+    let bodyHTML = '';
+    data.forEach(row => {
+        bodyHTML += '<tr>';
+        headers.forEach(header => {
+            let value = row[header];
+            // Format null/undefined values
+            if (value === null || value === undefined) {
+                value = '-';
+            }
+            // Format numbers with decimals
+            if (typeof value === 'number' && value % 1 !== 0) {
+                value = parseFloat(value).toFixed(2);
+            }
+            bodyHTML += `<td>${value}</td>`;
+        });
+        bodyHTML += '</tr>';
+    });
+    tableBody.innerHTML = bodyHTML;
+    
+    // Show results section
+    resultsDiv.style.display = 'block';
+    
+    // Scroll to results
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function exportReport(format) {
+    const form = document.getElementById('reportForm');
+    const reportType = form.querySelector('[name="report_type"]').value;
+    
+    if (!reportType) {
+        alert('Please select a report type and generate the report first.');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    // Debug: Log form data
+    console.log('Export format:', format);
+    console.log('Report type:', reportType);
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    // Validate that report has been generated
     fetch('<?= BASE_PATH ?>/librarian/generate-report', {
         method: 'POST',
         body: formData
@@ -688,15 +802,24 @@ function exportReport(format) {
         if (!data || !Array.isArray(data) || data.length === 0) {
             alert('No data available for this report. Please adjust your filters or date range.');
         } else {
-            // Proceed with download
-            const params = new URLSearchParams(formData);
+            // Proceed with export - create new FormData with export_format
+            const exportFormData = new FormData(form);
+            exportFormData.append('export_format', format);
+            const params = new URLSearchParams(exportFormData);
             const url = `<?= BASE_PATH ?>/librarian/export-report?${params.toString()}`;
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `library-report-${Date.now()}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            
+            if (format === 'pdf') {
+                // Open PDF in new tab for printing
+                window.open(url, '_blank');
+            } else {
+                // Download Excel file
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `library-report-${Date.now()}.xls`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         }
     })
     .catch(() => {
@@ -707,37 +830,9 @@ function exportReport(format) {
 function resetForm() {
     document.getElementById('reportForm').reset();
     document.getElementById('customDateRange').style.display = 'none';
+    document.getElementById('customDateRangeEnd').style.display = 'none';
     document.getElementById('bookFilters').style.display = 'none';
     document.getElementById('studentFilters').style.display = 'none';
-}
-
-function generateQuickReport(type) {
-    const form = document.getElementById('reportForm');
-    const reportType = document.getElementById('reportType');
-    
-    // Set report type based on quick action
-    switch(type) {
-        case 'overdue':
-            reportType.value = 'borrowing';
-            // Add overdue filter logic
-            break;
-        case 'popular':
-            reportType.value = 'books';
-            break;
-        case 'monthly':
-            reportType.value = 'borrowing';
-            document.getElementById('dateRange').value = '30';
-            break;
-        case 'inventory':
-            reportType.value = 'books';
-            break;
-    }
-    
-    // Trigger change event to show relevant filters
-    reportType.dispatchEvent(new Event('change'));
-    
-    // Submit form
-    form.submit();
 }
 
 function viewReport(reportId) {
@@ -812,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     title: {
                         display: true,
-                        text: 'Book Borrows by Category',
+                        text: 'Book Borrows by Category (Last 90 Days)',
                         font: {
                             size: 16,
                             weight: '700'
@@ -876,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     title: {
                         display: true,
-                        text: 'Top 10 Most Frequently Overdue Books',
+                        text: 'Currently Overdue Books (Top 10)',
                         font: {
                             size: 16,
                             weight: '700'

@@ -290,6 +290,7 @@ include '../app/views/shared/layout-header.php';
 
     <div class="form-card">
         <form method="POST" action="<?= BASE_PATH ?>/librarian/create-book" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
             <!-- Basic Information Section -->
             <div class="form-section">
                 <h3 class="form-section-title">
@@ -537,14 +538,19 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'name=' + encodeURIComponent(categoryName)
+            body: 'name=' + encodeURIComponent(categoryName) + '&csrf_token=' + encodeURIComponent('<?= Security::generateCSRFToken() ?>')
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Add new category to dropdown
                 const option = document.createElement('option');
-                option.value = categoryName;
+                option.value = data.category?.id || categoryName;
                 option.textContent = categoryName;
                 option.selected = true;
                 categorySelect.appendChild(option);
@@ -552,10 +558,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset form and close modal
                 addCategoryForm.reset();
                 addCategoryModal.hide();
-
-                // Show success message
-                alert('Category added successfully!');
             } else {
+                // Only show alert for actual errors like "already exists"
                 alert(data.message || 'Failed to add category');
             }
         })

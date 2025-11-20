@@ -615,19 +615,13 @@ class AdminController extends Controller {
                     );
                     $_SESSION['success'] = "User '{$userEmail}' deleted successfully!";
                     Security::clearConfirmationPin();
-                    unset($_SESSION['awaiting_pin_confirmation']);
-                    unset($_SESSION['pin_action']);
                 } else {
-                    $_SESSION['error'] = "Failed to delete user.";
+                    $_SESSION['error'] = 'Failed to delete user.';
                     Security::clearConfirmationPin();
-                    unset($_SESSION['awaiting_pin_confirmation']);
-                    unset($_SESSION['pin_action']);
                 }
             } catch (Exception $e) {
                 $_SESSION['error'] = "Error deleting user: " . $e->getMessage();
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
             }
         }
         $this->redirect('/admin/users');
@@ -638,9 +632,6 @@ class AdminController extends Controller {
      */
     public function cancelUserDeletion() {
         Security::clearConfirmationPin();
-        unset($_SESSION['awaiting_pin_confirmation']);
-        unset($_SESSION['pin_action']);
-        
         $_SESSION['info'] = 'User deletion cancelled.';
         $this->redirect('/admin/users');
     }
@@ -1163,10 +1154,7 @@ class AdminController extends Controller {
                     'Failed library deletion - invalid PIN',
                     'warning'
                 );
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
                 $this->redirect('/admin/libraries');
                 return;
             }
@@ -1175,10 +1163,7 @@ class AdminController extends Controller {
             $data = Security::getConfirmationData();
             if (!$data || !isset($data['library_id'])) {
                 $_SESSION['error'] = 'Confirmation data not found. Please try again.';
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
                 $this->redirect('/admin/libraries');
                 return;
             }
@@ -1190,10 +1175,7 @@ class AdminController extends Controller {
             $library = $this->libraryModel->find($id);
             if (!$library) {
                 $_SESSION['error'] = 'Library not found.';
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
                 $this->redirect('/admin/libraries');
                 return;
             }
@@ -1202,10 +1184,7 @@ class AdminController extends Controller {
             list($ok, $reason) = $this->libraryModel->canDelete($id);
             if (!$ok) {
                 $_SESSION['error'] = "Cannot delete library. " . $reason;
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
             } else if ($this->libraryModel->deleteLibraryById($id)) {
                 // Log the deletion
                 Security::logActivity(
@@ -1217,16 +1196,10 @@ class AdminController extends Controller {
                     'warning'
                 );
                 $_SESSION['success'] = "Library deleted successfully!";
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
             } else {
                 $_SESSION['error'] = "Failed to delete library.";
-                // Clear all confirmation data
                 Security::clearConfirmationPin();
-                unset($_SESSION['awaiting_pin_confirmation']);
-                unset($_SESSION['pin_action']);
             }
         }
         $this->redirect('/admin/libraries');
@@ -1236,11 +1209,7 @@ class AdminController extends Controller {
      * Cancel library deletion PIN confirmation
      */
     public function cancelLibraryDeletion() {
-        // Clear all confirmation data
         Security::clearConfirmationPin();
-        unset($_SESSION['awaiting_pin_confirmation']);
-        unset($_SESSION['pin_action']);
-        
         $_SESSION['info'] = 'Library deletion cancelled.';
         $this->redirect('/admin/libraries');
     }

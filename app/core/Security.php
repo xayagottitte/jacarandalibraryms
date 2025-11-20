@@ -196,6 +196,9 @@ class Security {
      */
     public static function clearConfirmationPin() {
         unset($_SESSION['confirmation_pin']);
+        unset($_SESSION['confirmation_data']);
+        unset($_SESSION['awaiting_pin_confirmation']);
+        unset($_SESSION['pin_action']);
     }
 
     public static function checkAuthorization($requiredRole, $userLibraryId = null, $resourceLibraryId = null) {
@@ -432,7 +435,7 @@ class Security {
                 SELECT COUNT(*) as attempt_count,
                        MAX(created_at) as last_attempt,
                        TIMESTAMPDIFF(SECOND, MAX(created_at), NOW()) as seconds_since_last
-                FROM password_reset_tokens 
+                FROM password_resets 
                 WHERE email = ? 
                 AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)
             ");

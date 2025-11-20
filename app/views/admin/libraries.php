@@ -384,10 +384,6 @@
                 </button>
             </div>
             <div class="card-body">
-                <div class="alert alert-info mb-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: none; border-radius: 8px;">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Note:</strong> Library deletion is restricted to maintain data integrity. To delete a library, please access the database directly and remove the record from the <code>libraries</code> table. Ensure all related data (books, students, librarians) is handled appropriately before deletion.
-                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover" width="100%" cellspacing="0">
                         <thead style="background: linear-gradient(135deg, var(--jacaranda-primary) 0%, var(--jacaranda-secondary) 100%); color: white;">

@@ -570,6 +570,7 @@ include '../app/views/shared/layout-header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="deactivateForm" method="POST" action="<?= BASE_PATH ?>/librarian/deactivate-student">
+                <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                 <div class="modal-body">
                     <input type="hidden" id="deactivate_student_id" name="student_id">
                     

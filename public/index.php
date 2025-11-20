@@ -105,14 +105,18 @@ $router->add('/librarian/activate-student', 'LibrarianController', 'activateStud
 
 // Borrow management routes
 $router->add('/librarian/borrows', 'LibrarianController', 'borrows');
+$router->add('/librarian/borrows-data', 'LibrarianController', 'borrowsData');
 $router->add('/librarian/borrow-book', 'LibrarianController', 'borrowBook');
 $router->add('/librarian/return-book', 'LibrarianController', 'returnBook');
 $router->add('/librarian/quick-borrow', 'LibrarianController', 'quickBorrow');
 $router->add('/librarian/mark-lost', 'LibrarianController', 'markLost');
+$router->add('/librarian/search-students', 'LibrarianController', 'searchStudents');
+$router->add('/librarian/search-books', 'LibrarianController', 'searchBooks');
 
 // Librarian reports
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
+$router->add('/librarian/export-report', 'LibrarianController', 'exportReport');
 
 // Profile routes
 $router->add('/profile', 'ProfileController', 'index');

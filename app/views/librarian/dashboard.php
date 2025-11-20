@@ -843,6 +843,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     title: {
                         display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const studentCount = classData[index].student_count;
+                                const avgPerStudent = classData[index].avg_per_student || 0;
+                                return studentCount + ' students (Avg: ' + avgPerStudent + ' borrows/student)';
+                            }
+                        }
                     }
                 },
                 scales: {

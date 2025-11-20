@@ -454,16 +454,13 @@ class Borrow extends Model {
                     b.title,
                     c.name as category_name,
                     COUNT(br.id) as overdue_count,
-                    AVG(DATEDIFF(COALESCE(br.returned_date, CURDATE()), br.due_date)) as avg_days_overdue
+                    AVG(DATEDIFF(CURDATE(), br.due_date)) as avg_days_overdue
                   FROM borrows br
                   JOIN books b ON br.book_id = b.id
                   LEFT JOIN categories c ON b.category_id = c.id
                   WHERE b.library_id = :library_id 
-                  AND (
-                    (br.status IN ('borrowed', 'overdue') AND br.due_date < CURDATE())
-                    OR 
-                    (br.status = 'returned' AND br.returned_date > br.due_date)
-                  )
+                  AND br.status IN ('borrowed', 'overdue')
+                  AND br.due_date < CURDATE()
                   GROUP BY b.id, b.title, c.name
                   ORDER BY overdue_count DESC
                   LIMIT 10";

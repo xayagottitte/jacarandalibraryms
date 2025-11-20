@@ -399,6 +399,7 @@ mark {
 
     <div class="form-card">
         <form method="POST" action="/jacarandalibraryms/librarian/borrow-book">
+            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
             <!-- Selection Section -->
             <div class="form-section">
                 <h3 class="form-section-title">

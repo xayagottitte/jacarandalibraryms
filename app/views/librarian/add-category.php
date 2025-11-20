@@ -59,6 +59,7 @@ include '../app/views/shared/layout-header.php';
                         <div class="alert alert-danger"> <?= $_SESSION['error']; unset($_SESSION['error']); ?> </div>
                     <?php endif; ?>
                     <form method="POST" action="<?= BASE_PATH ?>/librarian/add-category">
+                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                         <div class="mb-3">
                             <label for="name" class="form-label">Category Name</label>
                             <input type="text" class="form-control" id="name" name="name" required>

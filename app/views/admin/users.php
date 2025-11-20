@@ -165,6 +165,7 @@
                     <?php endif; ?>
                     
                     <form method="POST" action="<?php echo BASE_PATH; ?>/admin/confirm-user-deletion" id="confirmUserDeletionForm">
+                        <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                         <div class="mb-3">
                             <label for="confirmationPin" class="form-label">
                                 <i class="fas fa-key me-1"></i>Enter 6-Digit PIN
@@ -172,7 +173,7 @@
                             <input type="text" 
                                    class="form-control form-control-lg text-center" 
                                    id="confirmationPin" 
-                                   name="pin" 
+                                   name="confirmation_pin" 
                                    pattern="[0-9]{6}" 
                                    maxlength="6" 
                                    placeholder="000000"

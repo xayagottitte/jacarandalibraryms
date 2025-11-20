@@ -296,6 +296,7 @@ include '../app/views/shared/layout-header.php';
 
     <div class="form-card">
         <form method="POST" action="/jacarandalibraryms/librarian/create-student">
+            <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
             <!-- Personal Information Section -->
             <div class="form-section">
                 <h3 class="form-section-title">

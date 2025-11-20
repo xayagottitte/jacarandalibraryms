@@ -6,6 +6,92 @@ class Report extends Model {
         parent::__construct();
     }
 
+    // Sanitize report data by removing sensitive fields and renaming columns
+    private function sanitizeReportData($data, $type) {
+        if (empty($data)) return $data;
+        
+        $sanitized = [];
+        
+        foreach ($data as $row) {
+            $cleanRow = [];
+            
+            switch ($type) {
+                case 'books':
+                    $cleanRow = [
+                        'Title' => $row['title'] ?? '',
+                        'Author' => $row['author'] ?? '',
+                        'ISBN' => $row['isbn'] ?? '',
+                        'Publisher' => $row['publisher'] ?? '',
+                        'Year' => $row['publication_year'] ?? '',
+                        'Category' => $row['category_name'] ?? '',
+                        'Class Level' => $row['class_level'] ?? '',
+                        'Total Copies' => $row['total_copies'] ?? 0,
+                        'Available Copies' => $row['available_copies'] ?? 0,
+                        'Borrowed Copies' => $row['borrowed_copies'] ?? 0,
+                        'Total Borrows' => $row['total_borrows'] ?? 0,
+                        'Current Borrows' => $row['current_borrows'] ?? 0,
+                        'Overdue Borrows' => $row['overdue_borrows'] ?? 0,
+                        'Utilization Rate (%)' => $row['utilization_rate'] ?? 0
+                    ];
+                    break;
+                    
+                case 'students':
+                    $cleanRow = [
+                        'Student ID' => $row['student_id'] ?? '',
+                        'Full Name' => $row['full_name'] ?? '',
+                        'Email' => $row['email'] ?? '',
+                        'Phone' => $row['phone'] ?? '',
+                        'Class' => $row['class'] ?? '',
+                        'Section' => $row['section'] ?? '',
+                        'Status' => ucfirst($row['status'] ?? ''),
+                        'Total Books Borrowed' => $row['total_borrows'] ?? 0,
+                        'Currently Borrowed' => $row['active_borrows'] ?? 0,
+                        'Overdue Books' => $row['overdue_books'] ?? 0,
+                        'Total Fines (₦)' => number_format($row['total_fines'] ?? 0, 2),
+                        'Paid Fines (₦)' => number_format($row['paid_fines'] ?? 0, 2),
+                        'Activity Level (%)' => $row['activity_percentage'] ?? 0
+                    ];
+                    break;
+                    
+                case 'borrows':
+                    $cleanRow = [
+                        'Student ID' => $row['student_id'] ?? '',
+                        'Student Name' => $row['student_name'] ?? '',
+                        'Class' => $row['class'] ?? '',
+                        'Book Title' => $row['title'] ?? '',
+                        'Author' => $row['author'] ?? '',
+                        'ISBN' => $row['isbn'] ?? '',
+                        'Category' => $row['category'] ?? '',
+                        'Borrowed Date' => $row['borrowed_date'] ?? '',
+                        'Due Date' => $row['due_date'] ?? '',
+                        'Returned Date' => $row['returned_date'] ?? 'Not Returned',
+                        'Status' => ucfirst($row['status'] ?? ''),
+                        'Days Borrowed' => $row['days_borrowed'] ?? 0,
+                        'Days Overdue' => $row['days_overdue'] ?? 0,
+                        'Fine Amount (₦)' => number_format($row['fine_amount'] ?? 0, 2),
+                        'Paid Amount (₦)' => number_format($row['paid_amount'] ?? 0, 2),
+                        'Librarian' => $row['librarian_name'] ?? ''
+                    ];
+                    break;
+                    
+                case 'financial':
+                    $cleanRow = [
+                        'Month' => $row['return_month'] ?? '',
+                        'Total Returns' => $row['total_returns'] ?? 0,
+                        'Total Fines (₦)' => number_format($row['total_fines'] ?? 0, 2),
+                        'Total Paid (₦)' => number_format($row['total_paid'] ?? 0, 2),
+                        'Outstanding Fines (₦)' => number_format($row['outstanding_fines'] ?? 0, 2),
+                        'Collection Rate (%)' => $row['collection_rate'] ?? 0
+                    ];
+                    break;
+            }
+            
+            $sanitized[] = $cleanRow;
+        }
+        
+        return $sanitized;
+    }
+
     public function generateBooksReport($libraryId, $filters = []) {
         $query = "SELECT 
                   b.*,
@@ -16,14 +102,14 @@ class Report extends Model {
                   (b.total_copies - b.available_copies) as borrowed_copies,
                   ROUND((b.total_copies - b.available_copies) * 100.0 / b.total_copies, 2) as utilization_rate
                   FROM books b
-                  LEFT JOIN categories c ON b.category = c.name 
+                  LEFT JOIN categories c ON b.category_id = c.id
                   LEFT JOIN borrows br ON b.id = br.book_id
                   WHERE b.library_id = :library_id";
         
         $params = ['library_id' => $libraryId];
 
         if (!empty($filters['category'])) {
-            $query .= " AND b.category = :category";
+            $query .= " AND b.category_id = :category";
             $params['category'] = $filters['category'];
         }
 
@@ -39,7 +125,9 @@ class Report extends Model {
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $this->sanitizeReportData($data, 'books');
     }
 
     public function generateStudentsReport($libraryId, $filters = []) {
@@ -71,13 +159,15 @@ class Report extends Model {
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $this->sanitizeReportData($data, 'students');
     }
 
     public function generateBorrowingReport($libraryId, $dateRange = []) {
         $query = "SELECT 
                   br.*,
-                  b.title, b.author, b.isbn, b.category,
+                  b.title, b.author, b.isbn, c.name as category,
                   s.full_name as student_name, s.student_id, s.class, s.section,
                   u.username as librarian_name,
                   DATEDIFF(COALESCE(br.returned_date, CURDATE()), br.borrowed_date) as days_borrowed,
@@ -97,6 +187,7 @@ class Report extends Model {
                   END as calculated_fine
                   FROM borrows br
                   JOIN books b ON br.book_id = b.id
+                  LEFT JOIN categories c ON b.category_id = c.id
                   JOIN students s ON br.student_id = s.id
                   JOIN users u ON br.created_by = u.id
                   WHERE b.library_id = :library_id";
@@ -117,7 +208,9 @@ class Report extends Model {
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $this->sanitizeReportData($data, 'borrows');
     }
 
     public function generateFinancialReport($libraryId, $dateRange = []) {
@@ -151,7 +244,9 @@ class Report extends Model {
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $this->sanitizeReportData($data, 'financial');
     }
 
     public function generateLibraryAnalytics($libraryId, $period = '30') {

@@ -361,6 +361,7 @@ include '../app/views/shared/layout-header.php';
 
             <div class="form-card">
                 <form method="POST" action="/jacarandalibraryms/librarian/edit-student">
+                    <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
                     <input type="hidden" name="id" value="<?= $student['id'] ?>">
                     
                     <!-- Personal Information Section -->
