@@ -56,9 +56,13 @@ class ProfileController extends Controller {
     }
 
     public function update() {
-    error_log("[ProfileController] update() method called at top");
+        error_log("============ PROFILE UPDATE CALLED ============");
+        error_log("[ProfileController] REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+        error_log("[ProfileController] REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+        error_log("[ProfileController] POST data: " . json_encode($_POST));
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            error_log("[ProfileController] update() called");
+            error_log("[ProfileController] POST request confirmed");
             // Verify CSRF token
             if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
                 error_log("[ProfileController] Invalid CSRF token: " . ($_POST['csrf_token'] ?? 'missing'));
@@ -285,14 +289,14 @@ class ProfileController extends Controller {
             }
             
             // Get books lost count
-            $db = Database::getInstance()->getConnection();
+            $db = (new Database())->connect();
             $stmt = $db->prepare("SELECT COUNT(*) as count FROM borrows WHERE created_by = ? AND status = 'lost'");
             $stmt->execute([$userId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $data['books_lost'] = (int)($result['count'] ?? 0);
             
             // Get reports generated count
-            $stmt = $db->prepare("SELECT COUNT(*) as count FROM reports WHERE created_by = ?");
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM reports WHERE generated_by = ?");
             $stmt->execute([$userId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $data['reports_generated'] = (int)($result['count'] ?? 0);

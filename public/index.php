@@ -32,6 +32,16 @@ require_once '../app/models/UserPreferences.php';
 // Create router
 $router = new Router();
 
+// Add debug logging for profile update
+if ($_SERVER['REQUEST_URI'] && strpos($_SERVER['REQUEST_URI'], 'profile/update') !== false) {
+    error_log("============================================");
+    error_log("INDEX.PHP: Profile update request detected");
+    error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+    error_log("REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+    error_log("POST data: " . json_encode($_POST));
+    error_log("============================================");
+}
+
 // Authentication routes
 $router->add('/', 'AuthController', 'login');
 $router->add('/login', 'AuthController', 'login');
@@ -118,10 +128,10 @@ $router->add('/librarian/reports', 'LibrarianController', 'reports');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 $router->add('/librarian/export-report', 'LibrarianController', 'exportReport');
 
-// Profile routes
-$router->add('/profile', 'ProfileController', 'index');
+// Profile routes - IMPORTANT: More specific routes MUST come before general ones
 $router->add('/profile/update', 'ProfileController', 'update');
 $router->add('/profile/upload-photo', 'ProfileController', 'uploadPhoto');
+$router->add('/profile', 'ProfileController', 'index');
 
 // Report routes
 $router->add('/report', 'ReportController', 'index');

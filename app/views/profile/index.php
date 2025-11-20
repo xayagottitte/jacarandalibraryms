@@ -706,8 +706,9 @@ include '../app/views/shared/layout-header.php';
                 <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Profile</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="<?= BASE_PATH ?>/profile/update">
+            <form method="POST" action="<?= BASE_PATH ?>/profile/update" id="profileUpdateForm">
                 <input type="hidden" name="csrf_token" value="<?= Security::generateCSRFToken() ?>">
+                <!-- DEBUG: Form action is: <?= BASE_PATH ?>/profile/update -->
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -793,43 +794,52 @@ include '../app/views/shared/layout-header.php';
 </div>
 
 <script>
-// Debug form submissions
+// Simple form validation
 document.addEventListener('DOMContentLoaded', function() {
-    // Debug profile update form
+    console.log('Profile page JavaScript loaded');
+    
     const profileForm = document.querySelector('form[action*="/profile/update"]');
+    console.log('Profile form found:', profileForm);
+    
     if (profileForm) {
-        console.log('Profile update form found:', profileForm);
         profileForm.addEventListener('submit', function(e) {
-            console.log('Profile update form submitted');
+            console.log('=== FORM SUBMIT EVENT ===');
             console.log('Form action:', this.action);
             console.log('Form method:', this.method);
-            console.log('Form data:', new FormData(this));
             
-            // Log to our debug system
-            fetch('/jacarandalibraryms/public/form-debug.php', {
-                method: 'POST',
-                body: new FormData(this)
-            }).then(response => {
-                console.log('Debug request sent');
-            }).catch(error => {
-                console.log('Debug request failed:', error);
-            });
+            const formData = new FormData(this);
+            console.log('Form data:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
             
-            // Don't prevent default - let the form submit normally
+            // Basic validation
+            const fullName = this.querySelector('#full_name').value.trim();
+            console.log('Full name value:', fullName);
+            
+            if (fullName === '') {
+                console.log('Validation FAILED - empty name');
+                alert('Please enter your full name');
+                e.preventDefault();
+                return false;
+            }
+            
+            console.log('Validation PASSED - allowing form submission');
+            // Form will submit normally
+            return true;
         });
     }
     
-    // Debug photo upload form  
     const photoForm = document.querySelector('form[action*="/profile/upload-photo"]');
     if (photoForm) {
-        console.log('Photo upload form found:', photoForm);
         photoForm.addEventListener('submit', function(e) {
-            console.log('Photo upload form submitted');
-            console.log('Form action:', this.action);
-            console.log('Form method:', this.method);
-            console.log('Form files:', this.querySelector('input[type="file"]').files);
-            
-            // Don't prevent default - let the form submit normally
+            const fileInput = this.querySelector('input[type="file"]');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a photo to upload');
+                e.preventDefault();
+                return false;
+            }
+            return true;
         });
     }
 });

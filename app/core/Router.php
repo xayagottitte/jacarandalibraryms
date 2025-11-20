@@ -7,13 +7,19 @@ class Router {
     }
 
     public function dispatch($url) {
+        error_log("========== ROUTER DISPATCH ==========");
+        error_log("Router received URL: " . $url);
         $url = $this->removeQueryString($url);
+        error_log("After removeQueryString: " . $url);
+        error_log("Available routes: " . json_encode(array_keys($this->routes)));
         
         foreach ($this->routes as $route => $params) {
             // First try exact match
             if ($url === $route) {
+                error_log("EXACT MATCH FOUND: " . $route);
                 $controller = $params['controller'];
                 $method = $params['method'];
+                error_log("Calling: " . $controller . "->" . $method . "()");
                 
                 require_once '../app/controllers/' . $controller . '.php';
                 $controllerInstance = new $controller();
