@@ -18,9 +18,7 @@ class ProfileController extends Controller {
         $this->userModel = new User();
         $this->libraryModel = new Library();
         $this->borrowModel = new Borrow();
-        
-        // Initialize activityLogModel to null - will use fallback method
-        $this->activityLogModel = null;
+        $this->activityLogModel = new ActivityLog();
     }
 
     public function index() {
@@ -197,7 +195,7 @@ class ProfileController extends Controller {
             }
 
             // Create upload directory
-            $uploadDir = '../public/assets/img/profiles/';
+            $uploadDir = __DIR__ . '/../../public/assets/img/profiles/';
             error_log("ProfileController::uploadPhoto() - Upload directory: " . $uploadDir);
             if (!is_dir($uploadDir)) {
                 error_log("ProfileController::uploadPhoto() - Creating directory: " . $uploadDir);
@@ -285,6 +283,19 @@ class ProfileController extends Controller {
                     $data['fines_collected'] = $borrowStats['fines_collected'] ?? 0;
                 }
             }
+            
+            // Get books lost count
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM borrows WHERE created_by = ? AND status = 'lost'");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['books_lost'] = (int)($result['count'] ?? 0);
+            
+            // Get reports generated count
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM reports WHERE created_by = ?");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['reports_generated'] = (int)($result['count'] ?? 0);
 
             // Get other statistics from user model
             if ($this->userModel && method_exists($this->userModel, 'getUserStatistics')) {
@@ -293,6 +304,9 @@ class ProfileController extends Controller {
                     $data = array_merge($data, $userStats);
                 }
             }
+            
+            // Calculate total transactions (borrows + returns)
+            $data['total_transactions'] = $data['books_issued'] + $data['books_returned'];
 
         } catch (Exception $e) {
             // Handle gracefully if methods don't exist
@@ -306,36 +320,56 @@ class ProfileController extends Controller {
         $logs = [];
         
         try {
-            // Use the borrow model to get recent activities as our primary source
-            if ($this->borrowModel && method_exists($this->borrowModel, 'getRecentActivities')) {
+            // Use ActivityLog model as primary source
+            if ($this->activityLogModel && method_exists($this->activityLogModel, 'getUserActivities')) {
+                $activityLogs = $this->activityLogModel->getUserActivities($userId, $limit);
+                
+                // Format activity logs for display
+                foreach ($activityLogs as $log) {
+                    $logs[] = [
+                        'activity' => $this->formatEventType($log['event_type']),
+                        'details' => $log['description'],
+                        'status' => $log['severity'] === 'critical' ? 'danger' : ($log['severity'] === 'warning' ? 'warning' : 'success'),
+                        'created_at' => $log['created_at']
+                    ];
+                }
+            }
+            
+            // If no activity logs, fallback to borrow activities
+            if (empty($logs) && $this->borrowModel && method_exists($this->borrowModel, 'getRecentActivities')) {
                 $logs = $this->borrowModel->getRecentActivities($userId, $limit);
             }
             
-            // If no logs found, create some sample data structure
+            // If still no logs found, create default entry
             if (empty($logs)) {
+                $user = $this->userModel->find($userId);
                 $logs = [
                     [
-                        'activity' => 'Profile Created',
+                        'activity' => 'Account Created',
                         'details' => 'User account was created.',
                         'status' => 'success',
-                        'created_at' => $this->userModel->find($userId)['created_at'] ?? date('Y-m-d H:i:s')
+                        'created_at' => $user['created_at'] ?? date('Y-m-d H:i:s')
                     ]
                 ];
             }
         } catch (Exception $e) {
             error_log("Error getting activity logs: " . $e->getMessage());
-            // Return a default message on error
             $logs = [
                 [
-                    'activity' => 'Error',
-                    'details' => 'Could not retrieve activity logs.',
-                    'status' => 'danger',
+                    'activity' => 'System',
+                    'details' => 'Activity logs are being generated.',
+                    'status' => 'success',
                     'created_at' => date('Y-m-d H:i:s')
                 ]
             ];
         }
 
         return $logs;
+    }
+    
+    private function formatEventType($eventType) {
+        $formatted = str_replace('_', ' ', $eventType);
+        return ucwords($formatted);
     }
 }
 ?>

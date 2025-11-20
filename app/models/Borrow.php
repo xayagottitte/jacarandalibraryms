@@ -418,7 +418,7 @@ class Borrow extends Model {
                 FROM borrows br
                 JOIN books b ON br.book_id = b.id
                 JOIN students s ON br.student_id = s.id
-                WHERE br.created_by = :uid
+                WHERE br.created_by = ?
 
                 UNION ALL
 
@@ -430,16 +430,14 @@ class Borrow extends Model {
                 FROM borrows br
                 JOIN books b ON br.book_id = b.id
                 JOIN students s ON br.student_id = s.id
-                WHERE br.status = 'returned' AND br.created_by = :uid
+                WHERE br.status = 'returned' AND br.created_by = ?
 
                 ORDER BY created_at DESC
-                LIMIT :lim
+                LIMIT ?
             ";
 
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
-            $stmt->bindParam(':lim', $limit, PDO::PARAM_INT);
-            $stmt->execute();
+            $stmt->execute([$userId, $userId, $limit]);
             $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (Exception $e) {
