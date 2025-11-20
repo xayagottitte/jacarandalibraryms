@@ -1,9 +1,9 @@
 <style>
 :root {
-    --jacaranda-primary: #6366f1;
-    --jacaranda-secondary: #4f46e5;
-    --jacaranda-light: #818cf8;
-    --jacaranda-dark: #3730a3;
+    --jacaranda-primary: #663399;
+    --jacaranda-secondary: #522d7a;
+    --jacaranda-light: #8a4baf;
+    --jacaranda-dark: #4a1f6f;
     --navbar-height: 70px;
 }
 
