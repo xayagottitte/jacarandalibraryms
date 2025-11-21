@@ -432,4 +432,3 @@ window.onclick = function(event) {
 </script>
 
 <?php include '../app/views/shared/layout-footer.php'; ?>
-<?php include '../app/views/shared/footer.php'; ?>

@@ -5,6 +5,7 @@ class AdminController extends Controller {
     private $bookModel;
     private $borrowModel;
     private $studentModel;
+    private $categoryModel;
     private $mailer;
 
     public function __construct() {
@@ -17,6 +18,7 @@ class AdminController extends Controller {
         $this->bookModel = new Book();
         $this->borrowModel = new Borrow();
         $this->studentModel = new Student();
+        $this->categoryModel = new Category();
         $this->mailer = new Mailer();
     }
 
@@ -1535,6 +1537,7 @@ class AdminController extends Controller {
             'book_stats' => $bookStats,
             'category_stats' => $categoryStats,
             'libraries' => $this->libraryModel->getAllWithStats(),
+            'categories' => $this->categoryModel->getAllCategories(),
             'filters' => $filters,
             'selected_library_id' => $selectedLibraryId
         ];
@@ -1596,12 +1599,9 @@ class AdminController extends Controller {
         }
 
         // Get all categories (universal across libraries)
-        require_once '../app/models/Category.php';
-        $categoryModel = new Category();
-        
         $data = [
             'libraries' => $this->libraryModel->all(),
-            'categories' => $categoryModel->getAllCategories()
+            'categories' => $this->categoryModel->getAllCategories()
         ];
         $this->view('admin/create-book', $data);
     }
@@ -1659,13 +1659,10 @@ class AdminController extends Controller {
             return;
         }
 
-        require_once '../app/models/Category.php';
-        $categoryModel = new Category();
-        
         $data = [
             'book' => $book,
             'libraries' => $this->libraryModel->all(),
-            'categories' => $categoryModel->getAllCategories()
+            'categories' => $this->categoryModel->getAllCategories()
         ];
         
         $this->view('admin/edit-book', $data);
@@ -1849,6 +1846,97 @@ class AdminController extends Controller {
         ];
         
         $this->view('admin/activity-logs', $data);
+    }
+
+    // Category Management Methods
+    public function categories() {
+        $categories = $this->categoryModel->getAllCategories();
+        $data = ['categories' => $categories];
+        $this->view('admin/categories', $data);
+    }
+
+    public function addCategory() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/categories');
+                return;
+            }
+
+            $name = trim($_POST['name'] ?? '');
+            $libraryId = isset($_POST['library_id']) ? (int)$_POST['library_id'] : null;
+            
+            if (empty($name)) {
+                $_SESSION['error'] = "Category name is required.";
+                $this->redirect('/admin/add-category');
+                return;
+            }
+
+            if ($libraryId === null) {
+                $_SESSION['error'] = "Please select a library.";
+                $this->redirect('/admin/add-category');
+                return;
+            }
+
+            if ($this->categoryModel->addCategory($libraryId, $name)) {
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'category_created',
+                    'category',
+                    "Created category: {$name} for library ID {$libraryId}",
+                    ['category_name' => $name, 'library_id' => $libraryId],
+                    'info'
+                );
+                $_SESSION['success'] = "Category added successfully!";
+                $this->redirect('/admin/categories');
+            } else {
+                $_SESSION['error'] = "Category '{$name}' already exists in this library.";
+                $this->redirect('/admin/add-category');
+            }
+            return;
+        }
+
+        // GET request - show form
+        $data = ['libraries' => $this->libraryModel->all()];
+        $this->view('admin/add-category', $data);
+    }
+
+    public function deleteCategory() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
+            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
+                $_SESSION['error'] = "Invalid security token. Please try again.";
+                $this->redirect('/admin/categories');
+                return;
+            }
+
+            $categoryId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+            
+            if ($categoryId <= 0) {
+                $_SESSION['error'] = "Invalid category ID.";
+                $this->redirect('/admin/categories');
+                return;
+            }
+
+            $category = $this->categoryModel->getById($categoryId);
+            
+            if ($category && $this->categoryModel->deleteCategory($categoryId)) {
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'category_deleted',
+                    'category',
+                    "Deleted category: {$category['name']} (ID: {$categoryId})",
+                    ['category_id' => $categoryId, 'category_name' => $category['name']],
+                    'warning'
+                );
+                $_SESSION['success'] = "Category deleted successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to delete category.";
+            }
+        }
+        
+        $this->redirect('/admin/categories');
     }
 }
 ?>

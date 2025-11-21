@@ -155,14 +155,13 @@
                         </label>
                         <select id="categoryFilter" class="form-select">
                             <option value="">All Categories</option>
-                            <?php 
-                            // Get all unique categories from all books
-                            $allCategories = array_unique(array_filter(array_column($all_books, 'category_name')));
-                            foreach ($allCategories as $category): ?>
-                                <option value="<?php echo htmlspecialchars($category); ?>">
-                                    <?php echo htmlspecialchars($category); ?>
-                                </option>
-                            <?php endforeach; ?>
+                            <?php if (isset($categories) && is_array($categories)): ?>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['id']; ?>" <?php echo ($filters['category'] == $category['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
                     
@@ -329,7 +328,7 @@
                                     data-title="<?php echo strtolower(htmlspecialchars($book['title'])); ?>"
                                     data-author="<?php echo strtolower(htmlspecialchars($book['author'])); ?>"
                                     data-isbn="<?php echo strtolower(htmlspecialchars($book['isbn'] ?? '')); ?>"
-                                    data-category="<?php echo strtolower(htmlspecialchars($book['category_name'] ?? '')); ?>"
+                                    data-category-id="<?php echo $book['category_id'] ?? ''; ?>"
                                     data-library-id="<?php echo $book['library_id']; ?>"
                                     data-available="<?php echo $book['available_copies'] > 0 ? 'yes' : 'no'; ?>">
                                     <td class="text-center">
@@ -502,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Live search function
     function filterBooks() {
         const searchTerm = liveSearch.value.toLowerCase();
-        const categoryValue = categoryFilter.value.toLowerCase();
+        const categoryValue = categoryFilter.value;
         const libraryValue = libraryFilter.value;
         const statusValue = statusFilter.value;
         
@@ -512,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const title = row.dataset.title || '';
             const author = row.dataset.author || '';
             const isbn = row.dataset.isbn || '';
-            const category = row.dataset.category || '';
+            const categoryId = row.dataset.categoryId || '';
             const libraryId = row.dataset.libraryId || '';
             const available = row.dataset.available || '';
             
@@ -530,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Check category filter
             if (categoryValue) {
-                matchesCategory = category === categoryValue;
+                matchesCategory = categoryId === categoryValue;
             }
             
             // Check library filter

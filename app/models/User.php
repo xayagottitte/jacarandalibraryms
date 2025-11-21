@@ -83,7 +83,7 @@ class User extends Model {
     }
 
     public function rejectUser($userId) {
-        $query = "UPDATE users SET status = 'inactive' WHERE id = ?";
+        $query = "DELETE FROM users WHERE id = ? AND status = 'pending'";
         $stmt = $this->db->prepare($query);
         return $stmt->execute([$userId]);
     }

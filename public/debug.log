@@ -181,3 +181,139 @@
 [20-Nov-2025 14:30:36 UTC] [ProfileController] Update result: SUCCESS
 [20-Nov-2025 14:30:36 UTC] [ProfileController] Logging profile update for fields: full_name, employee_id, date_of_birth, gender, phone, email, address
 [20-Nov-2025 14:30:36 UTC] [ProfileController] Redirecting to /profile
+[21-Nov-2025 00:44:29 UTC] ============ PROFILE UPDATE CALLED ============
+[21-Nov-2025 00:44:29 UTC] [ProfileController] REQUEST_METHOD: POST
+[21-Nov-2025 00:44:29 UTC] [ProfileController] REQUEST_URI: /jacarandalibraryms/profile/update
+[21-Nov-2025 00:44:29 UTC] [ProfileController] POST data: {"csrf_token":"212e87b8feaaea678343b3abc08507d13e7423fd318c51b8df89b4667a292980","full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"female","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:29 UTC] [ProfileController] POST request confirmed
+[21-Nov-2025 00:44:29 UTC] [ProfileController] User ID: 1
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Raw POST data: {"csrf_token":"212e87b8feaaea678343b3abc08507d13e7423fd318c51b8df89b4667a292980","full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"female","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Sanitized updateData: {"full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"female","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:29 UTC] [ProfileController] updateData to model: {"full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"female","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Using updateProfile method
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - User ID: 1
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Input data: Array
+(
+    [full_name] => Ezra Johnson
+    [employee_id] => 660111
+    [date_of_birth] => 2002-11-29
+    [gender] => female
+    [phone] => +265123456789
+    [email] => ezrajohnson2222@gmail.com
+    [address] => Newlands
+)
+
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: full_name = Ezra Johnson
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: employee_id = 660111
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: date_of_birth = 2002-11-29
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: gender = female
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: phone = +265123456789
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: email = ezrajohnson2222@gmail.com
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Added field: address = Newlands
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Query: UPDATE users SET full_name = ?, employee_id = ?, date_of_birth = ?, gender = ?, phone = ?, email = ?, address = ?, updated_at = NOW() WHERE id = ?
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Params: Array
+(
+    [0] => Ezra Johnson
+    [1] => 660111
+    [2] => 2002-11-29
+    [3] => female
+    [4] => +265123456789
+    [5] => ezrajohnson2222@gmail.com
+    [6] => Newlands
+    [7] => 1
+)
+
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Execute result: success
+[21-Nov-2025 00:44:29 UTC] User::updateProfile() - Affected rows: 1
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Update result: SUCCESS
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Logging profile update for fields: full_name, employee_id, date_of_birth, gender, phone, email, address
+[21-Nov-2025 00:44:29 UTC] [ProfileController] Redirecting to /profile
+[21-Nov-2025 00:44:51 UTC] ============ PROFILE UPDATE CALLED ============
+[21-Nov-2025 00:44:51 UTC] [ProfileController] REQUEST_METHOD: POST
+[21-Nov-2025 00:44:51 UTC] [ProfileController] REQUEST_URI: /jacarandalibraryms/profile/update
+[21-Nov-2025 00:44:51 UTC] [ProfileController] POST data: {"csrf_token":"212e87b8feaaea678343b3abc08507d13e7423fd318c51b8df89b4667a292980","full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"male","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:51 UTC] [ProfileController] POST request confirmed
+[21-Nov-2025 00:44:51 UTC] [ProfileController] User ID: 1
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Raw POST data: {"csrf_token":"212e87b8feaaea678343b3abc08507d13e7423fd318c51b8df89b4667a292980","full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"male","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Sanitized updateData: {"full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"male","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:51 UTC] [ProfileController] updateData to model: {"full_name":"Ezra Johnson","employee_id":"660111","date_of_birth":"2002-11-29","gender":"male","phone":"+265123456789","email":"ezrajohnson2222@gmail.com","address":"Newlands"}
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Using updateProfile method
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - User ID: 1
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Input data: Array
+(
+    [full_name] => Ezra Johnson
+    [employee_id] => 660111
+    [date_of_birth] => 2002-11-29
+    [gender] => male
+    [phone] => +265123456789
+    [email] => ezrajohnson2222@gmail.com
+    [address] => Newlands
+)
+
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: full_name = Ezra Johnson
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: employee_id = 660111
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: date_of_birth = 2002-11-29
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: gender = male
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: phone = +265123456789
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: email = ezrajohnson2222@gmail.com
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Added field: address = Newlands
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Query: UPDATE users SET full_name = ?, employee_id = ?, date_of_birth = ?, gender = ?, phone = ?, email = ?, address = ?, updated_at = NOW() WHERE id = ?
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Params: Array
+(
+    [0] => Ezra Johnson
+    [1] => 660111
+    [2] => 2002-11-29
+    [3] => male
+    [4] => +265123456789
+    [5] => ezrajohnson2222@gmail.com
+    [6] => Newlands
+    [7] => 1
+)
+
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Execute result: success
+[21-Nov-2025 00:44:51 UTC] User::updateProfile() - Affected rows: 1
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Update result: SUCCESS
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Logging profile update for fields: full_name, employee_id, date_of_birth, gender, phone, email, address
+[21-Nov-2025 00:44:51 UTC] [ProfileController] Redirecting to /profile
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Function called
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - REQUEST_METHOD: POST
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - FILES data: Array
+(
+    [profile_photo] => Array
+        (
+            [name] => cw-225.JPG
+            [full_path] => cw-225.JPG
+            [type] => image/jpeg
+            [tmp_name] => C:\xampp\tmp\php143A.tmp
+            [error] => 0
+            [size] => 1987756
+        )
+
+)
+
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - User ID: 1
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - File data: Array
+(
+    [name] => cw-225.JPG
+    [full_path] => cw-225.JPG
+    [type] => image/jpeg
+    [tmp_name] => C:\xampp\tmp\php143A.tmp
+    [error] => 0
+    [size] => 1987756
+)
+
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Upload directory: C:\xampp\htdocs\jacarandalibraryms\app\controllers/../../public/assets/img/profiles/
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Directory already exists
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Filename: profile_1_1763685962.JPG
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Upload path: C:\xampp\htdocs\jacarandalibraryms\app\controllers/../../public/assets/img/profiles/profile_1_1763685962.JPG
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Temp file: C:\xampp\tmp\php143A.tmp
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - File moved successfully
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Photo path for DB: /public/assets/img/profiles/profile_1_1763685962.JPG
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Using updateProfilePhoto method
+[21-Nov-2025 00:46:02 UTC] User::updateProfilePhoto() - User ID: 1
+[21-Nov-2025 00:46:02 UTC] User::updateProfilePhoto() - Photo path: /public/assets/img/profiles/profile_1_1763685962.JPG
+[21-Nov-2025 00:46:02 UTC] User::updateProfilePhoto() - Query: UPDATE users SET profile_photo = ?, updated_at = NOW() WHERE id = ?
+[21-Nov-2025 00:46:02 UTC] User::updateProfilePhoto() - Execute result: success
+[21-Nov-2025 00:46:02 UTC] User::updateProfilePhoto() - Affected rows: 1
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - DB update result: success
+[21-Nov-2025 00:46:02 UTC] ProfileController::uploadPhoto() - Function complete, redirecting to profile

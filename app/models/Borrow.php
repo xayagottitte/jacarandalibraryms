@@ -149,6 +149,7 @@ class Borrow extends Model {
                                  returned_date = :returned_date,
                                  status = 'returned',
                                  fine_amount = :fine_amount,
+                                 is_lost = 0,
                                  updated_at = NOW()
                                  WHERE id = :borrow_id";
             $updateBorrowStmt = $this->db->prepare($updateBorrowQuery);
@@ -511,7 +512,7 @@ class Borrow extends Model {
     public function getLostCounts($libraryId = null, $lostAfterDays = 30) {
         $this->ensureLostColumns();
         $where = " br.status IN ('borrowed','overdue') AND DATEDIFF(CURDATE(), br.due_date) > :days ";
-        $where = " (br.is_lost = 1 OR (" . $where . ")) ";
+        $where = " br.status != 'returned' AND (br.is_lost = 1 OR (" . $where . ")) ";
         $params = [':days' => $lostAfterDays];
         if ($libraryId !== null) {
             $where .= " AND bk.library_id = :lib ";
@@ -533,7 +534,7 @@ class Borrow extends Model {
     public function getLostBooks($libraryId = null, $limit = 10, $lostAfterDays = 30) {
         $this->ensureLostColumns();
         $whereCore = " br.status IN ('borrowed','overdue') AND DATEDIFF(CURDATE(), br.due_date) > :days ";
-        $where = " (br.is_lost = 1 OR (" . $whereCore . ")) ";
+        $where = " br.status != 'returned' AND (br.is_lost = 1 OR (" . $whereCore . ")) ";
         $params = [':days' => $lostAfterDays, ':limit' => (int)$limit];
         if ($libraryId !== null) {
             $where .= " AND bk.library_id = :lib ";

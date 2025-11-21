@@ -287,7 +287,7 @@ include '../app/views/shared/layout-header.php';
                         </thead>
                         <tbody>
                             <?php foreach ($libraries as $library): 
-                                $lib_utilization = $library['total_books'] > 0 
+                                $lib_utilization = $library['total_copies'] > 0 
                                     ? round((($library['total_copies'] - $library['available_copies']) / $library['total_copies']) * 100, 1) 
                                     : 0;
                             ?>
@@ -787,7 +787,4 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-<?php 
-include '../app/views/shared/layout-footer.php';
-include '../app/views/shared/footer.php'; 
-?>
+<?php include '../app/views/shared/layout-footer.php'; ?>

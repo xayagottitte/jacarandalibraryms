@@ -15,11 +15,26 @@ class Category extends Model {
     }
     
     public function getAllCategories() {
-        $query = "SELECT * FROM categories ORDER BY name";
+        $query = "SELECT c.*, l.name as library_name 
+                  FROM categories c 
+                  LEFT JOIN libraries l ON c.library_id = l.id 
+                  ORDER BY c.name";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getById($categoryId) {
+        $query = "SELECT c.*, l.name as library_name 
+                  FROM categories c 
+                  LEFT JOIN libraries l ON c.library_id = l.id 
+                  WHERE c.id = :id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':id', $categoryId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function categoryExists($name) {
         $query = "SELECT COUNT(*) FROM categories WHERE LOWER(name) = LOWER(:name)";
         $stmt = $this->db->prepare($query);
@@ -28,17 +43,18 @@ class Category extends Model {
         return $stmt->fetchColumn() > 0;
     }
 
-    public function addCategory($name, $createdBy = null) {
+    public function addCategory($libraryId, $name, $createdBy = null) {
         if ($this->categoryExists($name)) {
             return false;
         }
         if ($createdBy === null && isset($_SESSION['user_id'])) {
             $createdBy = $_SESSION['user_id'];
         }
-        $query = "INSERT INTO categories (name, created_by, library_id) VALUES (:name, :created_by, NULL)";
+        $query = "INSERT INTO categories (name, created_by, library_id) VALUES (:name, :created_by, :library_id)";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':name', $name);
         $stmt->bindParam(':created_by', $createdBy);
+        $stmt->bindParam(':library_id', $libraryId, PDO::PARAM_INT);
         return $stmt->execute();
     }
 

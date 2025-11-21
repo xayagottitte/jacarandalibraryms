@@ -352,9 +352,10 @@ class Book extends Model {
     }
 
     public function getAllBooksWithLibrary($filters = []) {
-        $query = "SELECT b.*, l.name as library_name, l.type as library_type 
+        $query = "SELECT b.*, l.name as library_name, l.type as library_type, c.name as category_name 
                   FROM books b 
                   LEFT JOIN libraries l ON b.library_id = l.id 
+                  LEFT JOIN categories c ON b.category_id = c.id
                   WHERE 1=1";
         
         $params = [];

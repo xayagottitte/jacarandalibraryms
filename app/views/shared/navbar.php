@@ -291,6 +291,11 @@ body {
                                 <i class="fas fa-building"></i> Libraries
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/categories') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/admin/categories">
+                                <i class="fas fa-tags"></i> Categories
+                            </a>
+                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/admin/books') || str_contains($_SERVER['REQUEST_URI'], '/admin/deleted-books') ? 'active' : '' ?>" 
                                href="#" id="booksDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
