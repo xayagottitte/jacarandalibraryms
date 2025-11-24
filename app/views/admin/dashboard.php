@@ -1159,5 +1159,3 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.875rem;
 }
 </style>
-
-<?php include '../app/views/shared/footer.php'; ?>

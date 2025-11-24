@@ -1,5 +1,16 @@
 RewriteEngine On
 
+# Disable directory listing - SECURITY FIX
+Options -Indexes
+
+# Block access to sensitive files and directories
+<FilesMatch "\.(htaccess|htpasswd|ini|log|md|sql|json|lock)$">
+    Require all denied
+</FilesMatch>
+
+# Block access to configuration and vendor directories
+RedirectMatch 403 ^/jacarandalibraryms/(config|vendor|app|logs|databasesql)/.*$
+
 # Redirect all requests to public/index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

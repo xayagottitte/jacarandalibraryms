@@ -1,6 +1,15 @@
 RewriteEngine On
 
+# Disable directory listing
+Options -Indexes
+
+# Block access to debug and log files
+<FilesMatch "\.(log|sql|md|txt)$">
+    Require all denied
+</FilesMatch>
+
 # Redirect all requests to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
+
