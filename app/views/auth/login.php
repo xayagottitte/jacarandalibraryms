@@ -270,10 +270,22 @@
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger mb-3">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
-                </div>
+                <?php 
+                // If lockout_info is set and attempts > 0, suppress error message
+                $showError = true;
+                if (isset($_SESSION['lockout_info'])) {
+                    $lockoutInfo = $_SESSION['lockout_info'];
+                    // Suppress error if attempts > 0 or account is locked
+                    if ($lockoutInfo['locked'] || (!$lockoutInfo['locked'] && $lockoutInfo['attempts'] > 0)) {
+                        $showError = false;
+                    }
+                }
+                if ($showError): ?>
+                    <div class="alert alert-danger mb-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
             
             <?php if (isset($_SESSION['success'])): ?>
@@ -298,8 +310,7 @@
                     <?php if ($lockoutInfo['attempts'] > 0): ?>
                         <div class="alert alert-warning mb-3" style="font-size: 0.85rem;">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            Failed attempts: <?= $lockoutInfo['attempts'] ?> of <?= MAX_LOGIN_ATTEMPTS ?>. 
-                            <?= $lockoutInfo['remaining_attempts'] ?> attempt(s) remaining.
+                            Invalid email or password. <?= $lockoutInfo['remaining_attempts'] ?> attempt(s) remaining (<?= $lockoutInfo['attempts'] ?> of <?= MAX_LOGIN_ATTEMPTS ?>).
                         </div>
                     <?php endif; ?>
                 <?php endif; ?>
