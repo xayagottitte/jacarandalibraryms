@@ -406,6 +406,10 @@
                                             <span class="badge badge-modern" style="background: var(--jacaranda-primary); color: white;">
                                                 <i class="fas fa-user-tie me-1"></i>Librarian
                                             </span>
+                                        <?php elseif ($user['role'] === 'teacher'): ?>
+                                            <span class="badge badge-modern" style="background: #8a4baf; color: white;">
+                                                <i class="fas fa-chalkboard-teacher me-1"></i>Teacher
+                                            </span>
                                         <?php else: ?>
                                             <span class="badge badge-modern bg-secondary"><?php echo ucfirst($user['role']); ?></span>
                                         <?php endif; ?>

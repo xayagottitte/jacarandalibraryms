@@ -1,0 +1,256 @@
+ 
+
+
+JACARANDA SCHOOLS LIBRARY MANAGEMENT SYSTEM
+APT 3065, Midterm Project 4, Semester 2025.
+Professor Fredrick Ogore.
+Ezra Johnson 667195
+
+
+
+
+
+
+
+	
+ 
+INTRODUCTION
+Education is one of the crucial areas to break circles of poverty, particularly to orphaned and vulnerable children. Libraries are central to provide access to information, foster a reading culture and academic excellence (Bhardwaj, 2016). In Jacaranda foundation, a Malawi based school that trains and empowers orphans, Library resources serve as a vital element of day to day learning among both the primary and secondary school students. The school has also received well-wishers who have contributed immensely to the school through donation of books especially those who have made it a point to provide the children of the needy with reading materials. The administration of such books is however a major challenge. 
+At present, library activities of Jacarandas are partially based on manual record keeping systems including hand written ledgers to track students, to record borrowing and returns. Although this technique is practical, it is vulnerable to human-made errors, duplication and record loss and inefficiency during reporting. As the number of the student population increases and the amount of resources contributed by donors increases. The weakness of manual systems is made more evident. An example can be given of the time spent searching the borrowing history of a particular student and of items that are due or lost books that need close attention to be checked manually. Such inefficiencies end up affecting the normal operations of the library and restricting its potentials as one of the major pillars in the education of the student. (Saka et al., 2021)
+In order to overcome these challenges, transitioning to Library Management System (LMS) that automates most of the core library functions is necessary. The proposed LMS will be built based on the PHP, JavaScript, Ajax, and MySQL and thus it will be lightweight, scalable, and flexible to the requirements of Jacaranda. In addition, as a larger percentage of Jacaranda students lack personal phones or emails, the system will not require students to self-register, but instead assign student accounts with the assistance of librarians and administrators. This renders it context specific and specific in the eyes of an orphan-centred educational institution. 
+The advanced resource management offered by the proposed LMS will not only make resource management relevant to the current situation, the donor accountability reports, and circulation control and librarian-friendly interfaces are also expected to increase accountability to donors and stakeholders. In the end it will make sure that children in Jacarandah will be able to access uninterrupted learning materials they require in order to excel in their academics and more.
+In addition, the system will be long-term investment in the sustainability of the school. It will also bring an aspect of scalability to the platform where Jacaranda can incorporate future enhancements like mobile notifications to librarians, inter-library sharing of resources and digital archives. This flexibility not only enables the LMS to be a current day solution but also a platform of growth in the future(Brophy, 2007).
+One more significant impact of this system is that it taught children the culture of reading. The ability of librarians to track borrowing tendencies would allow identifying the most popular storybooks and instructional resources that could provide the teachers and administrators with an understanding of the preferences of the students. The information can be used to support curriculum and promote specific intervention that will raise the level of literacy. This kind of data informed wisdom is not easy to come by in manual systems, which highlights the transformative influence of automation.
+Finally, the LMS is characterized by the value of efficiency, transparency and inclusivity. Jacaranda Foundation represents that. It minimizes wastage on administration burdens, aids orphaned and needy children in academic journals who bring the operation of the school to reality and brings transparency to the donors. By doing so, this system is not only a technological tool. It is a connection, a bridge between students, staff, supporters in a common cause of empowerment in education (Mubofu & Mambo, 2021).
+ 
+PROBLEM STATEMENT
+Jacaranda Foundation Library is currently relying on the manual book record keeping which oversees the circulation of learning materials amongst students. Though this system has been working at the institution since the founding, it is becoming ineffective in managing the demand at the institution where resources are consumed by both the primary school and the secondary school sections because the system is found to be slow in its own processes of tracking borrowed books, misplaced records, and lack of a comprehensive report and this does not only waste time, but also annoys the students who would want a particular book that the librarian may spend several minutes to track the book in the shelves, thus cannot provide a complete report. The inadequacy of a book-based system is even more pronounced as the number of books and students is constantly increasing. Potentially disrupting the smooth operation of the provision of library service.
+Besides the inefficiency of operations, no digital system poses a significant obstacle to the control of the donor contributions and tracking the use of books (Fox et al., 1995). Jacaranda Foundation is a major recipient of donations by well-wishers who supply the schools with books and other learning tools on a regular basis. The donors and stakeholders usually want to know about the transparent reports on the utilization of their donations and the resources which are borrowed the most and on the other hand are not used fully. Only manual record keeping is incapable of giving any accurate or real time update on such patterns. This gives a loophole of accountability that may jeopardize the awakening of trust by the donors and the future possibilities of assistance. In addition to accountability, the absence of a reporting system does not allow the school to produce data-driven insights like the establishment of students reading patterns, the subjects where books are in high demand, or the areas in which more resources need to be allocated. This leads to a situation where decision making regarding library investment is usually more of an assumption than evidence based.
+Jacaranda is not alone in facing challenges, but the problems in her libraries can be compared with the larger issues in libraries and schools in most developing nations. Manual systems are prevalent in resource limited environments, which cause pervasive inefficiencies such as overcrowded libraries, misplaced or da
+MAIN OBJECTIVE 
+To create a digital library management system to be used in Jacaranda Foundation that simplifies the process of managing resources, improves accountability, boosts the borrowing /return processes, and offers donor-oriented reports to support primary and secondary school education.
+
+SPECIFIC OBJECTIVES 
+1.	To create a library management system based on PHP, MySQL to manage books in the library in an efficient way. 
+2.	To simplify student registration and borrowing, by allowing creating accounts controlled by librarians and allowing them to circulate. 
+3.	To make accountability more effective through the creation of real time reports that are related to usage, borrowing patterns. 
+4.	To enable the use of automated analytics and resource tracking of both primary and secondary school libraries in order to support data-driven decision making.
+
+
+
+ 
+JUSTIFICATION
+This Library Management System design and its implementation is important as it specifically takes into consideration the specific issues of the Jacaranda Foundation. This system is designed to apply in a community-based school, which takes in orphans and vulnerable children, unlike traditional LMSs, which are mainly designed to serve universities or institutions with high-quality infrastructure (Yang and Hofmann, 2010). It does not presuppose that all the users possess personal emails, smartphones or high level of digital literacy. Rather, it enables librarians to centrally administer student registration, borrowing and returning on behalf of the student. This will reduce inefficiencies that are brought about by the manuality of keeping books by hand, minimize the human error that may happen due to the misplaced or lost records and also maintain a smooth circulation process. By lessening the administrative load, there will be more time which the librarians can devote towards interacting with the students and addressing their learning requirements thus improving the learning process.
+In addition to making operations more effective, the system also adds to accountability and sustainability, which are plausible in case of nonprofit institutions such as Jacaranda. Donors that make frequent contributions of books and learning resources usually demand the to-the-letter reporting of how the resources are used. This is offered in the proposed LMS as it creates real-time reports to reflect the borrowing trends, book usage, and general circulation patterns. This aspect not only enhances the confidence of the donors, but also helps Jacaranda to secure more and more support in the future. Combined with its simplicity, it is not just a technological tool, it is a strategic tool that helps Jacaranda in its missions of offering quality education and life changing opportunities to disadvantaged children.
+ 
+maged records, restricted access to resources, and inability to be integrated with modern teaching methods. These problems are further aggravated by poor infrastructure, lack of Internet connectivity and insufficient ICT training of the staff which has left schools lagging behind in implementing digital solutions. (Mallik, n.d.) In the absence of automated library management system, Jacaranda stands to be on a course of repeating the same journey where students could not get access to important learning materials promptly, libraries could waste a lot of time on administrative paper work and full impact of the generous donations could not be quantified. The inefficiencies shorten the effectiveness of library as an academic development tool in the long-term and compromise the mission of Jacaranda to deliver quality education to orphans and needy children.
+ 
+
+CHAPTER TWO
+
+LITERATURE REVIEW
+GLOBAL VIEW: Do we have LMSs globally?
+Integrated library systems and library management systems are available in the world today as mature, feature-rich and large consortia platform, as well as lightweight systems designed to serve small libraries.
+1.	Koha 
+Koha is known to be the first free and open integrated library system in the world, and is deployed in thousands of libraries globally (Singh & Sanaman, 2012). Multilingual support and flexibility are common adoption reasons of Koha. (Kohacommunity.org.)
+
+2.	Evergreen 
+Another extensive open-source integrated library systems is Evergreen initially created by Statewide Consortia(Randhawa, 2013) It likewise supports scalability and sharing of resources with numerous branches and is utilized in large Public Library networks. Evergreen is focused on robust consortia capabilities and large scale deployments. (evergreen-ils.org)
+
+3.	OpenBiblio and others.
+In case with small, rural, resource limited libraries. Lightweight alternatives are available under open-source e.g. OpenBiblio, PBM and Invenio. These light systems are centered on the essential functions and are usually preferred in low-complex deployments due to simple interfaces and easy installations. Particularly, OpenBiblio is a PHP based system that remains popular in small libraries across the world. (wikipedia)
+
+All in all, there exist solutions to many needs, including enterprise-scale, consortia integrated library systems, to flexible open-source integrated library systems, and lightweight PHP-based systems. They are usually aimed at large audiences like a public library, university or consortia and have basic functions like MARC-based cataloging, OPAC, circulation and acquisition.
+
+AFRICA VIEW: is there such thing in Africa?
+There have been open-source integrated library systems such as Koha and Evergreen that have been adopted in most of the African countries and these are the local service providers that install, customize and train personnel on these systems.
+1.	Adoption of kohas in Africa and Kenya:
+In East Africa, Koha is actively used, and many institutions in Kenya and other countries use Koha(Ondoro, 2015) There are local communities, consultants and training courses in Kenya to install Koha in schools and universities and in other public libraries. After research, the library deployment listings reveals dozens of Kenyan institutions are operating Koha. (library community)
+
+2.	Local service & training:
+Koha installation, customization and national training activities are provided by a number of African IT companies and library support programs. As an example, Kenyan community support and training workshops, Koha Kenya, demonstrate regional adoption and building capacity across the software. This is an ecosystem that makes African libraries less difficult to automate. (skillsforafrica.rg)
+
+3.	Rural libraries Lightweight rural libraries.
+Lightweight platforms, such as OpenBiblio due to low technical footprint and more direct operations, are frequently suggested by organizations and projects concentrating on small rural libraries in developing nations. This renders them appealing to the community libraries and NGOs. (eifl.net)
+Generally, Africa has heavy and light-weight solutions. Local training and support programs can also be a determining factor to adoption. Where resource (budget) and technical expertise are limited PHP-based or Simpler tools, based on the open-source, are used.
+
+MALAWI & KENYA: the examples and evidence of adoption in the country.
+1.	MALAWI
+Research and reports of Koha Implementation and deployment Koha has been studied and deployed in Malawi in higher education Institutions, and used in library automation projects. This is an indicator of acquaintance with open source. Koha in Malawi. (koha-community.org)
+
+2.	KENYA
+Kenya exhibits numerous Koha installations (libraries and institution will be listed as Koha users), local training programs, supplier companies providing Koha implementation, services, and community programs to assist the school libraries. These regional patterns of adoption indicate that well-known open-source integrated library systems can be implemented in East African education settings with the necessary assistance. (library technology)
+
+Overall, there are real-life examples of library automation in both countries with the use of open-source. There is support of adoption by the local trainers and service provider, thus technological feasibility is established, however, the customization and training of the technology is situation-specific and is a key success factor.
+
+
+
+
+HOW EXISTING SYSTEMS COMPARE TO THE JACARANDA LMS
+The project fills are the key distinguishing points and niche, having surveyed the main system available on the global and regional levels.
+1.	Target user profile and registration model. 
+Numerous integrated library systems packages are built with certain self-service or patron accounts (OPAC logins, email notification, online renewals) in mind (Khan and Ayesha, 2022).
+
+Jacaranda Library management system is specifically designed to support a school of orphans in which most students lack personal emails or phones and so students account is created and managed solely by librarian or super admins. This option of choice makes the authentication easier and matches practicalities on the ground of Jacaranda.
+
+2.	Donations and donor reporting.
+Integrated library systems such as Koha also have extensive reporting capabilities, although these do not typically give donor-centered workflows (tracking gifted batches to individual donors, generating donor impact reports).
+
+The library management system at Jacaranda is unique in a sense that the reports can assist them in accountability and fundraising. This makes the library management system a management and development tool.
+
+3.	Ease in primary school and secondary school work.
+A variety of integrated library systems focus on academic, public or consortium libraries and contain detailed modules like serials, acquisitions and heavy cataloguing in MARC. That would be extravagant in small school libraries.
+
+The library management system of Jacaranda is age-sensitive in metadata, easier librarian interfaces, and school-oriented reporting (e.g. best story books per grade), which enhance ease of use by non-expert personnel.
+
+4.	Friendliness to the developer and technology selection.
+Koha is written in Perl, Evergreen is written either in other stacks, and OpenBiblio is written in PHP, but is also fairly minimal in features. Other institutions do not have the special expertise to customize or extend these systems.
+
+This system is easy to implement using a modern web tooling system such as the Jacaranda implementation in PHP and this offers a developer friendly stack that most students or local developers are familiar with. It simplifies maintenance in the future, and works well with contemporary JS/Ajax fronts.
+
+5.	Elasticity of low resource deployment.
+Although Koha and Evergreen are able to scale to larger deployments, they may need additional server expertise or resources. OpenBiblio is less robust in terms of smaller libraries but it does not provide donor reporting capabilities.(Bwalya, 2017)
+
+The Jacaranda Library management project intends to be a mid-ground lightweight, easy to maintain by the local staff, and also possesses the donor reporting and school oriented features that community libraries and NGOs appreciate.
+
+
+
+
+
+ 
+CHAPTER THREE
+
+METHODOLOGY
+The approach that is adopted in this project is user-centered and iterative development methodology, which is based on both face-to-face interaction with stakeholders in Jacaranda Foundation and analysis of existing library practices. Because the success of the project is determined by the ability to leverage the specific circumstances of an orphan based primary and secondary school, preliminary investigation, requirement analysis, system design, prototyping, and validation were incorporated in the design process.
+In an attempt to attain this, I have also taken advantage of my prior exposure to the Jacaranda Foundation employees and the management to find out the bottlenecks in the existing manual systems of operation. This prior knowledge was aided by structured interviews, watching library operations and making comparative reviews of the available library management systems. The selected technologies PHP, MySQL database, JavaScript, Ajax, HTML, and Bootstrap were chosen due to the fact that they are powerful yet approachable base of the scalable and user-friendly system.
+
+PRELIMINARY INVESTIGATION 
+USER REQUIREMENTS ANALYSIS AND ELICITATION METHODS.
+Considering the specialty of the Jacaranda Foundation, there exist a number of criteria that a elicitation based methods were adopted to ensure that user requirements are received in the most appropriate way.
+1.	Interviews. 
+interviewed librarians, teachers and administrative personnel to learn the current way books are borrowed, retained and cataloged, and pain points like lost record, donor accountability. 
+
+2.	Observation. 
+Previous direct observation of daily operations in libraries to determine inefficiencies like time taken to find records or congestion in periods of maximum borrowing activities r. 
+
+3.	Document reviews. 
+Analysis of existing processes by examination of current manual books, records and donation logs. 
+
+4.	Stakeholder discussions. 
+Knowledgeable negotiations with the school director to securities high level expectations like such accountability reports to make donations.
+
+
+FUNCTIONAL REQUIREMENTS
+The following are the core functions that the system is supposed to accommodate.
+1.	Student Registration 
+Give librarians the option of creating student accounts without emails or phone numbers. 
+
+2.	Book cataloging. 
+Enabling the system to add, edit and categorize books and manage them. 
+
+3.	Borrowing and return 
+empowered librarians to borrow and lend things, to assign due dates and return.
+
+4.	Reporting
+create reports on lending habits, out of circulation books, most borrowed titles etc.
+
+5.	User roles
+Make a distinction between administrators and librarians.
+
+
+
+Non-functional Requirements 
+The nonfunctional expectations will also be met in this proposed library management system in order to be reliable and usable. 
+1.	Usability. 
+The interface will be user-friendly to the librarian, and will need very little training. 
+
+2.	Performance. 
+The system will also maintain the daily operations with smooth response even in peak borrowing conditions. (Candela et al., 2006)
+
+3.	Scalability
+This system will be able to support the increase in the number of students and resources, as time passes. (Candela et al., 2006)
+
+4.	Maintainability. 
+Core PHP will be used to construct the system with modular architecture that will be easier to update, debug and extend without the extensive use of heavy frameworks. 
+
+5.	Security.
+the system will secure Role-based access control and protection of data to avoid illegal access and manipulation of records.
+
+
+
+
+
+
+
+
+
+
+DESIGN PHASE
+Due to the work with Jacaranda Foundation employees, initial prototypes were tested by the management and librarians of the school directly to make sure they fit their expectations (Kute & Thorat, 2014). 
+The major processes during the design phase are. 
+1.	System architecture design. 
+It adopted a three layer architecture (Presentation layer with bootstrap and JS, logic layer with PHP and database layer with MySQL).
+
+2.	Developing schema in a database. 
+tables were designed to hold students, books, borrowings transactions, donors and reports. 
+
+3.	Flowcharts and use case diagrams.
+designed visually depict the way librarians and administrators will operate with the system. 
+
+4.	Interface prototyping
+ Primitive prototypes of the catalog, borrowing, forms and returning dashboards were submitted to the school and staff to get feedback. 
+
+
+This design focused on simplicity, workflow driven by librarians, and donor accountability features, and hence the system was designed to directly cover the gaps in the operations that had been established during the initial research.
+
+   
+
+
+ 
+SYSTEM ANALYSIS AND DESIGN
+This stage of system analysis and design describes the way the library management system will operate, and interface with its customers. There are two major modeling techniques, i. e., the Data Flow Diagram (DFD) is used to illustrate the data flowing between the system and the Entity Relation Diagram (ERD) is used to design the database structure (Kute and Thorat, 2014). 
+The analysis is grounded on the functional requirements obtained above that focuses on the registration of students, book cataloging, process of borrowing and returning, Reporting and access controls.
+
+DATA FLOW DIAGRAMS (DFD)
+1.	CONTEXT LEVEL 
+ 
+
+
+COMPLETE DATA FLOW DIAGRAM
+ 
+
+
+ENTITY RELATIONSHIP DIAGRAMS (ER)
+ 
+
+PROJECT TIMELINE
+Project file attached…
+
+ 
+REFERENCES
+Bhardwaj, A. (2016). Importance of education in human life: A holistic approach. International Journal of Science and Consciousness, 2(2), 23–28.
+Brophy, P. (2007). The library in the twenty-first century. Facet Publishing.
+Bwalya, T. (2017). OpenBiblio: A free and open source integrated library management system that answers small libraries’ automation needs. Journal of Balkan Libraries Union, 5(1), 35–42.
+Candela, L., Castelli, D., Fuhr, N., Ioannidis, Y., Klas, C., Pagano, P., Ross, S., Saidis, C., Schek, H., & Schuldt, H. (2006). Current digital library systems: User requirements vs provided functionality. Deliverable D1, 4.
+Chaputula, A., & Kanyundo, A. (2019). Use of Koha-integrated library system by higher education institutions in Malawi. Digital Library Perspectives, 35(3/4), 117–141.
+Evergreen ILS. Evergreen project and documentation. (evergreen-ils.org)
+Fox, E. A., Akscyn, R. M., Furuta, R. K., & Leggett, J. J. (1995). Digital libraries. Communications of the ACM, 38(4), 22–28.
+Khan, S. A., & Ayesha, G. (2022). Key features of information management systems (IMSs) for automation in university libraries: A view point of information professionals in Pakistan. Library Hi Tech, 40(6), 1606–1626.
+Koha Community. Koha: Official website and documentation.(koha-community.org)
+Koha in Malawi (automation projects / case reports). (koha-coomunity.org)
+Koha deployments and support resources in Kenya (Koha Kenya listings, providers). (library technology)
+
+Kute, S. S., & Thorat, S. D. (2014). A review on various software development life cycle (SDLC) models. International Journal of Research in Computer and Communication Technology, 3(7), 778–779.
+Mallik, B. N. (n.d.). A Study on Library Manual System And Its Significance.
+Mubofu, C., & Mambo, H. (2021). The role of libraries in community empowerment: A systematic review. Indonesian Journal of Librarianship, 1–16.
+Ondoro, C. B. (2015). Adoption of integrated information management systems in Kenya: A case study at the Kenya Bureau of Standards Library.
+OpenBiblio. OpenBiblio (lightweight PHP-based ILS) and EIFL webinar about OpenBiblio for small libraries. (wikipedia)
+
+Randhawa, S. (2013). Open source library management softwares.
+Saka, K. A., Ahmed, A. O., & Akor, P. U. (2021). Transition and transformation of libraries from manual to digital: The case of Nigeria. Information Technologist, 18(1).
+Singh, M., & Sanaman, G. (2012). Open source integrated library management systems: Comparative analysis of Koha and NewGenLib. The Electronic Library, 30(6), 809–832.
+Yang, S. Q., & Hofmann, M. A. (2010). The next generation library catalog: A comparative study of the OPACs of Koha, Evergreen, and Voyager. Information Technology and Libraries, 29(3), 141–150.
+
+
+
+	

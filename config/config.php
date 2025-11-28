@@ -76,15 +76,11 @@ define('BACKUP_PATH', '../backups/');
 define('BACKUP_RETENTION_DAYS', 30);
 
 // Error Reporting
-if (ENVIRONMENT === 'development') {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-    ini_set('log_errors', 1);
-    ini_set('error_log', '../logs/php_errors.log');
-}
+// Always log errors to logs/php_errors.log for easier debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 
 // Timezone
 date_default_timezone_set('UTC');

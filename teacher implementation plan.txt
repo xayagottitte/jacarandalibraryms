@@ -1,0 +1,23 @@
+Teacher User Type: Implementation Plan
+1. Add Teacher Role to User System
+Add “teacher” to user roles in the database and registration forms.
+Update authentication and user management to support teachers.
+2. Teacher Borrow Book (Same as Student)
+Allow teachers to borrow books using the same workflow as students.
+Ensure borrow limits and rules are appropriate for teachers (can be configured).
+3. Access to Digital Resources
+Create a “Digital Resources” section in the system.
+Integrate APIs for digital resources (e.g., e-books, online journals).
+Allow teachers to view and access these resources.
+4. Recommend Materials
+Add a feature for teachers to suggest new books or digital resources.
+Admin/librarian can review and approve/reject recommendations.
+5. Track Student Borrowing (by Teacher’s Classes/Subjects)
+Add data models for classes, subjects, and teacher assignments.
+Link students to classes/subjects and teachers.
+Allow teachers to view borrowing history of students they teach.
+6. Additional Teacher-Specific Functions (Suggestions)
+Messaging/notifications to students about recommended reading.
+Analytics dashboard for teachers (e.g., most borrowed books by their students).
+Ability to reserve books for class use.
+Upload and share teaching materials/resources.

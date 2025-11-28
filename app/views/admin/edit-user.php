@@ -177,6 +177,7 @@
                                     <option value="">Select Role</option>
                                     <option value="super_admin" <?= $user['role'] === 'super_admin' ? 'selected' : '' ?>>Super Admin</option>
                                     <option value="librarian" <?= $user['role'] === 'librarian' ? 'selected' : '' ?>>Librarian</option>
+                                    <option value="teacher" <?= $user['role'] === 'teacher' ? 'selected' : '' ?>>Teacher</option>
                                 </select>
                                 <div class="invalid-feedback">Please select a role.</div>
                             </div>

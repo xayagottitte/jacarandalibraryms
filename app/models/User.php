@@ -57,6 +57,7 @@ class User extends Model {
             $query .= " AND u.role = ?";
             $params[] = $filters['role'];
         }
+        // Teacher role is now supported
 
         if (!empty($filters['status'])) {
             $query .= " AND u.status = ?";

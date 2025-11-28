@@ -227,16 +227,23 @@
                 </div>
                 
                 <button type="submit" class="btn-register">
-                    Register as Librarian
+                    Register
                 </button>
             </form>
             
-            <div style="padding: 0.75rem; background: rgba(13, 202, 240, 0.1); border-radius: 6px; margin-bottom: 1rem;">
-                <small style="color: #0dcaf0; font-size: 0.8rem;">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <strong>Note:</strong> Librarian accounts require Super Admin approval before access is granted.
-                </small>
-            </div>
+                <div class="form-group">
+                    <label for="role" class="form-label">Register as</label>
+                    <select class="form-control" id="role" name="role" required>
+                        <option value="teacher">Teacher</option>
+                        <option value="librarian">Librarian</option>
+                    </select>
+                </div>
+                <div style="padding: 0.75rem; background: rgba(13, 202, 240, 0.1); border-radius: 6px; margin-bottom: 1rem;">
+                    <small style="color: #0dcaf0; font-size: 0.8rem;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Note:</strong> Librarian and Teacher accounts require Super Admin approval before access is granted.
+                    </small>
+                </div>
             
             <div style="text-align: center; color: #666; font-size: 0.85rem;">
                 Already have an account? <a href="login" class="signup-link">Login here</a>

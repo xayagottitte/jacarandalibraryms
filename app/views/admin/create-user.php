@@ -236,6 +236,7 @@ include '../app/views/shared/layout-header.php';
                             <option value="">Select Role</option>
                             <option value="super_admin">Super Admin</option>
                             <option value="librarian">Librarian</option>
+                            <option value="teacher">Teacher</option>
                         </select>
                     </div>
                 </div>

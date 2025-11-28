@@ -148,6 +148,16 @@ $router->add('/report/cleanup', 'ReportController', 'cleanupOldReports');
 $router->add('/system/maintenance', 'SystemController', 'maintenance');
 $router->add('/system/backup', 'SystemController', 'backup');
 
+// Teacher routes
+$router->add('/teacher/dashboard', 'TeacherController', 'dashboard');
+$router->add('/teacher/borrow', 'TeacherController', 'borrow');
+$router->add('/teacher/borrowing', 'TeacherController', 'borrowing');
+$router->add('/teacher/resources', 'TeacherController', 'resources');
+$router->add('/teacher/analytics', 'TeacherController', 'analytics');
+$router->add('/teacher/reserve', 'TeacherController', 'reserve');
+$router->add('/teacher/upload', 'TeacherController', 'upload');
+$router->add('/teacher/recommend', 'TeacherController', 'recommend');
+
 // Get requested URL
 $request_url = $_SERVER['REQUEST_URI'];
 

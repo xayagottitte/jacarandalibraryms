@@ -20,6 +20,7 @@ class AdminController extends Controller {
         $this->studentModel = new Student();
         $this->categoryModel = new Category();
         $this->mailer = new Mailer();
+        // Teacher role is now supported in user management
     }
 
     public function dashboard() {
@@ -284,7 +285,7 @@ class AdminController extends Controller {
             }
             
             // Validate role
-            if (!in_array($role, ['super_admin', 'librarian'])) {
+            if (!in_array($role, ['super_admin', 'librarian', 'teacher'])) {
                 $_SESSION['error'] = "Invalid role selected.";
                 $this->view('admin/create-user');
                 return;

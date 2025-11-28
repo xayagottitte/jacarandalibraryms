@@ -288,11 +288,13 @@
                 <?php endif; ?>
             <?php endif; ?>
             
-            <?php if (isset($_SESSION['success'])): ?>
+            <?php if (isset($_SESSION['success']) && $_SESSION['success'] !== 'Login successful!'): ?>
                 <div class="alert alert-success mb-3">
                     <i class="fas fa-check-circle me-2"></i>
                     <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['success']); ?>
                 </div>
+            <?php elseif (isset($_SESSION['success']) && $_SESSION['success'] === 'Login successful!'): ?>
+                <?php unset($_SESSION['success']); ?>
             <?php endif; ?>
             
             <?php 

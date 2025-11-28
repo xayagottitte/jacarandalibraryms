@@ -706,6 +706,77 @@
  */
 
 class AuthController extends Controller {
+        public function login() {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $email = Security::sanitizeInput($_POST['email'] ?? '');
+                $password = $_POST['password'] ?? '';
+                // Validate password not empty
+                if (empty($password)) {
+                    $_SESSION['error'] = "Password is required.";
+                    $this->redirect('/login');
+                    return;
+                }
+                // Pre-check if account is locked
+                $lockStatus = Security::isAccountLocked($email);
+                if ($lockStatus['locked']) {
+                    $remainingTime = Security::formatLockoutTime($lockStatus['remaining_time']);
+                    $_SESSION['error'] = "Account temporarily locked due to too many failed login attempts. Please try again in {$remainingTime}.";
+                    $_SESSION['lockout_info'] = [
+                        'locked' => true,
+                        'remaining_time' => $lockStatus['remaining_time'],
+                        'attempts' => $lockStatus['attempts']
+                    ];
+                    $this->redirect('/login');
+                    return;
+                }
+                try {
+                    if ($this->authModel->login($email, $password)) {
+                        $_SESSION['success'] = "Login successful!";
+                        // Redirect based on role
+                        if ($_SESSION['role'] === 'super_admin') {
+                            $this->redirect('/admin/dashboard');
+                        } else if ($_SESSION['role'] === 'librarian') {
+                            $this->redirect('/librarian/dashboard');
+                        } else if ($_SESSION['role'] === 'teacher') {
+                            $this->redirect('/teacher/dashboard');
+                        } else {
+                            $this->redirect('/login');
+                        }
+                        return;
+                    } else {
+                        // Get updated attempt count after failed login
+                        $lockStatus = Security::isAccountLocked($email);
+                        if ($lockStatus['locked']) {
+                            $remainingTime = Security::formatLockoutTime($lockStatus['remaining_time']);
+                            $_SESSION['error'] = "Too many failed attempts. Account locked for {$remainingTime}.";
+                            $_SESSION['lockout_info'] = [
+                                'locked' => true,
+                                'remaining_time' => $lockStatus['remaining_time'],
+                                'attempts' => $lockStatus['attempts']
+                            ];
+                        } else {
+                            $_SESSION['error'] = "Invalid email or password. {$lockStatus['remaining_attempts']} attempt(s) remaining.";
+                            $_SESSION['lockout_info'] = [
+                                'locked' => false,
+                                'attempts' => $lockStatus['attempts'],
+                                'remaining_attempts' => $lockStatus['remaining_attempts']
+                            ];
+                        }
+                    }
+                } catch (Exception $e) {
+                    $_SESSION['error'] = $e->getMessage();
+                    // Check if account is now locked after exception
+                    $lockStatus = Security::isAccountLocked($email);
+                    $_SESSION['lockout_info'] = [
+                        'locked' => $lockStatus['locked'],
+                        'attempts' => $lockStatus['attempts'],
+                        'remaining_attempts' => $lockStatus['remaining_attempts'] ?? 0,
+                        'remaining_time' => $lockStatus['remaining_time'] ?? 0
+                    ];
+                }
+            }
+            $this->view('auth/login');
+        }
     private $authModel;
 
     public function __construct() {
@@ -713,96 +784,6 @@ class AuthController extends Controller {
         $this->authModel = new Auth();
     }
 
-    public function login() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Verify CSRF token
-            if (!isset($_POST['csrf_token']) || !Security::verifyCSRFToken($_POST['csrf_token'])) {
-                $_SESSION['error'] = "Invalid security token. Please try again.";
-                $this->redirect('/login');
-                return;
-            }
-            
-            // Sanitize and validate inputs
-            $email = Security::sanitizeInput($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? ''; // Don't sanitize password (may have special chars)
-            
-            // Validate email format
-            if (!Security::validateEmail($email)) {
-                $_SESSION['error'] = "Please enter a valid email address.";
-                $this->redirect('/login');
-                return;
-            }
-            
-            // Validate password not empty
-            if (empty($password)) {
-                $_SESSION['error'] = "Password is required.";
-                $this->redirect('/login');
-                return;
-            }
-            
-            // Pre-check if account is locked
-            $lockStatus = Security::isAccountLocked($email);
-            
-            if ($lockStatus['locked']) {
-                $remainingTime = Security::formatLockoutTime($lockStatus['remaining_time']);
-                $_SESSION['error'] = "Account temporarily locked due to too many failed login attempts. Please try again in {$remainingTime}.";
-                $_SESSION['lockout_info'] = [
-                    'locked' => true,
-                    'remaining_time' => $lockStatus['remaining_time'],
-                    'attempts' => $lockStatus['attempts']
-                ];
-                $this->redirect('/login');
-                return;
-            }
-            
-            try {
-                if ($this->authModel->login($email, $password)) {
-                    $_SESSION['success'] = "Login successful!";
-                    
-                    // Redirect based on role
-                    if ($_SESSION['role'] === 'super_admin') {
-                        $this->redirect('/admin/dashboard');
-                    } else {
-                        $this->redirect('/librarian/dashboard');
-                    }
-                    return;
-                } else {
-                    // Get updated attempt count after failed login
-                    $lockStatus = Security::isAccountLocked($email);
-                    
-                    if ($lockStatus['locked']) {
-                        $remainingTime = Security::formatLockoutTime($lockStatus['remaining_time']);
-                        $_SESSION['error'] = "Too many failed attempts. Account locked for {$remainingTime}.";
-                        $_SESSION['lockout_info'] = [
-                            'locked' => true,
-                            'remaining_time' => $lockStatus['remaining_time'],
-                            'attempts' => $lockStatus['attempts']
-                        ];
-                    } else {
-                        $_SESSION['error'] = "Invalid email or password. {$lockStatus['remaining_attempts']} attempt(s) remaining.";
-                        $_SESSION['lockout_info'] = [
-                            'locked' => false,
-                            'attempts' => $lockStatus['attempts'],
-                            'remaining_attempts' => $lockStatus['remaining_attempts']
-                        ];
-                    }
-                }
-            } catch (Exception $e) {
-                $_SESSION['error'] = $e->getMessage();
-                
-                // Check if account is now locked after exception
-                $lockStatus = Security::isAccountLocked($email);
-                $_SESSION['lockout_info'] = [
-                    'locked' => $lockStatus['locked'],
-                    'attempts' => $lockStatus['attempts'],
-                    'remaining_attempts' => $lockStatus['remaining_attempts'] ?? 0,
-                    'remaining_time' => $lockStatus['remaining_time'] ?? 0
-                ];
-            }
-        }
-        
-        $this->view('auth/login');
-    }
 
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -927,7 +908,6 @@ class AuthController extends Controller {
         
         $authUrl = $client->createAuthUrl();
         header('Location: ' . $authUrl);
-        exit();
     }
 
     public function googleCallback() {
