@@ -86,6 +86,8 @@ $router->add('/admin/add-category', 'AdminController', 'addCategory');
 $router->add('/admin/delete-category', 'AdminController', 'deleteCategory');
 $router->add('/admin/settings', 'AdminController', 'settings');
 $router->add('/admin/reports', 'AdminController', 'reports');
+$router->add('/admin/teacher-recommendations', 'AdminController', 'teacherRecommendations');
+$router->add('/admin/update-recommendation-status', 'AdminController', 'updateRecommendationStatus');
 $router->add('/admin/generate-report', 'AdminController', 'generateReport');
 $router->add('/admin/export-report', 'AdminController', 'exportReport');
 $router->add('/admin/activity-logs', 'AdminController', 'activityLogs');
@@ -129,6 +131,8 @@ $router->add('/librarian/search-books', 'LibrarianController', 'searchBooks');
 
 // Librarian reports
 $router->add('/librarian/reports', 'LibrarianController', 'reports');
+$router->add('/librarian/teacher-recommendations', 'LibrarianController', 'teacherRecommendations');
+$router->add('/librarian/update-recommendation-status', 'LibrarianController', 'updateRecommendationStatus');
 $router->add('/librarian/generate-report', 'LibrarianController', 'generateLibraryReport');
 $router->add('/librarian/export-report', 'LibrarianController', 'exportReport');
 

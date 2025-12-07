@@ -1,0 +1,60 @@
+==========================================================
+COPY THIS TEXT AND ADD IT TO YOUR APACHE VHOST CONFIG FILE
+==========================================================
+
+1. Open this file in Notepad:
+   C:\xampp\apache\conf\extra\httpd-vhosts.conf
+
+2. Add this text BEFORE the existing <VirtualHost *:80> block for chimzy.local:
+
+
+# Default VirtualHost for localhost - allows normal XAMPP access
+<VirtualHost *:80>
+    ServerName localhost
+    DocumentRoot "C:/xampp/htdocs"
+    <Directory "C:/xampp/htdocs">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog "logs/localhost-error.log"
+    CustomLog "logs/localhost-access.log" common
+</VirtualHost>
+
+
+3. Save the file
+
+4. Restart Apache in XAMPP Control Panel (Stop -> Start)
+
+5. Access: http://localhost/jacarandalibraryms/login
+
+==========================================================
+YOUR VHOST FILE SHOULD LOOK LIKE THIS AFTER ADDING:
+==========================================================
+
+# Default VirtualHost for localhost
+<VirtualHost *:80>
+    ServerName localhost
+    DocumentRoot "C:/xampp/htdocs"
+    <Directory "C:/xampp/htdocs">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog "logs/localhost-error.log"
+    CustomLog "logs/localhost-access.log" common
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName chimzy.local
+    DocumentRoot "C:/xampp/htdocs/chimzy.artgallery/public"
+    <Directory "C:/xampp/htdocs/chimzy.artgallery/public">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog "logs/chimzy-error.log"
+    CustomLog "logs/chimzy-access.log" common
+</VirtualHost>
+
+==========================================================

@@ -1400,6 +1400,110 @@ class AdminController extends Controller {
         $this->view('admin/reports', $data);
     }
 
+    public function teacherRecommendations() {
+        $database = new Database();
+        $db = $database->connect();
+        
+        // Get all teacher recommendations with teacher and library details
+        $stmt = $db->prepare("
+            SELECT 
+                r.id,
+                r.title,
+                r.filters,
+                r.created_at,
+                r.library_id,
+                u.id as teacher_id,
+                u.username as teacher_name,
+                u.email as teacher_email,
+                l.name as library_name
+            FROM reports r
+            JOIN users u ON r.generated_by = u.id
+            JOIN libraries l ON r.library_id = l.id
+            WHERE r.type = 'recommendation'
+            ORDER BY r.created_at DESC
+        ");
+        $stmt->execute();
+        $recommendations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $data = [
+            'recommendations' => $recommendations
+        ];
+        
+        $this->view('admin/teacher-recommendations', $data);
+    }
+
+    public function updateRecommendationStatus() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+
+        // Validate CSRF token
+        if (!Security::verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
+            return;
+        }
+
+        $reportId = $_POST['report_id'] ?? null;
+        $newStatus = $_POST['status'] ?? null;
+
+        if (!$reportId || !$newStatus) {
+            echo json_encode(['success' => false, 'message' => 'Missing required parameters']);
+            return;
+        }
+
+        // Validate status
+        $validStatuses = ['pending', 'approved', 'in_progress', 'completed', 'rejected'];
+        if (!in_array($newStatus, $validStatuses)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid status']);
+            return;
+        }
+
+        try {
+            $database = new Database();
+            $db = $database->connect();
+
+            // Get current filters
+            $stmt = $db->prepare("SELECT filters FROM reports WHERE id = ? AND type = 'recommendation'");
+            $stmt->execute([$reportId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                echo json_encode(['success' => false, 'message' => 'Recommendation not found']);
+                return;
+            }
+
+            // Decode filters, update status, re-encode
+            $filtersString = html_entity_decode($result['filters'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $filters = json_decode($filtersString, true) ?? [];
+            $filters['status'] = $newStatus;
+            $updatedFilters = json_encode($filters);
+
+            // Update in database
+            $updateStmt = $db->prepare("UPDATE reports SET filters = ? WHERE id = ?");
+            $updateStmt->execute([$updatedFilters, $reportId]);
+
+            // Log the activity
+            if (isset($_SESSION['user_id'])) {
+                Security::logActivity(
+                    $_SESSION['user_id'],
+                    'update_recommendation_status',
+                    'data',
+                    "Updated recommendation #$reportId status to $newStatus",
+                    ['report_id' => $reportId, 'new_status' => $newStatus],
+                    'info'
+                );
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+        } catch (Exception $e) {
+            error_log("Error updating recommendation status: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+        }
+    }
+
     public function generateReport() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reportModel = new Report();

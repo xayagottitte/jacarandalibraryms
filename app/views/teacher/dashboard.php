@@ -1,8 +1,8 @@
 
 <?php
-// Modern Teacher Dashboard View
-include __DIR__ . '/../shared/header.php';
-include __DIR__ . '/../shared/layout-header.php';
+$title = "Teacher Dashboard - Jacaranda Libraries";
+include '../app/views/shared/header.php'; 
+include '../app/views/shared/layout-header.php'; 
 ?>
 <style>
     .teacher-dashboard-header {
@@ -145,5 +145,5 @@ include __DIR__ . '/../shared/layout-header.php';
     </div>
 </main>
 
-<?php include __DIR__ . '/../shared/layout-footer.php'; ?>
-<?php include __DIR__ . '/../shared/footer.php'; ?>
+<?php include '../app/views/shared/layout-footer.php'; ?>
+<?php include '../app/views/shared/footer.php'; ?>

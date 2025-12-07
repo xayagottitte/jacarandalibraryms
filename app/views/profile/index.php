@@ -584,7 +584,7 @@ include '../app/views/shared/layout-header.php';
                                 </td>
                             </tr>
                             <tr>
-                                <th>Library:</th>
+                                <th><?= $_SESSION['role'] === 'teacher' ? 'School:' : 'Library:' ?></th>
                                 <td><?= $library ? htmlspecialchars($library['name']) : 'Not assigned' ?></td>
                             </tr>
                             <tr>
@@ -609,14 +609,82 @@ include '../app/views/shared/layout-header.php';
                             </tr>
                             <tr>
                                 <th>Department:</th>
-                                <td><?= $library ? htmlspecialchars($library['type'] . ' Library') : 'Library Services' ?></td>
+                                <td><?php 
+                                    if ($_SESSION['role'] === 'teacher') {
+                                        echo 'Teaching Faculty';
+                                    } else {
+                                        echo $library ? htmlspecialchars($library['type'] . ' Library') : 'Library Services';
+                                    }
+                                ?></td>
                             </tr>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Teacher Activity Summary -->
+            <?php if ($_SESSION['role'] === 'teacher'): ?>
+            <div class="info-card">
+                <div class="info-card-header warning">
+                    <h5><i class="fas fa-chalkboard-teacher"></i>Teaching Activity</h5>
+                </div>
+                
+                <div class="perf-stats-grid">
+                    <div class="perf-stat-card">
+                        <i class="fas fa-lightbulb perf-stat-icon" style="color: var(--primary-purple);"></i>
+                        <div class="perf-stat-value"><?= number_format($performance['recommendations'] ?? 0) ?></div>
+                        <div class="perf-stat-label">Recommendations Submitted</div>
+                    </div>
+                    <div class="perf-stat-card">
+                        <i class="fas fa-chart-line perf-stat-icon" style="color: var(--success-gradient-start);"></i>
+                        <div class="perf-stat-value"><?= number_format($performance['students_tracked'] ?? 0) ?></div>
+                        <div class="perf-stat-label">Students Monitored</div>
+                    </div>
+                    <div class="perf-stat-card">
+                        <i class="fas fa-folder-open perf-stat-icon" style="color: var(--info-gradient-start);"></i>
+                        <div class="perf-stat-value"><?= number_format($performance['resources_accessed'] ?? 0) ?></div>
+                        <div class="perf-stat-label">Resources Accessed</div>
+                    </div>
+                    <div class="perf-stat-card">
+                        <i class="fas fa-chart-pie perf-stat-icon" style="color: var(--warning-gradient-start);"></i>
+                        <div class="perf-stat-value"><?= number_format($performance['analytics_views'] ?? 0) ?></div>
+                        <div class="perf-stat-label">Analytics Reviews</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <h6 style="font-weight: 700; color: var(--grey-dark); margin: 2rem 0 1rem 0;">Recent Activity</h6>
+                <div class="table-responsive">
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Activity</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($activity_logs)): ?>
+                                <?php foreach (array_slice($activity_logs, 0, 10) as $log): ?>
+                                    <tr>
+                                        <td><?= date('M j, Y', strtotime($log['created_at'] ?? $log['date'])) ?></td>
+                                        <td><?= htmlspecialchars($log['activity'] ?? $log['event_type'] ?? $log['action']) ?></td>
+                                        <td><?= htmlspecialchars($log['details'] ?? $log['description']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="3" class="empty-state">No recent activity found</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Performance & Activity -->
+            <?php if ($_SESSION['role'] !== 'teacher'): ?>
             <div class="info-card">
                 <div class="info-card-header warning">
                     <h5><i class="fas fa-chart-line"></i>Performance & Activity Logs</h5>
@@ -696,6 +764,7 @@ include '../app/views/shared/layout-header.php';
                     </table>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </div><!-- Edit Profile Modal -->

@@ -306,7 +306,7 @@ function toggleLibraryField() {
     const role = document.getElementById('role').value;
     const libraryField = document.getElementById('libraryField');
     
-    if (role === 'librarian') {
+    if (role === 'librarian' || role === 'teacher') {
         libraryField.style.display = 'block';
     } else {
         libraryField.style.display = 'none';

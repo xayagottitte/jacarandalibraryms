@@ -92,11 +92,25 @@
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     backdrop-filter: blur(10px);
-    background: rgba(255,255,255,0.98);
+    background: rgba(255,255,255,0.98) !important;
     margin-top: 0.75rem;
     padding: 0.75rem;
     min-width: 240px;
-    z-index: 10000;
+    z-index: 10000 !important;
+    position: absolute !important;
+    display: none;
+}
+
+.modern-navbar .dropdown-menu.show {
+    display: block !important;
+}
+
+.modern-navbar .dropdown {
+    position: relative;
+}
+
+.modern-navbar .dropdown-toggle {
+    cursor: pointer;
 }
 
 .modern-navbar .dropdown-item-text {
@@ -259,6 +273,8 @@ body {
                 $dashboardLink = BASE_PATH . '/admin/dashboard';
             } elseif ($_SESSION['role'] === 'librarian') {
                 $dashboardLink = BASE_PATH . '/librarian/dashboard';
+            } elseif ($_SESSION['role'] === 'teacher') {
+                $dashboardLink = BASE_PATH . '/teacher/dashboard';
             }
         }
         ?>
@@ -311,14 +327,18 @@ body {
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/admin/reports') || str_contains($_SERVER['REQUEST_URI'], '/admin/activity-logs') ? 'active' : '' ?>" 
+                            <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/admin/reports') || str_contains($_SERVER['REQUEST_URI'], '/admin/activity-logs') || str_contains($_SERVER['REQUEST_URI'], '/admin/teacher-recommendations') ? 'active' : '' ?>" 
                                href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-chart-line"></i> Reports
+                                <i class="fas fa-chart-line"></i> Reports & Activity
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
                                 <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/reports">
                                     <i class="fas fa-chart-line"></i> Reports
                                 </a></li>
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/teacher-recommendations">
+                                    <i class="fas fa-lightbulb"></i> Teacher Recommendations
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="<?= BASE_PATH ?>/admin/activity-logs">
                                     <i class="fas fa-history"></i> Activity Logs
                                 </a></li>
@@ -345,14 +365,49 @@ body {
                                 <i class="fas fa-exchange-alt"></i> Borrowing
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/librarian/reports') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/librarian/reports">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle <?= str_contains($_SERVER['REQUEST_URI'], '/librarian/reports') || str_contains($_SERVER['REQUEST_URI'], '/librarian/teacher-recommendations') ? 'active' : '' ?>" 
+                               href="#" id="librarianReportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-chart-bar"></i> Reports
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="librarianReportsDropdown">
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/librarian/reports">
+                                    <i class="fas fa-chart-bar"></i> Library Reports
+                                </a></li>
+                                <li><a class="dropdown-item" href="<?= BASE_PATH ?>/librarian/teacher-recommendations">
+                                    <i class="fas fa-lightbulb"></i> Teacher Recommendations
+                                </a></li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/librarian/quick-borrow') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/librarian/quick-borrow">
                                 <i class="fas fa-bolt"></i> Quick Borrow
+                            </a>
+                        </li>
+                    <?php elseif ($_SESSION['role'] === 'teacher'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/teacher/dashboard') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/teacher/dashboard">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/teacher/borrowing') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/teacher/borrowing">
+                                <i class="fas fa-chart-line"></i> Student Borrowing
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/teacher/analytics') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/teacher/analytics">
+                                <i class="fas fa-chart-pie"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/teacher/resources') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/teacher/resources">
+                                <i class="fas fa-folder-open"></i> Resources
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/teacher/recommend') ? 'active' : '' ?>" href="<?= BASE_PATH ?>/teacher/recommend">
+                                <i class="fas fa-lightbulb"></i> Recommend
                             </a>
                         </li>
                     <?php endif; ?>
@@ -478,5 +533,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
         }, 5000); // 5 seconds delay
     });
+    
+    // Initialize all Bootstrap dropdowns
+    const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+    const dropdownList = [...dropdownElementList].map(dropdownToggleEl => {
+        return new bootstrap.Dropdown(dropdownToggleEl, {
+            autoClose: true,
+            boundary: 'viewport'
+        });
+    });
+    
+    // Backup: Manual click handler for user dropdown
+    const userDropdown = document.getElementById('userDropdown');
+    if (userDropdown) {
+        userDropdown.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdownMenu = this.nextElementSibling;
+            if (dropdownMenu) {
+                dropdownMenu.classList.toggle('show');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userDropdown.contains(e.target)) {
+                const dropdownMenu = userDropdown.nextElementSibling;
+                if (dropdownMenu && dropdownMenu.classList.contains('show')) {
+                    dropdownMenu.classList.remove('show');
+                }
+            }
+        });
+    }
 });
 </script>

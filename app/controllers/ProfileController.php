@@ -33,9 +33,9 @@ class ProfileController extends Controller {
             $user = $this->userModel->find($userId);
         }
         
-        // Get library information if librarian
+        // Get library information if librarian or teacher
         $library = null;
-        if ($_SESSION['role'] === 'librarian' && isset($_SESSION['library_id'])) {
+        if (($_SESSION['role'] === 'librarian' || $_SESSION['role'] === 'teacher') && isset($_SESSION['library_id'])) {
             $library = $this->libraryModel->find($_SESSION['library_id']);
         }
 
@@ -267,6 +267,15 @@ class ProfileController extends Controller {
     }
 
     private function getPerformanceData($userId) {
+        // Check user role
+        $role = $_SESSION['role'] ?? null;
+        
+        if ($role === 'teacher') {
+            // Teacher-specific performance data
+            return $this->getTeacherPerformanceData($userId);
+        }
+        
+        // Librarian/Admin performance data
         $data = [
             'books_issued' => 0,
             'books_returned' => 0,
@@ -315,6 +324,48 @@ class ProfileController extends Controller {
         } catch (Exception $e) {
             // Handle gracefully if methods don't exist
             error_log("Error getting performance data: " . $e->getMessage());
+        }
+
+        return $data;
+    }
+
+    private function getTeacherPerformanceData($userId) {
+        $data = [
+            'recommendations' => 0,
+            'students_tracked' => 0,
+            'resources_accessed' => 0,
+            'analytics_views' => 0
+        ];
+
+        try {
+            $db = (new Database())->connect();
+            
+            // Count recommendations submitted (stored in reports table with type='recommendation')
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM reports WHERE generated_by = ? AND type = 'recommendation'");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['recommendations'] = (int)($result['count'] ?? 0);
+            
+            // Count unique activity log entries for resources accessed
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM activity_logs WHERE user_id = ? AND event_type = 'access_resources'");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['resources_accessed'] = (int)($result['count'] ?? 0);
+            
+            // Count analytics dashboard views
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM activity_logs WHERE user_id = ? AND event_type = 'view_analytics'");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['analytics_views'] = (int)($result['count'] ?? 0);
+            
+            // Count student borrowing views (proxy for students tracked)
+            $stmt = $db->prepare("SELECT COUNT(*) as count FROM activity_logs WHERE user_id = ? AND event_type = 'view_student_borrowing'");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $data['students_tracked'] = (int)($result['count'] ?? 0);
+
+        } catch (Exception $e) {
+            error_log("Error getting teacher performance data: " . $e->getMessage());
         }
 
         return $data;
