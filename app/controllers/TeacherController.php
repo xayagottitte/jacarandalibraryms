@@ -87,8 +87,29 @@ class TeacherController extends Controller {
     public function resources() {
         $this->requireTeacher();
         
-        // Get digital resources
-        $resources = $this->getDigitalResources();
+        $teacherId = $_SESSION['user_id'];
+        $libraryId = $_SESSION['library_id'];
+        
+        // Get filters
+        $filterType = $_GET['type'] ?? '';
+        $filterSubject = $_GET['subject'] ?? '';
+        $filterGrade = $_GET['grade'] ?? '';
+        $search = $_GET['search'] ?? '';
+        
+        // Get resources
+        $resources = $this->getDigitalResources($libraryId, $teacherId, [
+            'type' => $filterType,
+            'subject' => $filterSubject,
+            'grade' => $filterGrade,
+            'search' => $search
+        ]);
+        
+        // Get statistics
+        $stats = $this->getResourceStats($teacherId, $libraryId);
+        
+        // Get unique subjects and grades for filters
+        $subjects = $this->getUniqueValues('subject', $libraryId);
+        $grades = $this->getUniqueValues('grade_level', $libraryId);
         
         Security::logActivity(
             $_SESSION['user_id'],
@@ -97,7 +118,167 @@ class TeacherController extends Controller {
             'Accessed digital resources'
         );
         
-        $this->view('teacher/resources', ['resources' => $resources]);
+        $this->view('teacher/resources', [
+            'resources' => $resources,
+            'stats' => $stats,
+            'subjects' => $subjects,
+            'grades' => $grades,
+            'filters' => [
+                'type' => $filterType,
+                'subject' => $filterSubject,
+                'grade' => $filterGrade,
+                'search' => $search
+            ]
+        ]);
+    }
+
+    public function uploadResource() {
+        $this->requireTeacher();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(BASE_PATH . '/teacher/resources');
+            return;
+        }
+
+        $teacherId = $_SESSION['user_id'];
+        $libraryId = $_SESSION['library_id'];
+        
+        $title = $_POST['title'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $resourceType = $_POST['resource_type'] ?? '';
+        $resourceUrl = $_POST['resource_url'] ?? '';
+        $source = $_POST['source'] ?? 'teacher_upload';
+        $subject = $_POST['subject'] ?? null;
+        $gradeLevel = $_POST['grade_level'] ?? null;
+        $tags = $_POST['tags'] ?? '';
+        $thumbnailUrl = $_POST['thumbnail_url'] ?? null;
+        $duration = $_POST['duration'] ?? null;
+
+        if (empty($title) || empty($resourceType) || empty($resourceUrl)) {
+            $_SESSION['error'] = 'Title, type, and URL are required.';
+            $this->redirect(BASE_PATH . '/teacher/resources');
+            return;
+        }
+
+        // Process tags
+        $tagsArray = array_filter(array_map('trim', explode(',', $tags)));
+        $tagsJson = json_encode($tagsArray);
+
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO resources (
+                    title, description, resource_type, resource_url, source,
+                    subject, grade_level, tags, thumbnail_url, duration,
+                    uploaded_by, library_id, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+            ");
+            
+            $stmt->execute([
+                $title,
+                $description,
+                $resourceType,
+                $resourceUrl,
+                $source,
+                $subject,
+                $gradeLevel,
+                $tagsJson,
+                $thumbnailUrl,
+                $duration,
+                $teacherId,
+                $libraryId
+            ]);
+
+            Security::logActivity(
+                $teacherId,
+                'resource_uploaded',
+                'data',
+                "Uploaded resource: {$title}",
+                ['resource_type' => $resourceType, 'source' => $source]
+            );
+
+            $_SESSION['success'] = 'Resource uploaded successfully!';
+        } catch (Exception $e) {
+            error_log("Error uploading resource: " . $e->getMessage());
+            $_SESSION['error'] = 'Failed to upload resource.';
+        }
+
+        $this->redirect(BASE_PATH . '/teacher/resources');
+    }
+
+    public function deleteResource() {
+        $this->requireTeacher();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+
+        $resourceId = $_POST['resource_id'] ?? null;
+        $teacherId = $_SESSION['user_id'];
+
+        if (!$resourceId) {
+            echo json_encode(['success' => false, 'message' => 'Resource ID required']);
+            return;
+        }
+
+        try {
+            // Verify ownership
+            $stmt = $this->db->prepare("SELECT id FROM resources WHERE id = ? AND uploaded_by = ?");
+            $stmt->execute([$resourceId, $teacherId]);
+            
+            if (!$stmt->fetch()) {
+                echo json_encode(['success' => false, 'message' => 'Resource not found or access denied']);
+                return;
+            }
+
+            // Delete resource
+            $stmt = $this->db->prepare("DELETE FROM resources WHERE id = ?");
+            $stmt->execute([$resourceId]);
+
+            Security::logActivity(
+                $teacherId,
+                'resource_deleted',
+                'data',
+                "Deleted resource ID: {$resourceId}"
+            );
+
+            echo json_encode(['success' => true, 'message' => 'Resource deleted successfully']);
+        } catch (Exception $e) {
+            error_log("Error deleting resource: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to delete resource']);
+        }
+    }
+
+    public function trackView() {
+        $this->requireTeacher();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false]);
+            return;
+        }
+
+        $resourceId = $_POST['resource_id'] ?? null;
+        $userId = $_SESSION['user_id'];
+
+        if (!$resourceId) {
+            echo json_encode(['success' => false]);
+            return;
+        }
+
+        try {
+            // Insert view record
+            $stmt = $this->db->prepare("INSERT INTO resource_views (resource_id, viewed_by) VALUES (?, ?)");
+            $stmt->execute([$resourceId, $userId]);
+
+            // Update view count
+            $stmt = $this->db->prepare("UPDATE resources SET views = views + 1 WHERE id = ?");
+            $stmt->execute([$resourceId]);
+
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log("Error tracking view: " . $e->getMessage());
+            echo json_encode(['success' => false]);
+        }
     }
 
     public function analytics() {
@@ -178,7 +359,7 @@ class TeacherController extends Controller {
                 'books_borrowed' => 0,
                 'recommendations' => 0,
                 'students_tracked' => 0,
-                'reservations' => 0
+                'resources_shared' => 0
             ];
             
             // Get books borrowed by teacher
@@ -191,6 +372,12 @@ class TeacherController extends Controller {
             $stmt->execute([$teacherId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $stats['books_borrowed'] = $result['count'] ?? 0;
+
+            // Resources shared
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM resources WHERE uploaded_by = ? AND status = 'active'");
+            $stmt->execute([$teacherId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['resources_shared'] = $result['count'] ?? 0;
             
             return $stats;
         } catch (PDOException $e) {
@@ -199,7 +386,7 @@ class TeacherController extends Controller {
                 'books_borrowed' => 0,
                 'recommendations' => 0,
                 'students_tracked' => 0,
-                'reservations' => 0
+                'resources_shared' => 0
             ];
         }
     }
@@ -242,9 +429,108 @@ class TeacherController extends Controller {
         }
     }
     
-    private function getDigitalResources() {
-        // Placeholder for digital resources
-        return [];
+    private function getDigitalResources($libraryId, $teacherId, $filters = []) {
+        $conditions = ["r.library_id = ?"];
+        $params = [$libraryId];
+        
+        if (!empty($filters['type'])) {
+            $conditions[] = "r.resource_type = ?";
+            $params[] = $filters['type'];
+        }
+        
+        if (!empty($filters['subject'])) {
+            $conditions[] = "r.subject = ?";
+            $params[] = $filters['subject'];
+        }
+        
+        if (!empty($filters['grade'])) {
+            $conditions[] = "r.grade_level = ?";
+            $params[] = $filters['grade'];
+        }
+        
+        if (!empty($filters['search'])) {
+            $conditions[] = "(r.title LIKE ? OR r.description LIKE ?)";
+            $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        $whereClause = implode(' AND ', $conditions);
+        
+        try {
+            $stmt = $this->db->prepare("
+                SELECT r.*, 
+                       u.username as uploader_name,
+                       u.full_name as uploader_full_name
+                FROM resources r
+                LEFT JOIN users u ON r.uploaded_by = u.id
+                WHERE {$whereClause} AND r.status = 'active'
+                ORDER BY r.created_at DESC
+            ");
+            
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting resources: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getResourceStats($teacherId, $libraryId) {
+        $stats = [
+            'total_resources' => 0,
+            'my_uploads' => 0,
+            'total_views' => 0,
+            'videos' => 0
+        ];
+        
+        try {
+            // Total resources in library
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM resources WHERE library_id = ? AND status = 'active'");
+            $stmt->execute([$libraryId]);
+            $stats['total_resources'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+            
+            // My uploads
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM resources WHERE uploaded_by = ? AND status = 'active'");
+            $stmt->execute([$teacherId]);
+            $stats['my_uploads'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+            
+            // Total views on my resources
+            $stmt = $this->db->prepare("
+                SELECT SUM(r.views) as total_views 
+                FROM resources r 
+                WHERE r.uploaded_by = ? AND r.status = 'active'
+            ");
+            $stmt->execute([$teacherId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stats['total_views'] = $result['total_views'] ?? 0;
+            
+            // Videos count
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM resources WHERE library_id = ? AND resource_type = 'video' AND status = 'active'");
+            $stmt->execute([$libraryId]);
+            $stats['videos'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+            
+        } catch (Exception $e) {
+            error_log("Error getting resource stats: " . $e->getMessage());
+        }
+        
+        return $stats;
+    }
+
+    private function getUniqueValues($field, $libraryId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT {$field} as value 
+                FROM resources 
+                WHERE library_id = ? AND {$field} IS NOT NULL AND status = 'active'
+                ORDER BY {$field}
+            ");
+            $stmt->execute([$libraryId]);
+            return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'value');
+        } catch (Exception $e) {
+            error_log("Error getting unique values: " . $e->getMessage());
+            return [];
+        }
     }
     
     private function getTeacherAnalytics($teacherId) {
